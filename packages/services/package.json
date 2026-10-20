@@ -4,6 +4,7 @@
   "private": true,
   "description": "Preview and execution services (boundary D): workspace, processes, previews, Git, visual edits.",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

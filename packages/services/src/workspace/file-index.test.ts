@@ -15,7 +15,7 @@ beforeEach(() => {
   mkdirSync(root);
 });
 
-afterEach(() => rmSync(base, { recursive: true, force: true }));
+afterEach(() => rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }));
 
 const touch = (relative: string) => {
   mkdirSync(path.dirname(path.join(root, relative)), { recursive: true });

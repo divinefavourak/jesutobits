@@ -36,7 +36,7 @@ use restart_policy::{Decision, RestartPolicy};
 
 /// Longest runtime stderr line kept; Node stack traces fit easily.
 const MAX_STDERR_LINE_BYTES: usize = 64 * 1024;
-/// How long to wait for a process whose stdout closed during the handshake to exit.
+/// How long to wait for a process whose stdout closed to exit before killing it.
 const EXIT_WAIT: Duration = Duration::from_secs(5);
 const MODULE: &str = "runtime_supervisor";
 
@@ -507,6 +507,22 @@ async fn run_once(
     let mut missed = 0;
     loop {
         tokio::select! {
+            // Stdout ended: the runtime is exiting. On a busy machine the OS can report the
+            // exit a second or more later, so stop pinging a dead pipe and wait for it here.
+            _ = connection.closed() => {
+                let code = match tokio::time::timeout(EXIT_WAIT, child.wait()).await {
+                    Ok(status) => observe_exit(inner, status),
+                    Err(_) => {
+                        kill_and_reap(inner, &mut child).await;
+                        "none".to_owned()
+                    }
+                };
+                return if inner.is_shutting_down() {
+                    Ended::ShutDown
+                } else {
+                    Ended::Crashed(format!("The runtime stopped unexpectedly (exit code {code})"))
+                };
+            }
             status = child.wait() => {
                 let code = observe_exit(inner, status);
                 return if inner.is_shutting_down() {

@@ -9,6 +9,7 @@ import {
 import type { Logger } from "@jesutobits/shared";
 import { EventBus } from "./events/event-bus.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
+import { Projects } from "./projects/projects.js";
 import { RpcServer } from "./rpc/server.js";
 import { openStorage, type Storage } from "./storage/storage.js";
 import { RUNTIME_VERSION } from "./version.js";
@@ -41,11 +42,20 @@ type LifecycleState = "awaiting_initialize" | "ready" | "shutting_down";
 export function createRuntime(io: RuntimeIo): Runtime {
   let state: LifecycleState = "awaiting_initialize";
   let storage: Storage | undefined;
+  // Settles once the database is open (just after the handshake); handlers that need it wait.
+  let storageOpened: (storage: Storage) => void = () => undefined;
+  let storageFailed: (error: unknown) => void = () => undefined;
+  const storageReady = new Promise<Storage>((resolve, reject) => {
+    storageOpened = resolve;
+    storageFailed = reject;
+  });
+  storageReady.catch(() => undefined); // Callers see the rejection; nothing else must.
   const log = io.log.child({ module: "runtime" });
 
   const shutdown = (): void => {
     // Later phases also cancel the active turn and stop managed processes here.
     try {
+      projects.closeActive();
       storage?.close();
     } catch (error) {
       log.error("could not close the database", { err: error });
@@ -111,21 +121,29 @@ export function createRuntime(io: RuntimeIo): Runtime {
   });
   server.register("events.replay", (params) => events.replay(params.afterSeq));
 
+  const projects = new Projects({
+    events,
+    log: io.log.child({ module: "projects" }),
+    storage: () => storageReady,
+  });
+  projects.register(server);
+
   /** Opens the database; problems become events the Workbench shows (DATA_AND_PERSISTENCE.md 6.1). */
   function startStorage(): void {
     try {
       storage = openStorage({ dir: io.dataDir, log: io.log.child({ module: "storage" }) });
     } catch (error) {
       log.error("could not open the database", { err: error });
-      events.emit("runtime.error", {
-        error: new JesutobitsError(
-          ErrorCodes.storageUnavailable,
-          "Jesutobits could not open its database. Projects and sessions cannot be saved.",
-          { userAction: "report" },
-        ).toData(),
-      });
+      const unavailable = new JesutobitsError(
+        ErrorCodes.storageUnavailable,
+        "Jesutobits could not open its database. Projects and sessions cannot be saved.",
+        { userAction: "report" },
+      );
+      storageFailed(unavailable);
+      events.emit("runtime.error", { error: unavailable.toData() });
       return;
     }
+    storageOpened(storage);
     for (const notice of storage.notices) {
       events.emit("runtime.warning", { message: notice.message, code: notice.code });
     }

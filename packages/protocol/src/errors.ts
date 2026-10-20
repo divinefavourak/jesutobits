@@ -61,6 +61,8 @@ export const ErrorCodes = {
   /** The file is not text, so it cannot be read or written as text. */
   fsBinary: "fs.binary",
   fsPermissionDenied: "fs.permission_denied",
+  /** No project is open, so there are no files to work on. */
+  fsNoProject: "fs.no_project",
   /** Any other file-system failure; details carry the OS error code. */
   fsIo: "fs.io",
   /** A database upgrade failed and was rolled back; the database is open read-only. */

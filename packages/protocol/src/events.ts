@@ -80,9 +80,33 @@ export const runtimeErrorEvent = defineEvent({
   }),
 });
 
+/**
+ * Files in the active project changed (AGENT_HARNESS.md section 6), batched every 100 ms.
+ * `self` changes were made through WorkspaceService (an editor save, a tool write). On
+ * `overflow`, the Workbench reloads what it shows instead of applying `changes`.
+ */
+export const fsChangedEvent = defineEvent({
+  type: "fs.changed",
+  description: "A batch of file changes in the active project.",
+  payload: z.object({
+    projectId: z.string(),
+    changes: z.array(
+      z.object({
+        path: z.string(),
+        kind: z.enum(["upsert", "removed"]),
+        isDirectory: z.boolean(),
+        self: z.boolean(),
+      }),
+    ),
+    overflow: z.boolean(),
+    changeCounter: z.number().int().nonnegative(),
+  }),
+});
+
 export const EVENTS = {
   [runtimeWarningEvent.type]: runtimeWarningEvent,
   [runtimeErrorEvent.type]: runtimeErrorEvent,
+  [fsChangedEvent.type]: fsChangedEvent,
 } as const;
 
 export type EventType = keyof typeof EVENTS;

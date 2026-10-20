@@ -30,7 +30,25 @@ describe("method registry", () => {
 
   // Checked by `tsc` (tsconfig.tests.json): Workbench code cannot even type a Host-only call.
   it("types WorkbenchMethod as exactly the Workbench-callable methods", () => {
-    expectTypeOf<WorkbenchMethod>().toEqualTypeOf<"runtime.ping" | "events.replay">();
+    expectTypeOf<WorkbenchMethod>().toEqualTypeOf<
+      | "runtime.ping"
+      | "events.replay"
+      | "projects.list"
+      | "projects.open"
+      | "projects.create"
+      | "projects.close"
+      | "projects.setTrust"
+      | "projects.remove"
+      | "projects.locate"
+      | "fs.listDir"
+      | "fs.stat"
+      | "fs.readFile"
+      | "fs.writeFile"
+      | "fs.createFile"
+      | "fs.createDirectory"
+      | "fs.rename"
+      | "fs.quickOpen"
+    >();
   });
 });
 

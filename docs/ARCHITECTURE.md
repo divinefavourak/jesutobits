@@ -263,8 +263,8 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | Namespace | Methods |
 |---|---|
 | `runtime` | `initialize` and `shutdown` (Host only); `ping` (Host health checks, and the Workbench for relay latency) |
-| `projects` | `list`, `open`, `close`, `create`, `setTrust`, `detect` (toolchain, preview strategy, checks) |
-| `fs` | `listDir`, `readFile`, `writeFile`, `createFile`, `rename`, `trash`, `stat`, `search`, `quickOpen` |
+| `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`; `detect` (toolchain, preview strategy, checks) arrives with onboarding |
+| `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`; `trash` arrives with the explorer, `search` with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |
 | `sessions` | `list`, `create`, `get`, `rename`, `archive`, `delete`, `export` |
 | `agent` | `sendMessage`, `cancelTurn`, `pauseTurn`, `resumeTurn`, `retryTurn`, `answerQuestion`, `setModel` |
 | `permissions` | `respond`, `listRules`, `addRule`, `removeRule`, `getPolicy`, `setPolicy` |

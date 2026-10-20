@@ -71,6 +71,7 @@ Parent-death detection: the runtime treats **EOF on stdin** as "the Host is gone
 - Auto-restart landed in Phase 1 (`runtime_supervisor/`, tests in `runtime_supervisor/tests.rs` against `fixtures/bin/fake-runtime.mjs`). Three clarifications of the diagram:
   - **What counts as a crash.** A process that exits without being asked, before or after the handshake, or that misses 5 health pings, is a crash and goes through Restarting. A handshake timeout, a protocol mismatch and a failed spawn or job assignment go straight to Failed, because retrying cannot fix them.
   - **Backoff.** The wait grows with the number of crashes inside the two-minute window: 0.5, 1, 2, then 4 s. The diagram used to list 8 s as a fifth step, but the fifth crash within two minutes already ends in Failed, so that step could never be reached; it was dropped.
+  - **The end of stdout is the signal.** On a busy Windows machine the exit of a process can be reported a second or more after its stdout closes. The supervisor treats stdout ending as the runtime ending (a crash, or the shutdown it asked for) and waits up to 5 s for the exit before killing it, instead of pinging a dead pipe and showing Degraded.
   - **Restart from Failed** is the `runtime_restart` command (`HostBridge.restartRuntime()`). It forgets the crash history and is ignored in every other state.
 - The Node Permission Model (RN-17) is evaluated in Phase 7 as defence in depth. It is not a sandbox for user code, because commands the agent runs are separate processes.
 

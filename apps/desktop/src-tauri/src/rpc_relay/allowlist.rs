@@ -7,6 +7,21 @@ pub const PROTOCOL_VERSION: &str = "0.1.0";
 /// Runtime methods the Workbench may call through the relay. Anything else is rejected.
 pub const WORKBENCH_METHODS: &[&str] = &[
     "events.replay",
+    "fs.createDirectory",
+    "fs.createFile",
+    "fs.listDir",
+    "fs.quickOpen",
+    "fs.readFile",
+    "fs.rename",
+    "fs.stat",
+    "fs.writeFile",
+    "projects.close",
+    "projects.create",
+    "projects.list",
+    "projects.locate",
+    "projects.open",
+    "projects.remove",
+    "projects.setTrust",
     "runtime.ping",
 ];
 

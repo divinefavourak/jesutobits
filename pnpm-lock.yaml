@@ -104,6 +104,9 @@ importers:
       '@jesutobits/protocol':
         specifier: workspace:*
         version: link:../protocol
+      '@jesutobits/services':
+        specifier: workspace:*
+        version: link:../services
       '@jesutobits/shared':
         specifier: workspace:*
         version: link:../shared

@@ -11,7 +11,13 @@ import {
 import { Listeners } from "./listeners";
 import type { HostBridge, Unsubscribe } from "./types";
 
-type Handlers = { [M in WorkbenchMethod]: (params: MethodParams<M>) => MethodResult<M> };
+/**
+ * Fixed answers for the methods the mock knows. Others fail with `rpc.method_not_found`;
+ * relaying to a real runtime (Phase 1 step 12) covers projects and files.
+ */
+type Handlers = Partial<{
+  [M in WorkbenchMethod]: (params: MethodParams<M>) => MethodResult<M>;
+}>;
 
 /**
  * In-memory HostBridge for `pnpm dev:web` and browser tests (TESTING_STRATEGY.md section

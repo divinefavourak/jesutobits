@@ -23,7 +23,10 @@ describe.runIf(process.env.JESUTOBITS_PERF === "1")("large tree (NFR-019)", () =
     execFileSync(process.execPath, [script, root, "--files", String(FILES)], { stdio: "inherit" });
   }, 600_000);
 
-  afterAll(() => rmSync(root, { recursive: true, force: true }), 600_000);
+  afterAll(
+    () => rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }),
+    600_000,
+  );
 
   it("indexes every file without blocking the event loop for 100 ms", async () => {
     const ws = await WorkspaceService.open({ root, log: nullLogger });

@@ -19,7 +19,7 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
-use tokio::sync::{oneshot, Mutex as AsyncMutex};
+use tokio::sync::{oneshot, watch, Mutex as AsyncMutex};
 
 use crate::logging;
 
@@ -63,6 +63,8 @@ pub struct Connection {
     pending: Mutex<HashMap<String, oneshot::Sender<Reply>>>,
     next_id: AtomicU64,
     on_event: EventSink,
+    /// True once the runtime's stdout has ended.
+    closed: watch::Sender<bool>,
 }
 
 impl Connection {
@@ -72,6 +74,7 @@ impl Connection {
             pending: Mutex::new(HashMap::new()),
             next_id: AtomicU64::new(1),
             on_event,
+            closed: watch::channel(false).0,
         }
     }
 
@@ -154,6 +157,13 @@ impl Connection {
     /// Fails every pending call; used when the runtime's stdout closes.
     pub fn close(&self) {
         self.pending.lock().unwrap().clear();
+        self.closed.send_replace(true);
+    }
+
+    /// Resolves once the runtime's stdout has ended: the earliest sign that it is gone.
+    pub async fn closed(&self) {
+        let mut closed = self.closed.subscribe();
+        let _ = closed.wait_for(|closed| *closed).await;
     }
 
     async fn send(&self, message: &Value) -> Result<(), Value> {
@@ -275,6 +285,20 @@ mod tests {
         let reply = next_message(&mut runtime).await;
         assert_eq!(reply["id"], "r-1");
         assert_eq!(reply["error"]["code"], METHOD_NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn closed_resolves_after_close() {
+        let (connection, _runtime, _) = connect();
+        let waiter = connection.clone();
+        let closed = tokio::spawn(async move { waiter.closed().await });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        assert!(!closed.is_finished());
+        connection.close();
+        tokio::time::timeout(Duration::from_secs(1), closed)
+            .await
+            .expect("closed() resolves")
+            .unwrap();
     }
 
     #[tokio::test]

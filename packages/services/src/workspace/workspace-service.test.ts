@@ -25,7 +25,7 @@ beforeEach(() => {
   mkdirSync(path.join(root, "src"), { recursive: true });
 });
 
-afterEach(() => rmSync(base, { recursive: true, force: true }));
+afterEach(() => rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }));
 
 const open = () => WorkspaceService.open({ root, log: nullLogger });
 const write = (relative: string, content: string | Buffer) => {

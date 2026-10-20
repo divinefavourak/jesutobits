@@ -86,7 +86,7 @@ describe("runtime over stdio", () => {
       expect(await harness.exited).toBe(0);
       expect(existsSync(join(dataDir, "jesutobits.db.open"))).toBe(false);
     } finally {
-      rmSync(dataDir, { recursive: true, force: true });
+      rmSync(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     }
   });
 
@@ -104,7 +104,7 @@ describe("runtime over stdio", () => {
       harness.kill();
       await harness.exited;
     } finally {
-      rmSync(dataDir, { recursive: true, force: true });
+      rmSync(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     }
   });
 
