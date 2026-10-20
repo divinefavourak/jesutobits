@@ -1,20 +1,4 @@
-<p align="center">
-  <img src="docs/assets/jesutobits-wordmark.svg" alt="Jesutobits: a visual, extensible AI agent workspace" width="640">
-</p>
-
-<details>
-<summary>Plain-text logo</summary>
-
-```text
-     ██╗███████╗███████╗██╗   ██╗████████╗ ██████╗ ██████╗ ██╗████████╗███████╗
-     ██║██╔════╝██╔════╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗██║╚══██╔══╝██╔════╝
-     ██║█████╗  ███████╗██║   ██║   ██║   ██║   ██║██████╔╝██║   ██║   ███████╗
-██   ██║██╔══╝  ╚════██║██║   ██║   ██║   ██║   ██║██╔══██╗██║   ██║   ╚════██║
-╚█████╔╝███████╗███████║╚██████╔╝   ██║   ╚██████╔╝██████╔╝██║   ██║   ███████║
- ╚════╝ ╚══════╝╚══════╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═════╝ ╚═╝   ╚═╝   ╚══════╝
-```
-
-</details>
+![Jesutobits: a visual, extensible AI agent workspace](docs/assets/jesutobits-wordmark.svg)
 
 **A visual, extensible AI agent workspace for building real software.**
 
