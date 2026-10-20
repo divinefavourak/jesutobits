@@ -5,7 +5,9 @@ mod rpc_relay;
 mod runtime_supervisor;
 
 use std::path::PathBuf;
-use std::time::Duration;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use tauri::ipc::Channel;
@@ -13,6 +15,9 @@ use tauri::{Manager, RunEvent, State};
 
 use rpc_relay::{allowlist, rpc_error, CODE_METHOD_NOT_ALLOWED, METHOD_NOT_FOUND};
 use runtime_supervisor::{LaunchSpec, StatusUpdate, Supervisor};
+
+/// When the Host started, for startup timing (NFR-001).
+static HOST_STARTED: OnceLock<Instant> = OnceLock::new();
 
 /// How long a Workbench call may wait for the runtime. Long work streams events instead.
 const WORKBENCH_CALL_TIMEOUT: Duration = Duration::from_secs(60);
@@ -68,6 +73,30 @@ fn workbench_log(level: String, message: String) {
     logging::workbench(&level, &message);
 }
 
+/// The Workbench rendered its first screen. Logs the time since the Host started, which is
+/// NFR-001's cold start, and the webview's own share (`sinceNavigationMs`).
+#[tauri::command]
+fn workbench_ready(since_navigation_ms: f64) {
+    static LOADS: AtomicU32 = AtomicU32::new(0);
+    let load = LOADS.fetch_add(1, Ordering::Relaxed) + 1;
+    let since_start = HOST_STARTED
+        .get()
+        .map_or(0, |started| started.elapsed().as_millis() as u64);
+    let since_navigation = since_navigation_ms.max(0.0).round() as u64;
+    let mut fields = serde_json::Map::new();
+    fields.insert("load".into(), load.into());
+    fields.insert("sinceHostStartMs".into(), since_start.into());
+    fields.insert("sinceNavigationMs".into(), since_navigation.into());
+    let msg = if load == 1 {
+        format!(
+            "workbench interactive {since_start} ms after Host start ({since_navigation} ms in the webview)"
+        )
+    } else {
+        format!("workbench reloaded and interactive after {since_navigation} ms (load {load})")
+    };
+    logging::with_fields(logging::Level::Info, "startup", msg, fields);
+}
+
 /// `JESUTOBITS_LOG_DIR` overrides the app log dir, like `JESUTOBITS_DATA_DIR` for data.
 fn log_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
     match std::env::var_os("JESUTOBITS_LOG_DIR") {
@@ -114,6 +143,7 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
 }
 
 pub fn run() {
+    HOST_STARTED.get_or_init(Instant::now);
     let app = tauri::Builder::default()
         .setup(|app| {
             logging::init(&log_dir(app.handle())?);
@@ -126,7 +156,8 @@ pub fn run() {
             rpc_call,
             runtime_subscribe,
             runtime_restart,
-            workbench_log
+            workbench_log,
+            workbench_ready
         ])
         .build(tauri::generate_context!())
         .expect("failed to build the Jesutobits Host");

@@ -15,6 +15,7 @@ function setup() {
     diagnostic: vi.fn(),
     exit: vi.fn(),
     uptimeMs: () => 1234,
+    startupMarks: () => ({ nodeBootstrapMs: 40, mainStartMs: 55 }),
   };
   const runtime = createRuntime(io);
 
@@ -47,6 +48,7 @@ describe("runtime lifecycle", () => {
         protocolVersion: PROTOCOL_VERSION,
         runtimeVersion: "0.0.0",
         nodeVersion: process.version,
+        startup: { nodeBootstrapMs: 40, mainStartMs: 55, initializeReceivedMs: 1234 },
       },
     });
   });

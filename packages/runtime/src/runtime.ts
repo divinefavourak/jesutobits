@@ -17,6 +17,8 @@ export interface RuntimeIo {
   exit(code: number): void;
   /** Milliseconds since the runtime started. */
   uptimeMs(): number;
+  /** Startup marks in milliseconds since the process started (reported by `initialize`). */
+  startupMarks(): { nodeBootstrapMs: number; mainStartMs: number };
 }
 
 export interface Runtime {
@@ -77,6 +79,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
       protocolVersion: PROTOCOL_VERSION,
       runtimeVersion: RUNTIME_VERSION,
       nodeVersion: process.version,
+      startup: { ...io.startupMarks(), initializeReceivedMs: io.uptimeMs() },
     };
   });
 

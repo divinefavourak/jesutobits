@@ -18,6 +18,7 @@ import type { HostBridge, Unsubscribe } from "./types";
 export class TauriHostBridge implements HostBridge {
   private readonly events = new Listeners<RuntimeEventBase>(false);
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
+  private readyReported = false;
 
   private constructor() {}
 
@@ -63,6 +64,14 @@ export class TauriHostBridge implements HostBridge {
     } catch (error) {
       throw toJesutobitsError(error);
     }
+  }
+
+  reportReady(): void {
+    // Once per page load; React StrictMode runs effects twice in development.
+    if (this.readyReported) return;
+    this.readyReported = true;
+    // performance.now() counts from the webview's navigation start.
+    void invoke("workbench_ready", { sinceNavigationMs: performance.now() }).catch(() => undefined);
   }
 
   log(level: LogLevel, message: string): void {

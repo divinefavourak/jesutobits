@@ -24,6 +24,20 @@ export const runtimeInitialize = defineMethod({
     protocolVersion: SemverSchema,
     runtimeVersion: z.string().min(1),
     nodeVersion: z.string().min(1),
+    /**
+     * Startup stages in milliseconds since the runtime process started, logged by the Host
+     * to explain slow starts (NFR-001, NFR-002).
+     */
+    startup: z
+      .object({
+        /** Node finished its own bootstrap (`performance.nodeTiming.bootstrapComplete`). */
+        nodeBootstrapMs: z.number().nonnegative(),
+        /** The runtime bundle finished evaluating and `main` started. */
+        mainStartMs: z.number().nonnegative(),
+        /** `runtime.initialize` arrived. */
+        initializeReceivedMs: z.number().nonnegative(),
+      })
+      .optional(),
   }),
 });
 

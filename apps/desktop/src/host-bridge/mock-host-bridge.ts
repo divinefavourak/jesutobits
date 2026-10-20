@@ -19,6 +19,7 @@ type Handlers = { [M in WorkbenchMethod]: (params: MethodParams<M>) => MethodRes
  */
 export class MockHostBridge implements HostBridge {
   readonly logs: Array<{ level: LogLevel; message: string }> = [];
+  readyReports = 0;
   private readonly events = new Listeners<RuntimeEventBase>(false);
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
   private currentStatus: RuntimeStatusUpdate = { status: "ready" };
@@ -59,6 +60,10 @@ export class MockHostBridge implements HostBridge {
     this.setStatus({ status: "starting" });
     await Promise.resolve();
     this.setStatus({ status: "ready" });
+  }
+
+  reportReady(): void {
+    this.readyReports += 1;
   }
 
   log(level: LogLevel, message: string): void {

@@ -1,3 +1,4 @@
+import { getMethod, type MethodResult } from "@jesutobits/protocol";
 import { afterEach, describe, expect, it } from "vitest";
 import { RuntimeHarness } from "./harness/runtime-harness.js";
 
@@ -18,6 +19,19 @@ describe("runtime over stdio", () => {
     expect(reply.error).toBeUndefined();
     expect(reply.result).toMatchObject({ nodeVersion: process.version });
     expect(elapsed).toBeLessThan(2000);
+  });
+
+  it("reports its startup stages in order", async () => {
+    harness = RuntimeHarness.start();
+    const reply = await harness.initialize();
+    const result = getMethod("runtime.initialize")?.result.parse(reply.result) as
+      MethodResult<"runtime.initialize"> | undefined;
+    const startup = result?.startup;
+
+    if (!startup) throw new Error("initialize reported no startup marks");
+    expect(startup.nodeBootstrapMs).toBeGreaterThan(0);
+    expect(startup.mainStartMs).toBeGreaterThanOrEqual(startup.nodeBootstrapMs);
+    expect(startup.initializeReceivedMs).toBeGreaterThanOrEqual(startup.mainStartMs);
   });
 
   it("answers ping and exits with code 0 after shutdown", async () => {

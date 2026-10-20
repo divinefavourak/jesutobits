@@ -426,6 +426,7 @@ async fn run_once(
         }
     };
     inner.running.send_replace(true);
+    let spawn_ms = started.elapsed().as_millis() as u64;
 
     // Assign before `initialize`: the runtime starts no children until it is initialised.
     if let Err(detail) = guard_process_tree(inner, spec, &child) {
@@ -487,18 +488,7 @@ async fn run_once(
         ));
     }
 
-    let ms = started.elapsed().as_millis() as u64;
-    let node_version = result["nodeVersion"].as_str().unwrap_or("?");
-    let mut fields = Map::new();
-    fields.insert("ms".into(), ms.into());
-    fields.insert("nodeVersion".into(), node_version.into());
-    fields.insert("protocolVersion".into(), runtime_protocol.into());
-    logging::with_fields(
-        logging::Level::Info,
-        MODULE,
-        format!("runtime ready in {ms} ms (node {node_version}, protocol {runtime_protocol})"),
-        fields,
-    );
+    log_ready(started, spawn_ms, &result);
     *inner.connection.lock().unwrap() = Some(connection.clone());
     inner.set_status(RuntimeStatus::Ready, None);
 
@@ -549,6 +539,38 @@ async fn run_once(
             }
         }
     }
+}
+
+/// Logs the handshake with its stages, so a slow start shows where the time went (NFR-002).
+/// The runtime reports its own marks in milliseconds since its process started.
+fn log_ready(started: Instant, spawn_ms: u64, result: &Value) {
+    let ms = started.elapsed().as_millis() as u64;
+    let node_version = result["nodeVersion"].as_str().unwrap_or("?");
+    let protocol = result["protocolVersion"].as_str().unwrap_or("?");
+    let mut fields = Map::new();
+    fields.insert("ms".into(), ms.into());
+    fields.insert("spawnMs".into(), spawn_ms.into());
+    fields.insert("nodeVersion".into(), node_version.into());
+    fields.insert("protocolVersion".into(), protocol.into());
+    let mut stages = format!("spawn {spawn_ms} ms");
+    let startup = &result["startup"];
+    for (key, label) in [
+        ("nodeBootstrapMs", "node bootstrap"),
+        ("mainStartMs", "runtime loaded"),
+        ("initializeReceivedMs", "initialize received"),
+    ] {
+        if let Some(mark) = startup[key].as_f64() {
+            let mark = mark.round() as u64;
+            fields.insert(key.into(), mark.into());
+            stages.push_str(&format!(", {label} at {mark} ms"));
+        }
+    }
+    logging::with_fields(
+        logging::Level::Info,
+        MODULE,
+        format!("runtime ready in {ms} ms ({stages}; node {node_version}, protocol {protocol})"),
+        fields,
+    );
 }
 
 /// Puts the runtime and everything it starts under a kill-on-close job object (Windows).

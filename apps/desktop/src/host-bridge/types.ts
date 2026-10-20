@@ -23,6 +23,8 @@ export interface HostBridge {
   onRuntimeStatus(handler: (update: RuntimeStatusUpdate) => void): Unsubscribe;
   /** Starts the runtime again after it reached `failed` (ADR-0002). Ignored in other states. */
   restartRuntime(): Promise<void>;
+  /** Tells the Host the first screen has rendered, for startup timing (NFR-001). */
+  reportReady(): void;
   /** Writes to the Workbench log through the Host (ARCHITECTURE.md section 10). */
   log(level: LogLevel, message: string): void;
 }

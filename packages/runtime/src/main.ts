@@ -3,6 +3,9 @@
 import { performance } from "node:perf_hooks";
 import { createRuntime } from "./runtime.js";
 
+// In the bundle, every imported module has evaluated by the time this line runs.
+const mainStartMs = performance.now();
+
 const runtime = createRuntime({
   write: (line) =>
     new Promise<void>((resolve, reject) => {
@@ -13,6 +16,10 @@ const runtime = createRuntime({
   },
   exit: (code) => process.exit(code),
   uptimeMs: () => performance.now(),
+  startupMarks: () => ({
+    nodeBootstrapMs: performance.nodeTiming.bootstrapComplete,
+    mainStartMs,
+  }),
 });
 
 process.stdin.on("data", (chunk: Buffer) => runtime.receive(chunk));

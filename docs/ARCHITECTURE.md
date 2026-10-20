@@ -205,7 +205,7 @@ flowchart TB
 
 | From → To | Mechanism | Content |
 |---|---|---|
-| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `runtime_restart`, `workbench_log`, `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
+| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `runtime_restart`, `workbench_log`, `workbench_ready` (startup timing), `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
 | Host → Workbench | Tauri `Channel` | Runtime events, runtime status (`RuntimeStatusUpdate` in `packages/protocol`), PTY output, settings changes |
 | Host ↔ Runtime | NDJSON JSON-RPC 2.0 over stdio (ADR-0003) | Runtime methods, events, `host.*` reverse calls |
 | Workbench ↔ Preview iframe | `window.postMessage` with origin + nonce + Zod | Bridge protocol (VISUAL_EDITING.md section 9) |
@@ -224,6 +224,7 @@ export interface HostBridge {
   onRuntimeStatus(handler: (s: RuntimeStatusUpdate) => void): Unsubscribe; // starting | ready | degraded | restarting | failed, plus detail
   restartRuntime(): Promise<void>; // from failed only (ADR-0002)
   log(level: LogLevel, message: string): void; // Workbench log, written by the Host (section 10)
+  reportReady(): void; // first screen rendered; the Host logs the cold-start time (NFR-001)
 
   secrets: {
     set(ref: SecretRef, value: string): Promise<void>;
@@ -492,6 +493,7 @@ Code families: `rpc.*`, `runtime.*`, `provider.*`, `tool.*`, `fs.*`, `process.*`
 - **Redaction:** all log calls pass through the `SecretRegistry` masker. The Host masks every string value of every line again before writing (registered secret values, then the token patterns of SECURITY.md section 6.1); `fixtures/redaction/cases.json` holds the pattern cases both implementations must pass. Model prompts and completions are **not** logged by default; a "Debug: log model traffic" setting enables it with redaction and a warning.
 - **Levels:** `error`, `warn`, `info` (default), `debug` (setting), `trace` (env var only: `JESUTOBITS_HOST_LOG`, `JESUTOBITS_RUNTIME_LOG`). Each process filters its own lines; the Workbench cannot log at `trace`.
 - **In-app diagnostics:** Help > Diagnostics shows runtime status, versions, last 200 log lines with filters, process table (managed processes with PIDs), and "Copy diagnostic bundle" (zips redacted logs and environment summary for bug reports, saved locally; nothing uploaded).
+- **Startup:** every launch logs its stages in `host.jsonl` (`spawnMs`, the runtime's `nodeBootstrapMs`, `mainStartMs`, `initializeReceivedMs`, and `sinceHostStartMs` when the Workbench first renders), so a slow start can be explained after the fact (docs/spikes/S1.md section 1.1).
 - **Metrics:** local counters only (turn durations, tool durations, relay latency, crash counts) stored in SQLite for the diagnostics page. No telemetry (NFR-015).
 
 ## 11. Cross-platform considerations

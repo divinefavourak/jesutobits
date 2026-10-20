@@ -10,6 +10,8 @@ export function App({ bridge }: { bridge: HostBridge }) {
   const [status, setStatus] = useState<RuntimeStatusUpdate>({ status: "starting" });
 
   useEffect(() => bridge.onRuntimeStatus(setStatus), [bridge]);
+  // After the first commit: the Host logs how long the cold start took (NFR-001).
+  useEffect(() => bridge.reportReady(), [bridge]);
 
   // `VITE_JESUTOBITS_BENCH=relay pnpm dev` measures once the runtime is ready and logs the
   // result through the Host, so Spike S1 can be measured without clicking.
