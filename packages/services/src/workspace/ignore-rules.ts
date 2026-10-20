@@ -28,6 +28,11 @@ export class IgnoreRules {
     return false;
   }
 
+  /** Forget every matcher, after changes too many to track one by one. */
+  clear(): void {
+    this.matchers.clear();
+  }
+
   /** Forget the matcher for a folder ("" for the root), after its ignore files changed. */
   invalidate(folder: string): void {
     this.matchers.delete(folder);

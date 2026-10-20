@@ -2,6 +2,14 @@ import { randomBytes } from "node:crypto";
 import { open, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
+/** Names `writeFileAtomic` uses for its temporary files: `.<name>.<12 hex>.tmp`. */
+const TEMP_NAME = /(?:^|\/)\.[^/]+\.[0-9a-f]{12}\.tmp$/;
+
+/** True for this module's temporary files, which watchers must not report. */
+export function isAtomicTemp(relative: string): boolean {
+  return TEMP_NAME.test(relative);
+}
+
 /** Windows antivirus and indexers briefly lock files; renames are retried for this long. */
 const RENAME_RETRIES = [20, 50, 100, 200, 400];
 

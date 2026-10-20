@@ -85,7 +85,7 @@ Cassettes are JSONL files in `packages/runtime/test/cassettes/`. One line per mo
 | `prompt-injection` | `README.md` and `AGENTS.md` with hostile instructions (SECURITY.md T1, T2) |
 | `symlink-escape` | Symlinks and junctions pointing outside the project |
 | `secrets` | `.env`, `id_rsa`, `.npmrc` with tokens for redaction tests |
-| `large-tree` | Generator for 100k files (NFR-019) |
+| `large-tree` | Generator for 100k files (NFR-019): `scripts/gen-large-tree.mjs`, used by `packages/services/test/large-tree.perf.test.ts` when `JESUTOBITS_PERF=1` (nightly) |
 
 Fixture `node_modules` are installed once per CI cache key, never during unit tests.
 

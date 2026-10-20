@@ -3,8 +3,16 @@ import { lstat, mkdir, readdir, readFile, realpath, rename, stat } from "node:fs
 import path from "node:path";
 import { ErrorCodes, JesutobitsError } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
-import { writeFileAtomic } from "./atomic-write.js";
+import { isAtomicTemp, writeFileAtomic } from "./atomic-write.js";
 import { display, fsError } from "./errors.js";
+import {
+  isNoisy,
+  nodeRawWatch,
+  type ChangeBatch,
+  type FileChange,
+  type WatchHandle,
+  type WatchOptions,
+} from "./file-watcher.js";
 import { IgnoreRules } from "./ignore-rules.js";
 import { PathGuard, type ResolvedPath } from "./path-guard.js";
 import { decodeText, encodeText, type TextFormat } from "./text.js";
@@ -67,6 +75,12 @@ const CASE_INSENSITIVE = process.platform === "win32" || process.platform === "d
 
 /** Larger text files are refused rather than read whole. */
 export const DEFAULT_MAX_TEXT_BYTES = 5 * 1024 * 1024;
+/** How long a change this service made is recognised in watcher events as its own. */
+const SELF_MARK_MS = 2000;
+const IGNORE_FILES = new Set([".gitignore", ".jesutobitsignore"]);
+
+/** What this service last did to a path, so the watcher can tell its own changes apart. */
+type SelfMark = { size: number; mtimeMs: number } | "removed" | "directory";
 
 /**
  * The only way to the project's files (invariant 2): every path is confined by the
@@ -76,6 +90,7 @@ export const DEFAULT_MAX_TEXT_BYTES = 5 * 1024 * 1024;
  */
 export class WorkspaceService {
   private counter = 0;
+  private readonly selfMarks = new Map<string, { mark: SelfMark; expires: number }>();
   readonly ignores: IgnoreRules;
 
   private constructor(
@@ -99,6 +114,90 @@ export class WorkspaceService {
 
   get root(): string {
     return this.guard.projectRoot;
+  }
+
+  /** The project root with links resolved. */
+  get realRoot(): string {
+    return this.guard.projectRootReal;
+  }
+
+  /**
+   * Watches the project and reports changes in batches every 100 ms (AGENT_HARNESS.md
+   * section 6). Each batch advances `changeCounter` once if anything changed that this
+   * service did not do itself. Batches are delivered in order.
+   */
+  watch(onBatch: (batch: ChangeBatch) => void, options: WatchOptions = {}): WatchHandle {
+    const intervalMs = options.intervalMs ?? 100;
+    const maxChanges = options.maxChanges ?? 1000;
+    const pending = new Set<string>();
+    let overflow = false;
+    let noisy = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
+    let delivery = Promise.resolve();
+
+    const flush = async (): Promise<void> => {
+      const paths = [...pending];
+      const wasOverflow = overflow;
+      const wasNoisy = noisy;
+      pending.clear();
+      overflow = false;
+      noisy = false;
+
+      const changes: FileChange[] = [];
+      if (wasOverflow) this.ignores.clear();
+      else for (const relative of paths) changes.push(await this.classify(relative));
+      for (const change of changes) {
+        const name = path.posix.basename(change.path);
+        if (IGNORE_FILES.has(name))
+          this.ignores.invalidate(path.posix.dirname(change.path).replace(/^\.$/, ""));
+      }
+      if (wasOverflow || wasNoisy || changes.some((change) => !change.self)) this.counter++;
+      if (closed || (changes.length === 0 && !wasOverflow)) return;
+      onBatch({ changes, overflow: wasOverflow, changeCounter: this.counter });
+    };
+    const schedule = (): void => {
+      timer ??= setTimeout(() => {
+        timer = undefined;
+        delivery = delivery.then(flush).catch((error: unknown) => {
+          this.log.error("could not report file changes", { err: error });
+        });
+      }, intervalMs);
+    };
+
+    const raw = (options.rawWatch ?? nodeRawWatch)(
+      this.guard.projectRootReal,
+      (name) => {
+        if (closed) return;
+        if (name === null) {
+          overflow = true;
+        } else {
+          const relative = name.replaceAll("\\", "/");
+          if (isAtomicTemp(relative)) return;
+          if (isNoisy(relative)) {
+            noisy = true;
+          } else {
+            pending.add(relative);
+            if (pending.size > maxChanges) {
+              overflow = true;
+              pending.clear();
+            }
+          }
+        }
+        schedule();
+      },
+      (error) => {
+        this.log.warn("the file watcher stopped", { err: error });
+        options.onError?.(error);
+      },
+    );
+    return {
+      close: () => {
+        closed = true;
+        if (timer) clearTimeout(timer);
+        raw.close();
+      },
+    };
   }
 
   /** Increments on every write through this service and every change the watcher reports. */
@@ -227,6 +326,7 @@ export class WorkspaceService {
     } catch (error) {
       throw fsError(error, relative);
     }
+    await this.markSelf(relative, resolved.real);
     const changeCounter = ++this.counter;
     this.log.debug("file written", { path: relative, bytes: bytes.length, changeCounter });
     return { path: relative, hash: hashBytes(bytes), size: bytes.length, changeCounter };
@@ -240,6 +340,7 @@ export class WorkspaceService {
     } catch (error) {
       throw fsError(error, resolved.relative);
     }
+    await this.markSelf(resolved.relative, resolved.real);
     this.counter++;
   }
 
@@ -278,9 +379,41 @@ export class WorkspaceService {
     } catch (error) {
       throw fsError(error, source.relative);
     }
+    if (!sameFile) await this.markSelf(source.relative, source.real, true);
+    await this.markSelf(target.relative, destination);
     this.counter++;
     // A move can change what a path points at (SECURITY.md section 5.2, rule 5).
     await this.resolve(to);
+  }
+
+  private async markSelf(relative: string, real: string, removed = false): Promise<void> {
+    let mark: SelfMark = "removed";
+    if (!removed) {
+      const info = await stat(real).catch(() => undefined);
+      if (!info) return;
+      mark = info.isDirectory() ? "directory" : { size: info.size, mtimeMs: info.mtimeMs };
+    }
+    this.selfMarks.set(relative, { mark, expires: Date.now() + SELF_MARK_MS });
+  }
+
+  /** Looks at a changed path now: whether it exists, and whether this service changed it. */
+  private async classify(relative: string): Promise<FileChange> {
+    const now = Date.now();
+    for (const [key, entry] of this.selfMarks) {
+      if (entry.expires < now) this.selfMarks.delete(key);
+    }
+    const mark = this.selfMarks.get(relative)?.mark;
+    const info = await stat(path.join(this.guard.projectRootReal, ...relative.split("/"))).catch(
+      () => undefined,
+    );
+    if (!info)
+      return { path: relative, kind: "removed", isDirectory: false, self: mark === "removed" };
+    const isDirectory = info.isDirectory();
+    const self =
+      mark === "directory"
+        ? isDirectory
+        : typeof mark === "object" && mark.size === info.size && mark.mtimeMs === info.mtimeMs;
+    return { path: relative, kind: "upsert", isDirectory, self };
   }
 
   private async readBytes(resolved: ResolvedPath, maxBytes: number): Promise<Buffer> {

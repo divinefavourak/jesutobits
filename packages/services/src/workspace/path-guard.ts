@@ -69,6 +69,11 @@ export class PathGuard {
     return (this.roots[0] as Root).lexical;
   }
 
+  /** The project root with links resolved: where the OS watcher reports changes. */
+  get projectRootReal(): string {
+    return (this.roots[0] as Root).real;
+  }
+
   async resolve(input: string): Promise<ResolvedPath> {
     const { path } = this;
     const project = this.roots[0] as Root;
