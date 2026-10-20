@@ -32,9 +32,13 @@ export const runtimePing = defineMethod({
   name: "runtime.ping",
   description: "Health check and relay latency probe.",
   callers: ["host", "workbench"],
-  params: z.object({}),
+  params: z.object({
+    /** Returned unchanged, so latency probes can measure realistic payload sizes both ways. */
+    echo: z.string().max(65_536).optional(),
+  }),
   result: z.object({
     uptimeMs: z.number().nonnegative(),
+    echo: z.string().optional(),
   }),
 });
 

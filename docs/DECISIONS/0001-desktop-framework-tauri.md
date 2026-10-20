@@ -52,6 +52,7 @@ Use **Tauri 2** (latest 2.x patch, at least 2.11.1 for RN-05) as the desktop she
 - Preview fidelity on macOS and Linux matches Safari-family engines. The preview toolbar offers "Open in browser" so users can check Chromium or Firefox.
 - We must keep the `HostBridge` interface clean enough that an Electron host could implement it.
 - We track Tauri security advisories and update patch versions promptly (RN-05, RN-06).
+- Spike S1 (2026-10-20, `docs/spikes/S1.md`) found nothing against Tauri for sidecar lifecycle: handshake under 0.6 s, zero orphans with a job object, relay overhead under 1 ms. The sidecar work took about a day, far inside this ADR's two-week revisit trigger. Status stays provisional until Spike S3 (preview iframe) reports.
 
 ## Revisit when
 

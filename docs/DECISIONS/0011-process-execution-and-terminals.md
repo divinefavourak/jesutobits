@@ -56,7 +56,7 @@ User projects run with the **user's installed Node and package manager**, not Je
 
 ## Consequences
 
-- Spike S1 must prove job-object assignment and descendant cleanup on Windows, including when the Host is killed from Task Manager.
+- Spike S1 must prove job-object assignment and descendant cleanup on Windows, including when the Host is killed from Task Manager. **Proven (2026-10-20, `docs/spikes/S1.md`):** 0 orphans in 10 forced kills (`TerminateProcess`, as Task Manager's End task does) with a runtime that ignores stdin EOF and holds a grandchild; with the job object disabled, every trial left both behind. `cargo test` covers job-close cleanup of a process tree on every Windows CI run.
 - The Host gains a small PTY module with its own allowlisted commands (`pty.open`, `pty.write`, `pty.resize`, `pty.close`).
 
 ## Revisit when

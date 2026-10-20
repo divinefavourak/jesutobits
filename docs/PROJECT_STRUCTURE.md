@@ -37,9 +37,13 @@ jesutobits/
 │       └── src-tauri/             # HOST (Rust)
 │           ├── Cargo.toml
 │           ├── tauri.conf.json    # bundle.externalBin: jesutobits-node, jesutobits-rg; resources
+│           ├── tauri.dev.conf.json  # merged by `pnpm dev`: dev identifier dev.jesutobits.app.dev
 │           ├── capabilities/main.json
+│           ├── icons/             # app icons, from docs/assets/jesutobits-icon.svg
 │           ├── binaries/          # fetched sidecars with target-triple names (git-ignored)
-│           ├── resources/         # build outputs copied in: runtime/, preview/, builtin/, templates/ (git-ignored)
+│           ├── resources/         # for build outputs that need assembling first: preview/, builtin/, templates/ (git-ignored).
+│           │                      # Single files are mapped straight from their build output in tauri.conf.json,
+│           │                      # e.g. packages/runtime/dist/bundle/runtime.mjs -> runtime/main.mjs
 │           └── src/
 │               ├── main.rs, lib.rs
 │               ├── runtime_supervisor/   # spawn, health, restart; job_object_windows.rs; process_group_unix.rs
@@ -88,9 +92,10 @@ jesutobits/
 │   └── jesutobits-companions/           # Ember, Dot, Pip
 ├── templates/                     # react-vite-ts-tailwind, react-vite-ts, empty, general
 ├── fixtures/                      # projects/, extensions/, bin/ (TESTING_STRATEGY.md section 3)
-├── scripts/                       # fetch-node.mjs, fetch-ripgrep.mjs, build-runtime.mjs,
-│   │                              # gen-protocol.mjs, gen-allowlist.mjs, package-builtins.mjs
-│   └── eslint-rules/              # local ESLint plugin: boundaries.mjs is the section 3 rule table
+├── scripts/                       # fetch-node.mjs (+ sidecars.json pins), fetch-ripgrep.mjs, build-runtime.mjs,
+│   │                              # gen-protocol.mjs, gen-allowlist.mjs, gen-logo.mjs, package-builtins.mjs
+│   ├── eslint-rules/              # local ESLint plugin: boundaries.mjs is the section 3 rule table
+│   └── spikes/                    # Phase 0 spike measurements, kept runnable (docs/spikes/)
 └── docs/                          # this documentation
 ```
 

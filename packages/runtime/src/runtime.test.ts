@@ -89,6 +89,15 @@ describe("runtime lifecycle", () => {
     });
   });
 
+  it("echoes a ping payload unchanged", async () => {
+    const { initialize, call } = setup();
+    await initialize();
+    const echo = "é✓".repeat(512);
+    expect(
+      await call({ jsonrpc: "2.0", id: 3, method: "runtime.ping", params: { echo } }),
+    ).toMatchObject({ id: 3, result: { echo } });
+  });
+
   it("replies to shutdown before exiting with code 0", async () => {
     const { io, initialize, call } = setup();
     await initialize();

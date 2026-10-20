@@ -21,6 +21,7 @@ async function writeJson(path, value) {
 await writeJson(join(protocolDir, "generated", "methods.json"), {
   $comment: HEADER,
   protocolVersion: protocol.PROTOCOL_VERSION,
+  errorCodes: Object.values(protocol.ErrorCodes).sort(),
   workbench: protocol.methodsCallableBy("workbench"),
   host: protocol.methodsCallableBy("host"),
 });

@@ -23,14 +23,34 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+
+      - name: Tauri system dependencies (DEVELOPMENT_SETUP.md section 1.2)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
       - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
       - run: pnpm install --frozen-lockfile
+      - name: Cache sidecar archives
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/jesutobits-sidecars
+          key: sidecars-${{ runner.os }}-${{ hashFiles('scripts/sidecars.json') }}
+      # The Host build needs the runtime bundle (a Tauri resource) and the Node sidecar.
+      - run: pnpm build:packages
+      - run: pnpm fetch:sidecars
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - run: pnpm test:rust
       - name: Generated files are up to date
         run: pnpm gen:check

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-workbench-log"
+description = "Enables the workbench_log command without any pre-configured scope."
+commands.allow = ["workbench_log"]
+
+[[permission]]
+identifier = "deny-workbench-log"
+description = "Denies the workbench_log command without any pre-configured scope."
+commands.deny = ["workbench_log"]

@@ -37,6 +37,12 @@ export const ErrorCodes = {
   rpcInvalidParams: "rpc.invalid_params",
   rpcMessageTooLarge: "rpc.message_too_large",
   rpcInternal: "rpc.internal",
+  /** Host relay: the method is not on the Workbench allowlist (ADR-0003). */
+  rpcMethodNotAllowed: "rpc.method_not_allowed",
+  /** Host relay: no reply within the relay timeout. */
+  rpcTimeout: "rpc.timeout",
+  /** Host relay: the runtime is not running or not yet initialised. */
+  runtimeUnavailable: "runtime.unavailable",
   runtimeProtocolMismatch: "runtime.protocol_mismatch",
   runtimeNotInitialized: "runtime.not_initialized",
   runtimeAlreadyInitialized: "runtime.already_initialized",

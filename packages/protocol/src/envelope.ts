@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { JesutobitsErrorDataSchema } from "./errors.js";
+import { ErrorCodes, JesutobitsError, JesutobitsErrorDataSchema } from "./errors.js";
 
 /**
  * JSON-RPC 2.0 envelope, one message per line (NDJSON) over stdio (ADR-0003).
@@ -108,4 +108,20 @@ export function classifyMessage(value: unknown): ClassifiedMessage {
     return { kind: "invalid", id: readId(value), issues: z.prettifyError(parsed.error) };
   }
   return { kind: "invalid", id: readId(value), issues: "Not a JSON-RPC 2.0 message" };
+}
+
+/**
+ * Converts whatever a failed call rejected with (a JSON-RPC error object from the runtime or
+ * the Host relay, or something unexpected) into a JesutobitsError.
+ */
+export function toJesutobitsError(value: unknown): JesutobitsError {
+  if (value instanceof JesutobitsError) return value;
+  const rpcError = RpcErrorObjectSchema.safeParse(value);
+  if (rpcError.success && rpcError.data.data) return JesutobitsError.fromData(rpcError.data.data);
+  const message = rpcError.success
+    ? rpcError.data.message
+    : value instanceof Error
+      ? value.message
+      : String(value);
+  return new JesutobitsError(ErrorCodes.rpcInternal, message);
 }

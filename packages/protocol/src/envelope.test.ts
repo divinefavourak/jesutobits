@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { classifyMessage, MethodNameSchema } from "./envelope.js";
+import { classifyMessage, MethodNameSchema, toJesutobitsError } from "./envelope.js";
+import { JesutobitsError } from "./errors.js";
 
 describe("classifyMessage", () => {
   it("recognises requests, notifications and responses", () => {
@@ -41,4 +42,25 @@ describe("MethodNameSchema", () => {
       expect(MethodNameSchema.safeParse(name).success).toBe(false);
     },
   );
+});
+
+describe("toJesutobitsError", () => {
+  it("restores the JesutobitsError carried in a JSON-RPC error", () => {
+    const error = toJesutobitsError({
+      code: -32000,
+      message: "x",
+      data: { code: "runtime.unavailable", message: "The runtime is not ready", retryable: true },
+    });
+    expect(error).toBeInstanceOf(JesutobitsError);
+    expect(error.code).toBe("runtime.unavailable");
+    expect(error.retryable).toBe(true);
+  });
+
+  it("wraps anything else as rpc.internal", () => {
+    expect(toJesutobitsError({ code: -32603, message: "boom" })).toMatchObject({
+      code: "rpc.internal",
+      message: "boom",
+    });
+    expect(toJesutobitsError("odd").code).toBe("rpc.internal");
+  });
 });

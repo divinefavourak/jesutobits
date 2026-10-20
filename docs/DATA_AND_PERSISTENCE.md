@@ -198,7 +198,7 @@ CREATE TABLE model_cache (
 );
 ```
 
-Write patterns: text deltas are streamed to the UI but persisted only as the final assistant message per step. Tool, permission, check and state-change events are persisted as they happen, in short transactions.
+Write patterns: text deltas are streamed to the UI but persisted only as the final assistant message per step. Tool, permission, check and state-change events are persisted as they happen, in short transactions. Bursts (for example many `tool.output_delta` events) are grouped into one transaction per flush rather than one per event: Spike S1 measured about 0.2 ms per single-row commit with WAL and `synchronous=NORMAL`, so 10,000 autocommitted rows took 2.1 to 2.5 s, against 0.2 to 0.9 s in transactions (`docs/spikes/S1.md`).
 
 ## 5. Settings files
 

@@ -13,7 +13,7 @@ Instructions for AI coding agents working on the **Jesutobits** repository. Huma
 
 ## What this repo is
 
-Jesutobits is a Tauri 2 desktop app (Rust **Host** + React **Workbench**) with a bundled Node.js **Runtime** sidecar that runs an AI coding agent, live previews with source-connected visual editing, a companion, and a permissioned extension system. Implementation is in Phase 0 (`docs/ROADMAP.md` section 5): the monorepo, `packages/protocol` and a stub runtime exist; the Tauri Host and the spikes do not yet.
+Jesutobits is a Tauri 2 desktop app (Rust **Host** + React **Workbench**) with a bundled Node.js **Runtime** sidecar that runs an AI coding agent, live previews with source-connected visual editing, a companion, and a permissioned extension system. Implementation is in Phase 0 (`docs/ROADMAP.md` section 5): the monorepo, `packages/protocol`, a stub runtime and the Tauri Host (runtime supervisor, Job Object, relay) exist; Spikes S2 and S3 do not yet.
 
 ## Read before changing anything
 
@@ -51,7 +51,7 @@ pnpm test:e2e       # when you touch UI flows or visual editing
 cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml  # when you touch Rust
 ```
 
-Not yet available: `fetch:sidecars`, `dev` and `cargo test` arrive with Spike S1 (the Tauri Host); `test:e2e` with Phase 1. Until then the first-time setup is `pnpm install && pnpm build:packages`.
+Not yet available: `test:e2e` (Phase 1). `pnpm lint` includes `cargo fmt --check` and `cargo clippy`, so it needs `pnpm build:packages` and `pnpm fetch:sidecars` first (the Host build embeds the runtime bundle and the Node sidecar). `pnpm test:rust` runs `cargo test`.
 
 Use `JESUTOBITS_PROVIDER=scripted JESUTOBITS_CASSETTE=<file>` to run without an API key. Never add real keys anywhere in the repo.
 

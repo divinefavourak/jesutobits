@@ -80,7 +80,10 @@ export function createRuntime(io: RuntimeIo): Runtime {
     };
   });
 
-  server.register("runtime.ping", () => ({ uptimeMs: io.uptimeMs() }));
+  server.register("runtime.ping", (params) => ({
+    uptimeMs: io.uptimeMs(),
+    ...(params.echo !== undefined && { echo: params.echo }),
+  }));
 
   server.register("runtime.shutdown", () => {
     state = "shutting_down";

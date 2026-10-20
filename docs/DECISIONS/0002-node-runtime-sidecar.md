@@ -67,6 +67,7 @@ Parent-death detection: the runtime treats **EOF on stdin** as "the Host is gone
 - A build script fetches the pinned Node binary per target, verifies its SHA-256 against the official `SHASUMS256.txt`, renames it with the target triple, and places it in `apps/desktop/src-tauri/binaries/`.
 - Native dependencies are banned from `packages/runtime` by a lint rule unless an ADR allows one.
 - Standalone helper executables are allowed as additional sidecars because they do not affect the Node packaging choice. The MVP ships one: ripgrep as `jesutobits-rg`, used by the `search_text` tool, with a pure JavaScript fallback if it is missing.
+- Spike S1 (2026-10-20, `docs/spikes/S1.md`) implemented points 1 to 5 as written. The bundle is built to `packages/runtime/dist/bundle/runtime.mjs` and mapped to the `runtime/main.mjs` resource in `tauri.conf.json`. The Host spawns the sidecar itself with `tokio::process` (not the Tauri shell plugin, so the webview gets no shell capability; NFR-008), with the ADR-0011 environment allowlist and `--data-dir`. Auto-restart with backoff is Phase 1 work; S1 ends in `failed` on an unexpected exit.
 - The Node Permission Model (RN-17) is evaluated in Phase 7 as defence in depth. It is not a sandbox for user code, because commands the agent runs are separate processes.
 
 ## Revisit when

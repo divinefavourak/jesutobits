@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "The Workbench window. Only the relay, runtime subscriptions and logging (NFR-008). core:default is trimmed in Phase 7.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-rpc-call",
+    "allow-runtime-subscribe",
+    "allow-workbench-log"
+  ]
+}

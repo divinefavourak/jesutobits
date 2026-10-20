@@ -1,6 +1,6 @@
 # Development Setup
 
-> Status: **Partly live.** Phase 0 is in progress (ROADMAP.md). Working today: `pnpm install`, `build:packages`, `build:runtime`, `lint`, `typecheck`, `test`, `gen`, `gen:check`, `dev:web` (Workbench placeholder, no `MockHostBridge` yet). Not yet: `fetch:sidecars`, `dev`, `test:e2e`, `test:desktop`, `build`, `eval`, `kill:dev`, which arrive with Spike S1 and Phase 1. Phase 0 is done only when a clean Windows machine can follow this file without help.
+> Status: **Partly live.** Phase 0 is in progress (ROADMAP.md). Working today: `pnpm install`, `fetch:sidecars` (Node only; ripgrep arrives in Phase 2), `build:packages`, `build:runtime`, `dev` (Workbench placeholder in the Tauri Host), `dev:web` (with `MockHostBridge`), `lint` (now including `lint:rust`), `typecheck`, `test`, `test:rust`, `gen`, `gen:check`. Not yet: `test:e2e`, `test:desktop`, `build`, `eval`, `kill:dev`, which arrive in Phase 1 and later. Phase 0 is done only when a clean Windows machine can follow this file without help.
 
 ## 1. Prerequisites
 

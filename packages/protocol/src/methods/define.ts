@@ -11,10 +11,12 @@ export interface MethodDefinition<
   Name extends string = string,
   Params extends z.ZodType = z.ZodType,
   Result extends z.ZodType = z.ZodType,
+  Callers extends readonly Caller[] = readonly Caller[],
 > {
   readonly name: Name;
   readonly description: string;
-  readonly callers: readonly Caller[];
+  /** Kept as a literal tuple so `WorkbenchMethod` is exact at the type level. */
+  readonly callers: Callers;
   readonly params: Params;
   readonly result: Result;
 }
@@ -23,6 +25,9 @@ export function defineMethod<
   const Name extends string,
   Params extends z.ZodType,
   Result extends z.ZodType,
->(definition: MethodDefinition<Name, Params, Result>): MethodDefinition<Name, Params, Result> {
+  const Callers extends readonly Caller[],
+>(
+  definition: MethodDefinition<Name, Params, Result, Callers>,
+): MethodDefinition<Name, Params, Result, Callers> {
   return definition;
 }

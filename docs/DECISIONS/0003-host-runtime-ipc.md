@@ -51,7 +51,7 @@ Event notifications carry a monotonically increasing `seq` per runtime process. 
 
 ## Trade-offs
 
-- Every message crosses the Rust relay. Expected overhead is well under 1 ms per message. NFR-006 sets the budget and Spike S1 measures it.
+- Every message crosses the Rust relay. Expected overhead is well under 1 ms per message. NFR-006 sets the budget and Spike S1 measures it. **Measured (2026-10-20, `docs/spikes/S1.md`):** the relay adds about 0.25 ms per 1 KB round trip at p50, even in a debug build. Tauri's own webview IPC costs 3 to 4 ms per `invoke` round trip on WebView2, so Workbench code must avoid chatty call patterns; streams already use Channels. Channel (event) latency under token streaming is still to be measured in Phase 2.
 - The Host must stay dumb about payloads, or we end up duplicating the protocol in Rust. The allowlist is a list of method names, nothing more.
 
 ## Consequences

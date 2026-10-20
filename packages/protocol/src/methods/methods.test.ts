@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 import { MethodNameSchema } from "../envelope.js";
 import { isProtocolCompatible, PROTOCOL_VERSION } from "../version.js";
-import { METHODS, methodsCallableBy, runtimeInitialize } from "./index.js";
+import { METHODS, methodsCallableBy, runtimeInitialize, type WorkbenchMethod } from "./index.js";
 
 const generated = JSON.parse(
   readFileSync(new URL("../../generated/methods.json", import.meta.url), "utf8"),
@@ -26,6 +26,11 @@ describe("method registry", () => {
   it("never lets the Workbench initialise or shut down the runtime", () => {
     expect(methodsCallableBy("workbench")).not.toContain("runtime.initialize");
     expect(methodsCallableBy("workbench")).not.toContain("runtime.shutdown");
+  });
+
+  // Checked by `tsc` (tsconfig.tests.json): Workbench code cannot even type a Host-only call.
+  it("types WorkbenchMethod as exactly the Workbench-callable methods", () => {
+    expectTypeOf<WorkbenchMethod>().toEqualTypeOf<"runtime.ping">();
   });
 });
 

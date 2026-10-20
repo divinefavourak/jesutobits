@@ -205,8 +205,8 @@ flowchart TB
 
 | From → To | Mechanism | Content |
 |---|---|---|
-| Workbench → Host | Tauri `invoke` | `rpc_call`, `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
-| Host → Workbench | Tauri `Channel` | Runtime events, PTY output, settings changes |
+| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `workbench_log`, `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
+| Host → Workbench | Tauri `Channel` | Runtime events, runtime status (`RuntimeStatusUpdate` in `packages/protocol`), PTY output, settings changes |
 | Host ↔ Runtime | NDJSON JSON-RPC 2.0 over stdio (ADR-0003) | Runtime methods, events, `host.*` reverse calls |
 | Workbench ↔ Preview iframe | `window.postMessage` with origin + nonce + Zod | Bridge protocol (VISUAL_EDITING.md section 9) |
 | Runtime → Headless browser | Playwright (CDP) | Checks, screenshots |
@@ -221,7 +221,8 @@ Note that the Workbench can **write** a secret (onboarding) but has no command t
 export interface HostBridge {
   rpc<M extends WorkbenchMethod>(method: M, params: MethodParams<M>): Promise<MethodResult<M>>;
   onRuntimeEvent(handler: (e: RuntimeEvent) => void): Unsubscribe;
-  onRuntimeStatus(handler: (s: RuntimeStatus) => void): Unsubscribe; // starting | ready | degraded | restarting | failed
+  onRuntimeStatus(handler: (s: RuntimeStatusUpdate) => void): Unsubscribe; // starting | ready | degraded | restarting | failed, plus detail
+  log(level: LogLevel, message: string): void; // Workbench log, written by the Host (section 10)
 
   secrets: {
     set(ref: SecretRef, value: string): Promise<void>;
