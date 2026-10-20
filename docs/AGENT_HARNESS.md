@@ -511,6 +511,14 @@ All file access by tools and by the Workbench editor goes through the runtime's 
 - **Concurrency:** editor saves and agent edits both carry the expected content hash; mismatches return `conflict` to the editor (which offers a merge view) or `stale_read` to the agent.
 - **Watcher:** batches changes every 100 ms into `fs.changed` events.
 
+Implementation notes (`packages/services/src/workspace/`, Phase 1):
+
+- **Path guard** (`path-guard.ts`): the name rules (reserved device names, `:`, trailing dots and spaces, characters Windows forbids) apply on every platform, so a project stays portable. A dangling link is confined by where it points. Links inside the explorer that lead outside are listed with `outside: true` and never followed. Errors name the project-relative path, never the absolute one.
+- **Text** (`text.ts`): files are UTF-8, with or without a BOM. A NUL in the first 8,000 bytes or invalid UTF-8 (which includes UTF-16 files) makes a file binary (`fs.binary`); other encodings are not supported in the MVP. On write, a file that used one line-ending style keeps it; mixed files and new files are written exactly as given.
+- **Concurrency**: `writeText` takes `expectedHash` (SHA-256 of the bytes last read): a different file on disk fails with `fs.conflict` and the current hash; `null` means the file must not exist. The RPC layer decides when a hash is required.
+- **Ignore rules** (`ignore-rules.ts`): every `.gitignore` from the root down to a path's folder applies relative to its own folder, deeper files can un-ignore, and anything inside an ignored folder is ignored.
+- **Atomic writes** (`atomic-write.ts`) retry the final rename briefly on Windows, where antivirus and indexers hold files for a moment.
+
 ## 7. Verification
 
 ### 7.1 Principle

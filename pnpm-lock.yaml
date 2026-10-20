@@ -122,6 +122,9 @@ importers:
       '@jesutobits/shared':
         specifier: workspace:*
         version: link:../shared
+      ignore:
+        specifier: ^7.0.12
+        version: 7.0.12
       magic-string:
         specifier: ^1.4.3
         version: 1.4.3

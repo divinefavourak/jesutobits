@@ -47,6 +47,22 @@ export const ErrorCodes = {
   runtimeNotInitialized: "runtime.not_initialized",
   runtimeAlreadyInitialized: "runtime.already_initialized",
   runtimeShuttingDown: "runtime.shutting_down",
+  /** The path resolves outside every workspace root, including through a link (SECURITY.md 5.2). */
+  fsOutsideWorkspace: "fs.outside_workspace",
+  /** The path is malformed or unsafe: NUL, reserved device name, stream, trailing dot. */
+  fsInvalidPath: "fs.invalid_path",
+  fsNotFound: "fs.not_found",
+  fsNotAFile: "fs.not_a_file",
+  fsNotADirectory: "fs.not_a_directory",
+  fsAlreadyExists: "fs.already_exists",
+  /** The file changed since it was read; the write was refused (HARNESS 6, FR-052). */
+  fsConflict: "fs.conflict",
+  fsTooLarge: "fs.too_large",
+  /** The file is not text, so it cannot be read or written as text. */
+  fsBinary: "fs.binary",
+  fsPermissionDenied: "fs.permission_denied",
+  /** Any other file-system failure; details carry the OS error code. */
+  fsIo: "fs.io",
   /** A database upgrade failed and was rolled back; the database is open read-only. */
   storageMigrationFailed: "storage.migration_failed",
   /** The database was written by a newer Jesutobits; it is open read-only. */
