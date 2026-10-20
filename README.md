@@ -1,13 +1,4 @@
-![Jesutobits: a visual, extensible AI agent workspace](docs/assets/jesutobits-wordmark.svg)
-
-```text
-     ██╗███████╗███████╗██╗   ██╗████████╗ ██████╗ ██████╗ ██╗████████╗███████╗
-     ██║██╔════╝██╔════╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗██║╚══██╔══╝██╔════╝
-     ██║█████╗  ███████╗██║   ██║   ██║   ██║   ██║██████╔╝██║   ██║   ███████╗
-██   ██║██╔══╝  ╚════██║██║   ██║   ██║   ██║   ██║██╔══██╗██║   ██║   ╚════██║
-╚█████╔╝███████╗███████║╚██████╔╝   ██║   ╚██████╔╝██████╔╝██║   ██║   ███████║
- ╚════╝ ╚══════╝╚══════╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═════╝ ╚═╝   ╚═╝   ╚══════╝
-```
+![Jesutobits](docs/assets/jesutobits-logo.svg)
 
 **A visual, extensible AI agent workspace for building real software.**
 
@@ -92,7 +83,7 @@ Windows desktop app; OpenRouter models with tool calling; an agent that reads, e
 
 ## Name
 
-The product is called **Jesutobits**. The logo lives in [`docs/assets/jesutobits-wordmark.svg`](docs/assets/jesutobits-wordmark.svg). Its text is converted to outlines (from Space Grotesk, SIL Open Font Licence), so it looks the same on every machine and switches colours in dark mode.
+The product is called **Jesutobits**. The logo at the top of this file is [`docs/assets/jesutobits-logo.svg`](docs/assets/jesutobits-logo.svg), the box-drawing banner from AGENTS.md drawn as plain shapes by `scripts/gen-logo.mjs`, so it lines up in every Markdown preview and switches colours in dark mode. Edit the banner in the script and rerun it, never the SVG. A second mark, [`docs/assets/jesutobits-wordmark.svg`](docs/assets/jesutobits-wordmark.svg), has its text converted to outlines (from Space Grotesk, SIL Open Font Licence).
 
 The name also appears in identifiers. These are the ones to keep stable once people use the app:
 
