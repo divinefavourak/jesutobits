@@ -1,0 +1,4 @@
+# Makes this fixture its own pnpm root, separate from the Jesutobits workspace, with the
+# same supply-chain settings (DEVELOPMENT_SETUP.md section 2.1).
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true

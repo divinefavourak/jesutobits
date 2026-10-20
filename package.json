@@ -7,8 +7,9 @@
     "node": ">=26.6.0"
   },
   "scripts": {
-    "build:packages": "tsc -b && pnpm gen && pnpm build:runtime",
+    "build:packages": "tsc -b && pnpm gen && pnpm build:runtime && pnpm build:guest",
     "build:runtime": "node scripts/build-runtime.mjs",
+    "build:guest": "node scripts/build-guest.mjs",
     "fetch:sidecars": "node scripts/fetch-node.mjs",
     "dev": "pnpm build:packages && pnpm --filter @jesutobits/desktop tauri dev --config src-tauri/tauri.dev.conf.json",
     "dev:web": "pnpm --filter @jesutobits/desktop dev:web",
@@ -29,6 +30,7 @@
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
+    "playwright-core": "^1.62.1",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",

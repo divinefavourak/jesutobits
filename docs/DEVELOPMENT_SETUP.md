@@ -41,6 +41,8 @@ pnpm dev                # runs the Tauri app: Workbench (Vite dev server) + Host
 
 `scripts/sidecars.json` pins each binary's version, download URL and SHA-256 per target triple. The fetch script refuses to continue on a hash mismatch.
 
+Fixture projects (`fixtures/projects/*`) are separate pnpm roots with their own lockfile and the same release-age policy, so the workspace install does not cover them. Install the one a test needs, for example `pnpm install --dir fixtures/projects/vite-react-tailwind` before `node scripts/spikes/s2-run.mjs`.
+
 ### 2.1 Dependency policy (`pnpm-workspace.yaml`)
 
 | Setting | Effect | When it bites |

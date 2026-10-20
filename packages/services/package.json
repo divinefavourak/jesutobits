@@ -14,7 +14,9 @@
     "dist"
   ],
   "dependencies": {
+    "@babel/parser": "^7.29.9",
     "@jesutobits/protocol": "workspace:*",
-    "@jesutobits/shared": "workspace:*"
+    "@jesutobits/shared": "workspace:*",
+    "magic-string": "^1.4.3"
   }
 }

@@ -48,7 +48,7 @@ Rules for this file:
 | RN-21 | Onlook (open-source visual editor for Next.js + Tailwind) injects a `data-oid` attribute into JSX at build time and maintains a map from IDs to code locations. It displays the app in an iframe and edits both the iframe and the code. | https://github.com/onlook-dev/onlook ; https://blog.logrocket.com/onlook-react-visual-editor |
 | RN-22 | **Vite 8** (stable March 2026) uses Rolldown and Oxc. `@vitejs/plugin-react` v6 requires Vite 8 and **removed its Babel option**; Babel plugins now need `@rolldown/plugin-babel`. | https://vite.dev/blog/announcing-vite8 ; plugin-react 6.0.0 changelog |
 | RN-23 | Vite's `createServer(inlineConfig)` accepts any user config plus `configFile`. If `configFile` is not set, Vite resolves the project's config file automatically. The docs do **not** spell out how inline `plugins` combine with the file's plugins. | https://vite.dev/guide/api-javascript |
-| RN-24 | **Unverified.** Inline config plugins are concatenated with config-file plugins (Vite's `mergeConfig` concatenates arrays). Must be confirmed in Spike S2 before the preview launcher depends on it. | Source reading needed |
+| RN-24 | **Verified in Spike S2 (Vite 8.3.4).** Inline config plugins are concatenated with config-file plugins, **after** them (even among `enforce: "pre"` plugins). Originally stated: inline config plugins are concatenated with config-file plugins (Vite's `mergeConfig` concatenates arrays). Must be confirmed in Spike S2 before the preview launcher depends on it. | Source reading needed |
 
 ## Model provider (OpenRouter)
 
@@ -88,12 +88,13 @@ Rules for this file:
 |---|---|---|
 | RN-37 | In Tauri 2.12.4 on Windows (WebView2 155), a cross-origin `http://127.0.0.1:<port>` iframe in the main webview has `window.__TAURI_INTERNALS__` (with `invoke`) and `window.chrome.webview`. Its `invoke` calls reach the capability check and are refused: "`<command>` not allowed on window "main", webview "main", URL: http://127.0.0.1:5899/ … allowed on: [windows: "main", URL: local]". That held for app commands and `core:default` plugin commands, with the Workbench on `http://127.0.0.1:1420`, `http://tauri.localhost` and `https://tauri.localhost`. | Spike S3, 20 October 2026 (`scripts/spikes/s3-run.mjs`, `docs/spikes/S3.md`) |
 | RN-38 | In WebView2 155, an `https://tauri.localhost` page (`useHttpsScheme: true`) loads an `http://127.0.0.1:<port>` iframe and exchanges `postMessage` with it; no mixed-content blocking. Consistent with Chromium treating loopback origins as potentially trustworthy. | Spike S3, 20 October 2026 |
+| RN-39 | In `@vitejs/plugin-react` 6.1.2, the `vite:react-babel` plugin (`enforce: "pre"`) has no `transform` hook; it configures Vite core's Oxc JSX transform (`oxc.jsx`), so JSX is compiled after every `pre` plugin. The package does not export `./package.json`. | `node_modules/@vitejs/plugin-react/dist/index.js`, read in Spike S2, 20 October 2026 |
 
 ## Open verification items (owned by spikes)
 
 | Item | Owner | Needed before |
 |---|---|---|
-| Inline Vite plugins merge with project plugins (RN-24) | Spike S2 | Phase 5 |
+| ~~Inline Vite plugins merge with project plugins (RN-24)~~ Done: they merge, appended after the project's (`docs/spikes/S2.md`) | Spike S2 | Phase 5 |
 | Whether `http://localhost:<port>` iframes load without mixed-content issues inside each OS webview, including when the app uses the HTTPS custom scheme on Windows. **Windows done** (RN-38); WebKitGTK and WKWebView open | Spike S3 | Phase 4 |
 | ~~Windows Job Object assignment of the sidecar from the Host, and grandchild cleanup on crash~~ Done: 0 orphans in 10 forced kills (`docs/spikes/S1.md`) | Spike S1 | Phase 2 |
 | ~~Performance of `node:sqlite` with WAL on Windows under event-heavy sessions~~ Done: 10k rows in 0.2 to 0.9 s when batched in transactions; 2.1 to 2.5 s autocommitted (`docs/spikes/S1.md`) | Spike S1 | Phase 2 |

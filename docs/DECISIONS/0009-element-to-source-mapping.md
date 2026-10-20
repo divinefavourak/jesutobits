@@ -1,6 +1,6 @@
 # ADR-0009: Visual element to source mapping
 
-- **Status:** Accepted (provisional, confirmed by Spike S2)
+- **Status:** Accepted. Confirmed by Spike S2 (2026-10-20, `docs/spikes/S2.md`)
 - **Date:** 2026-10-19
 - **Related:** RN-18 to RN-24, docs/VISUAL_EDITING.md
 
@@ -23,8 +23,8 @@ When a user clicks an element in the preview, Jesutobits must find the source co
 
 Use **A + F inside a framework adapter (E)**, starting with one adapter: `vite-react`.
 
-1. The preview launcher starts the project's own Vite through Vite's JavaScript API and adds `jesutobitsVisualEdit()` as an inline plugin (RN-23). The project's `vite.config` is **not modified**. If Spike S2 shows inline plugins do not merge reliably (RN-24), fallback: a generated wrapper config in the app data dir that imports the user's config and appends the plugin.
-2. The plugin (`enforce: 'pre'`, dev server only) parses `.jsx`/`.tsx` files under the project root, excluding `node_modules`, with an Oxc or Babel parser, and inserts `data-jesutobits-loc` on **intrinsic** JSX elements (lowercase tags) using `magic-string`, preserving source maps.
+1. The preview launcher starts the project's own Vite through Vite's JavaScript API and adds `jesutobitsVisualEdit()` as an inline plugin (RN-23). The project's `vite.config` is **not modified**. If Spike S2 shows inline plugins do not merge reliably (RN-24), fallback: a generated wrapper config in the app data dir that imports the user's config and appends the plugin. *Spike S2:* they merge, appended after the project's plugins, so the fallback is not needed; the plugin's `transform` uses hook-level `order: "pre"` to stay ahead of project plugins.
+2. The plugin (`enforce: 'pre'`, dev server only) parses `.jsx`/`.tsx` files under the project root, excluding `node_modules`, with an Oxc or Babel parser (Spike S2: `@babel/parser`, because `oxc-parser` is a native addon and the plugin must be a self-contained JS bundle), and inserts `data-jesutobits-loc` on **intrinsic** JSX elements (lowercase tags) using `magic-string`, preserving source maps.
 3. It also inserts `data-jesutobits-comp="<ComponentName>"` on the root intrinsic element returned by each component function, for breadcrumbs.
 4. The plugin injects the bridge script through `transformIndexHtml`.
 5. Persistent edits are done by the runtime's **source transformer**, which re-parses the file, locates the JSX element at that line and column, checks the property is statically editable, and splices the change with `magic-string`. It never rewrites the whole file.

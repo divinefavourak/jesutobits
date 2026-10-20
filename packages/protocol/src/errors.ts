@@ -47,6 +47,10 @@ export const ErrorCodes = {
   runtimeNotInitialized: "runtime.not_initialized",
   runtimeAlreadyInitialized: "runtime.already_initialized",
   runtimeShuttingDown: "runtime.shutting_down",
+  /** No JSX element starts at the requested location (the file changed, or a bad loc). */
+  visualElementNotFound: "visual.element_not_found",
+  /** The property cannot be edited statically, for example a computed className. */
+  visualNotEditable: "visual.not_editable",
 } as const satisfies Record<string, JesutobitsErrorCode>;
 
 export const UserActionSchema = z.enum([

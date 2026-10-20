@@ -5,15 +5,9 @@
   "description": "Starts a project dev server with the user's own Node (VISUAL_EDITING.md section 4.8). No runtime dependencies.",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
+    ".": "./dist/preview-launcher.js"
   },
   "files": [
     "dist"
-  ],
-  "devDependencies": {
-    "@jesutobits/protocol": "workspace:*"
-  }
+  ]
 }

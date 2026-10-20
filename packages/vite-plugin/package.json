@@ -7,13 +7,16 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/bundle/index.mjs"
     }
   },
   "files": [
     "dist"
   ],
   "devDependencies": {
-    "@jesutobits/protocol": "workspace:*"
+    "@babel/parser": "^7.29.9",
+    "@jesutobits/protocol": "workspace:*",
+    "magic-string": "^1.4.3",
+    "vite": "^8.3.4"
   }
 }

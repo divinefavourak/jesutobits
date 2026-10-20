@@ -1,6 +1,6 @@
 # Live Preview and Visual Editing
 
-> Status: Agreed design. The source-mapping approach is provisional until Spike S2 passes (ADR-0009). Preview isolation is provisional until Spike S3 passes (ADR-0010).
+> Status: Agreed design. Source mapping confirmed by Spike S2 (ADR-0009, `docs/spikes/S2.md`). Preview isolation confirmed on Windows by Spike S3 (ADR-0010, `docs/spikes/S3.md`).
 
 ## 1. Goals and non-goals
 
@@ -110,7 +110,7 @@ There is **no automatic restart loop**. A crashed dev server usually has a confi
 - `preview-launcher.mjs` ships with Jesutobits and runs with the **user's Node** (the project's toolchain, ADR-0011), started by `ProcessSupervisor` with cwd at the project root.
 - It resolves `vite` from the project (`createRequire(<root>/package.json)`), checks the version, imports the Jesutobits plugin bundle by absolute file URL, and calls `createServer({ root, server: { host: "127.0.0.1", port, strictPort: true }, plugins: [jesutobitsVisualEdit(options)] })` (RN-23).
 - Options passed: project root, nonce, the Workbench origin to accept messages from, and exclusion globs.
-- **Spike S2 must confirm** that the inline plugin runs alongside the project's own plugins (RN-24). Fallback: generate a wrapper config in the app data directory that imports the user's config and appends the plugin, then pass it as `configFile`.
+- Spike S2 confirmed that the inline plugin runs alongside the project's own plugins (RN-24), appended after them. The plugin's `transform` therefore uses hook-level `order: "pre"` so it sees JSX before any default-order transform. The wrapper-config fallback is not needed.
 - The plugin bundle is self-contained (its parser and `magic-string` are bundled) because it runs in the user's toolchain and must not require installing anything into the project.
 
 ## 5. Selection

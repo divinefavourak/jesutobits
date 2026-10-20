@@ -73,6 +73,11 @@ export default defineConfig([
     files: ["apps/desktop/src/**", "packages/visual-bridge/src/**"],
     languageOptions: { globals: { ...globals.browser } },
   },
+  // Spike scripts run in Node but pass functions to page.evaluate() that run in a browser.
+  {
+    files: ["scripts/spikes/**"],
+    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+  },
   {
     files: ["apps/desktop/src/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },

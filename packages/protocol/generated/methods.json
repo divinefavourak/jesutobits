@@ -14,7 +14,9 @@
     "runtime.not_initialized",
     "runtime.protocol_mismatch",
     "runtime.shutting_down",
-    "runtime.unavailable"
+    "runtime.unavailable",
+    "visual.element_not_found",
+    "visual.not_editable"
   ],
   "workbench": [
     "runtime.ping"

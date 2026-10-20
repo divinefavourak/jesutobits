@@ -26,6 +26,9 @@ importers:
       globals:
         specifier: ^17.13.0
         version: 17.13.0
+      playwright-core:
+        specifier: ^1.62.1
+        version: 1.62.1
       prettier:
         specifier: ^3.9.10
         version: 3.9.10
@@ -88,11 +91,7 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
-  packages/preview-launcher:
-    devDependencies:
-      '@jesutobits/protocol':
-        specifier: workspace:*
-        version: link:../protocol
+  packages/preview-launcher: {}
 
   packages/protocol:
     dependencies:
@@ -111,12 +110,18 @@ importers:
 
   packages/services:
     dependencies:
+      '@babel/parser':
+        specifier: ^7.29.9
+        version: 7.29.9
       '@jesutobits/protocol':
         specifier: workspace:*
         version: link:../protocol
       '@jesutobits/shared':
         specifier: workspace:*
         version: link:../shared
+      magic-string:
+        specifier: ^1.4.3
+        version: 1.4.3
 
   packages/shared: {}
 
@@ -128,9 +133,18 @@ importers:
 
   packages/vite-plugin:
     devDependencies:
+      '@babel/parser':
+        specifier: ^7.29.9
+        version: 7.29.9
       '@jesutobits/protocol':
         specifier: workspace:*
         version: link:../protocol
+      magic-string:
+        specifier: ^1.4.3
+        version: 1.4.3
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)
 
 packages:
 
@@ -1134,6 +1148,11 @@ packages:
   picomatch@4.0.7:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
+
+  playwright-core@1.62.1:
+    resolution: {integrity: sha512-wPYSwEBJY9GHraISXqyqtx0na0LpO3XEX7jNDhntbex7tzUS7kLnZsOlFruFJB4Hi/rhDMjXGqHewDZ68nYZVw==}
+    engines: {node: '>=20'}
+    hasBin: true
 
   postcss@8.5.31:
     resolution: {integrity: sha512-YUbWYCgErwnMAVkjUnYa+KlMBzGpHwiIt/DE7f0G33AuX2LH9UcTk6KgWxd3zRU+pN3u/C+Xl3EnMLM4Hea7Sg==}
@@ -2219,6 +2238,8 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.62.1: {}
 
   postcss@8.5.31:
     dependencies:
