@@ -1,5 +1,14 @@
 ![Jesutobits: a visual, extensible AI agent workspace](docs/assets/jesutobits-wordmark.svg)
 
+```text
+     ██╗███████╗███████╗██╗   ██╗████████╗ ██████╗ ██████╗ ██╗████████╗███████╗
+     ██║██╔════╝██╔════╝██║   ██║╚══██╔══╝██╔═══██╗██╔══██╗██║╚══██╔══╝██╔════╝
+     ██║█████╗  ███████╗██║   ██║   ██║   ██║   ██║██████╔╝██║   ██║   ███████╗
+██   ██║██╔══╝  ╚════██║██║   ██║   ██║   ██║   ██║██╔══██╗██║   ██║   ╚════██║
+╚█████╔╝███████╗███████║╚██████╔╝   ██║   ╚██████╔╝██████╔╝██║   ██║   ███████║
+ ╚════╝ ╚══════╝╚══════╝ ╚═════╝    ╚═╝    ╚═════╝ ╚═════╝ ╚═╝   ╚═╝   ╚══════╝
+```
+
 **A visual, extensible AI agent workspace for building real software.**
 
 Jesutobits is a desktop app where an AI agent plans, edits, runs, tests and verifies real projects while you watch. You see the running app inside the workspace, point at an element and change it (with the change written into your source code), and shape the whole environment with themes, companion skins and, later, mods.
