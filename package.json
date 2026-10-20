@@ -1,0 +1,34 @@
+{
+  "name": "jesutobits-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.15.1",
+  "engines": {
+    "node": ">=26.6.0"
+  },
+  "scripts": {
+    "build:packages": "tsc -b && pnpm gen && pnpm build:runtime",
+    "typecheck": "tsc -b",
+    "lint": "eslint . --max-warnings 0 && prettier --check .",
+    "format": "prettier --write .",
+    "test": "tsc -b && pnpm build:runtime && vitest run",
+    "test:watch": "vitest",
+    "gen": "tsc -b packages/protocol && node scripts/gen-protocol.mjs",
+    "gen:check": "pnpm gen && git diff --exit-code -- packages/protocol/generated",
+    "dev:web": "pnpm --filter @jesutobits/desktop dev:web",
+    "build:runtime": "node scripts/build-runtime.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.13.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.5",
+    "zod": "^4.6.7"
+  }
+}

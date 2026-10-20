@@ -1,0 +1,19 @@
+{
+  "name": "@jesutobits/visual-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Bridge script injected into previews (IIFE, under 30 KB).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@jesutobits/protocol": "workspace:*"
+  }
+}

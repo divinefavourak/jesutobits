@@ -1,0 +1,19 @@
+{
+  "name": "@jesutobits/vite-plugin",
+  "version": "0.0.0",
+  "private": true,
+  "description": "JSX instrumentation and bridge injection. Runs inside user projects, so it is self-contained.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@jesutobits/protocol": "workspace:*"
+  }
+}

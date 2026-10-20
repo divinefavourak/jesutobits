@@ -1,0 +1,17 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/protocol" },
+    { "path": "packages/shared" },
+    { "path": "packages/services" },
+    { "path": "packages/runtime" },
+    { "path": "packages/extension-schema" },
+    { "path": "packages/extension-cli" },
+    { "path": "packages/preview-launcher" },
+    { "path": "packages/vite-plugin" },
+    { "path": "packages/visual-bridge" },
+    { "path": "apps/desktop" },
+    { "path": "apps/desktop/tsconfig.node.json" },
+    { "path": "tsconfig.tests.json" }
+  ]
+}

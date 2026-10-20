@@ -1,0 +1,22 @@
+{
+  "name": "@jesutobits/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Jesutobits desktop app: the Workbench (React) and, from Spike S1, the Host (Tauri, src-tauri/).",
+  "type": "module",
+  "scripts": {
+    "dev:web": "vite",
+    "build:web": "vite build"
+  },
+  "dependencies": {
+    "@jesutobits/protocol": "workspace:*",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.4"
+  }
+}

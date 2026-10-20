@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+dist/
+coverage/
+fixtures/
+# Generated files are formatted by their generator.
+**/generated/
+# Documentation is hand-formatted (tables, diagrams).
+docs/
+*.md

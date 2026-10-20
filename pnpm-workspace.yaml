@@ -1,0 +1,15 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Fail on undeclared or mismatched engines instead of warning.
+engineStrict: true
+
+# Supply-chain safety: do not install versions published in the last 24 hours.
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+
+# Dependency install scripts are denied unless listed here with a reason.
+allowBuilds:
+  # The postinstall only verifies the binary that the @esbuild/<platform> optional dependency provides.
+  esbuild: false

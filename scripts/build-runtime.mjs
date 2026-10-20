@@ -1,0 +1,21 @@
+// Bundles the runtime into one ESM file (ADR-0013). Loading one file instead of hundreds
+// of modules keeps `runtime.initialize` well inside NFR-002 on Windows.
+// Output: packages/runtime/dist/bundle/runtime.mjs, the file the sidecar runs and tests spawn.
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
+
+const runtimeDir = join(dirname(fileURLToPath(import.meta.url)), "..", "packages", "runtime");
+
+await build({
+  entryPoints: [join(runtimeDir, "src", "main.ts")],
+  outfile: join(runtimeDir, "dist", "bundle", "runtime.mjs"),
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node26",
+  sourcemap: "linked",
+  minify: true,
+  legalComments: "linked",
+  logLevel: "warning",
+});

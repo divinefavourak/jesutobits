@@ -1,0 +1,20 @@
+{
+  "name": "@jesutobits/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Node sidecar: JSON-RPC over stdio, agent harness and services wiring.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@jesutobits/protocol": "workspace:*",
+    "zod": "^4.6.7"
+  }
+}

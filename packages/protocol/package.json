@@ -1,0 +1,21 @@
+{
+  "name": "@jesutobits/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Zod schemas for every message that crosses a Jesutobits process boundary.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./generated/methods.json": "./generated/methods.json"
+  },
+  "files": [
+    "dist",
+    "generated"
+  ],
+  "dependencies": {
+    "zod": "^4.6.7"
+  }
+}

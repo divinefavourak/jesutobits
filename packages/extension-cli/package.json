@@ -1,0 +1,19 @@
+{
+  "name": "@jesutobits/extension-cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "jesutobits-ext: init, validate and pack Stage 1 extensions.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@jesutobits/extension-schema": "workspace:*"
+  }
+}
