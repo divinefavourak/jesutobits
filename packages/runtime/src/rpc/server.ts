@@ -13,6 +13,7 @@ import {
   type METHODS,
   type RequestId,
 } from "@jesutobits/protocol";
+import type { Logger } from "@jesutobits/shared";
 import { z } from "zod";
 
 export type MethodHandler<M extends MethodName> = (
@@ -22,8 +23,8 @@ export type MethodHandler<M extends MethodName> = (
 export interface RpcServerOptions {
   /** Writes one serialised message; the server appends nothing. Resolves once flushed. */
   send(line: string): Promise<void>;
-  /** Unstructured diagnostics for the Host's runtime log (stderr). Never stdout. */
-  diagnostic(message: string): void;
+  /** Structured log lines for the Host's runtime log (stderr). Never stdout. */
+  log: Logger;
   /** Runs before params are parsed. Throw a JesutobitsError to reject the call. */
   gate?(method: MethodName): void;
   /** Called after a response to `method` has been flushed. */
@@ -69,12 +70,14 @@ export class RpcServer {
           { issues: classified.issues },
         );
       case "notification":
-        this.options.diagnostic(`Ignoring notification ${classified.message.method}`);
+        this.options.log.warn("ignoring a notification", { method: classified.message.method });
         return;
       case "success":
       case "failure":
         // Reverse calls (host.*) arrive with Phase 2; until then nothing awaits a response.
-        this.options.diagnostic(`Ignoring unexpected response id=${String(classified.message.id)}`);
+        this.options.log.warn("ignoring an unexpected response", {
+          id: String(classified.message.id),
+        });
         return;
       case "request":
         return this.dispatch(
@@ -83,6 +86,24 @@ export class RpcServer {
           classified.message.params,
         );
     }
+  }
+
+  /**
+   * Sends a notification (runtime events). Never throws: an oversized or failed write is
+   * logged and dropped, and events stay replayable from the EventBus.
+   */
+  notify(method: string, params: unknown): void {
+    const line = JSON.stringify({ jsonrpc: JSONRPC_VERSION, method, params });
+    if (Buffer.byteLength(line, "utf8") > MAX_MESSAGE_BYTES) {
+      this.options.log.error("dropped a notification over the message limit", {
+        method,
+        maxBytes: MAX_MESSAGE_BYTES,
+      });
+      return;
+    }
+    this.options.send(line).catch((error: unknown) => {
+      this.options.log.error("could not send a notification", { method, err: error });
+    });
   }
 
   /** Reports a line the splitter dropped for exceeding MAX_MESSAGE_BYTES. */
@@ -128,9 +149,10 @@ export class RpcServer {
 
       const result = method.result.safeParse(await handler(params.data));
       if (!result.success) {
-        this.options.diagnostic(
-          `Handler for ${name} returned an invalid result: ${z.prettifyError(result.error)}`,
-        );
+        this.options.log.error("a handler returned an invalid result", {
+          method: name,
+          issues: z.prettifyError(result.error),
+        });
         await this.fail(id, RpcErrorCode.InternalError, ErrorCodes.rpcInternal, "Internal error");
         return;
       }
@@ -141,9 +163,7 @@ export class RpcServer {
       if (isJesutobitsError(error)) {
         await this.failWith(id, RpcErrorCode.ApplicationError, error.toData());
       } else {
-        this.options.diagnostic(
-          `Unhandled error in ${name}: ${error instanceof Error ? error.stack : String(error)}`,
-        );
+        this.options.log.error("unhandled error in a handler", { method: name, err: error });
         await this.fail(id, RpcErrorCode.InternalError, ErrorCodes.rpcInternal, "Internal error");
       }
     } finally {
@@ -176,7 +196,10 @@ export class RpcServer {
   private async respond(line: string, id: RequestId | null): Promise<void> {
     if (Buffer.byteLength(line, "utf8") > MAX_MESSAGE_BYTES) {
       // Methods page large payloads themselves; reaching this is a bug in the method.
-      this.options.diagnostic(`Response to id=${String(id)} exceeds ${MAX_MESSAGE_BYTES} bytes`);
+      this.options.log.error("a response exceeds the message limit", {
+        id: String(id),
+        maxBytes: MAX_MESSAGE_BYTES,
+      });
       return this.fail(
         id,
         RpcErrorCode.InternalError,

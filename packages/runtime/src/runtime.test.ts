@@ -1,9 +1,12 @@
 import { MAX_MESSAGE_BYTES, PROTOCOL_VERSION, RpcErrorCode } from "@jesutobits/protocol";
 import { describe, expect, it, vi } from "vitest";
+import { createLogger } from "./log/logger.js";
+import { SecretRegistry } from "./log/secret-registry.js";
 import { createRuntime } from "./runtime.js";
 
 function setup() {
   const sent: unknown[] = [];
+  const logLines: Array<Record<string, unknown>> = [];
   let waiters: Array<() => void> = [];
   const io = {
     write: vi.fn(async (line: string) => {
@@ -12,7 +15,11 @@ function setup() {
       for (const wake of waiters) wake();
       waiters = [];
     }),
-    diagnostic: vi.fn(),
+    log: createLogger({
+      write: (line) => logLines.push(JSON.parse(line) as Record<string, unknown>),
+      level: "trace",
+      secrets: new SecretRegistry(),
+    }),
     exit: vi.fn(),
     uptimeMs: () => 1234,
     startupMarks: () => ({ nodeBootstrapMs: 40, mainStartMs: 55 }),
@@ -35,7 +42,7 @@ function setup() {
       params: { protocolVersion, client: { name: "test-host", version: "0.0.0" } },
     });
 
-  return { io, runtime, call, initialize };
+  return { io, runtime, call, initialize, sent, logLines };
 }
 
 describe("runtime lifecycle", () => {
@@ -183,5 +190,56 @@ describe("runtime request validation", () => {
     );
     expect(response).toMatchObject({ id: 7 });
     expect(io.write).toHaveBeenCalledTimes(1);
+  });
+
+  it("logs ignored notifications as structured lines", async () => {
+    const { call, logLines } = setup();
+    await call(
+      `${JSON.stringify({ jsonrpc: "2.0", method: "runtime.ping" })}\n${JSON.stringify({ jsonrpc: "2.0", id: 8, method: "runtime.ping" })}`,
+    );
+    expect(logLines).toContainEqual({
+      level: "warn",
+      msg: "ignoring a notification",
+      module: "rpc",
+      method: "runtime.ping",
+    });
+  });
+});
+
+describe("runtime events", () => {
+  it("sends emitted events as event notifications", async () => {
+    const { runtime, initialize, sent } = setup();
+    await initialize();
+    runtime.events.emit("runtime.warning", { message: "disk almost full" });
+    await vi.waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1]).toMatchObject({
+      jsonrpc: "2.0",
+      method: "event",
+      params: { seq: 0, type: "runtime.warning", message: "disk almost full" },
+    });
+    expect(sent[1]).not.toHaveProperty("id");
+  });
+
+  it("replays events after a sequence number", async () => {
+    const { runtime, initialize, call } = setup();
+    await initialize();
+    runtime.events.emit("runtime.warning", { message: "a" });
+    runtime.events.emit("runtime.warning", { message: "b" });
+    const response = await call({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "events.replay",
+      params: { afterSeq: 0 },
+    });
+    expect(response).toMatchObject({
+      result: { events: [{ seq: 1, message: "b" }], complete: true, lastSeq: 1 },
+    });
+  });
+
+  it("refuses events.replay before initialize", async () => {
+    const { call } = setup();
+    expect(
+      await call({ jsonrpc: "2.0", id: 1, method: "events.replay", params: { afterSeq: -1 } }),
+    ).toMatchObject({ error: { data: { code: "runtime.not_initialized" } } });
   });
 });

@@ -44,3 +44,6 @@ await writeJson(
   join(schemaDir, "runtime-event-base.json"),
   toSchema(protocol.RuntimeEventBaseSchema),
 );
+for (const event of Object.values(protocol.EVENTS)) {
+  await writeJson(join(schemaDir, `event.${event.type}.json`), toSchema(event.schema));
+}

@@ -6,6 +6,7 @@ pub const PROTOCOL_VERSION: &str = "0.1.0";
 
 /// Runtime methods the Workbench may call through the relay. Anything else is rejected.
 pub const WORKBENCH_METHODS: &[&str] = &[
+    "events.replay",
     "runtime.ping",
 ];
 

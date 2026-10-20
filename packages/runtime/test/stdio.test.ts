@@ -45,6 +45,32 @@ describe("runtime over stdio", () => {
     expect(await harness.exited).toBe(0);
   });
 
+  it("writes structured JSON log lines to stderr, never stdout", async () => {
+    harness = RuntimeHarness.start();
+    await harness.initialize();
+    harness.sendRaw(JSON.stringify({ jsonrpc: "2.0", method: "runtime.ping" }));
+    // The next reply proves the notification was handled.
+    await harness.call("runtime.ping", {});
+
+    expect(harness.logLines()).toContainEqual({
+      level: "warn",
+      msg: "ignoring a notification",
+      module: "rpc",
+      method: "runtime.ping",
+    });
+  });
+
+  it("answers events.replay before any event exists", async () => {
+    harness = RuntimeHarness.start();
+    await harness.initialize();
+    expect((await harness.call("events.replay", { afterSeq: -1 })).result).toEqual({
+      events: [],
+      complete: true,
+      lastSeq: -1,
+    });
+    expect(harness.events).toEqual([]);
+  });
+
   it("exits with code 0 when the Host closes stdin (ADR-0002)", async () => {
     harness = RuntimeHarness.start();
     await harness.initialize();

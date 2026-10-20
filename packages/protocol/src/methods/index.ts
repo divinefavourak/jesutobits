@@ -1,8 +1,10 @@
 import type { z } from "zod";
 import type { Caller, MethodDefinition } from "./define.js";
+import { eventsReplay } from "./events.js";
 import { runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
 export { defineMethod } from "./define.js";
+export { eventsReplay } from "./events.js";
 export type { Caller, MethodDefinition } from "./define.js";
 export { runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
@@ -11,6 +13,7 @@ export const METHODS = {
   [runtimeInitialize.name]: runtimeInitialize,
   [runtimePing.name]: runtimePing,
   [runtimeShutdown.name]: runtimeShutdown,
+  [eventsReplay.name]: eventsReplay,
 } as const;
 
 export type MethodName = keyof typeof METHODS;

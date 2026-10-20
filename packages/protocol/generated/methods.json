@@ -19,6 +19,7 @@
     "visual.not_editable"
   ],
   "workbench": [
+    "events.replay",
     "runtime.ping"
   ],
   "host": [

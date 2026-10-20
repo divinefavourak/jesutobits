@@ -15,6 +15,7 @@
   ],
   "dependencies": {
     "@jesutobits/protocol": "workspace:*",
+    "@jesutobits/shared": "workspace:*",
     "zod": "^4.6.7"
   }
 }

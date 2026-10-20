@@ -310,6 +310,8 @@ Event catalogue (full payloads in AGENT_HARNESS.md section 8):
 | Verification | `check.started`, `check.completed` |
 | Runtime | `runtime.warning`, `runtime.error` |
 
+Each event type is declared with `defineEvent` in `packages/protocol/src/events.ts` (its own fields sit next to the base fields, and unknown fields are rejected) and registered in `EVENTS`; `pnpm gen` writes a JSON Schema per event. The runtime's `EventBus` (`packages/runtime/src/events/`) assigns `seq`, checks every event against its schema before sending it, and keeps the last 2,000 events for `events.replay`, which reports `complete: false` when a gap is older than the buffer (the Workbench then reloads that state from its owning methods).
+
 The Workbench derives **everything** it shows about agent activity (timeline rows, status bar, companion state) from these events. No component invents activity.
 
 ### 6.5 Identifiers
@@ -490,6 +492,7 @@ Code families: `rpc.*`, `runtime.*`, `provider.*`, `tool.*`, `fs.*`, `process.*`
 
 - **Format:** JSON lines. Fields: `ts`, `level`, `component` (`host`, `runtime`, `workbench`), `module`, `msg`, plus correlation IDs (`projectId`, `sessionId`, `turnId`, `callId`, `processId`) and `err` (a `JesutobitsError`).
 - **Files:** `logs/host.jsonl`, `logs/runtime.jsonl`, `logs/workbench.jsonl`, rotated at 10 MB, 10 files each (NFR-014). The Host is the single writer of all three (`apps/desktop/src-tauri/src/logging/`): the Workbench logs through `workbench_log`, and the runtime writes JSON lines to **stderr**, which the Host copies into `runtime.jsonl`. Stderr lines that are not a JSON object with `level` and `msg` (for example Node's own crash output) are kept as `warn` lines from module `stderr`, so a crash is never lost. The Host stamps `ts` and `component` itself.
+- **Runtime side:** `packages/runtime/src/log/` writes one JSON object per line to stderr (`level`, `msg`, `module` and any fields; `JESUTOBITS_RUNTIME_LOG` sets the level). `services` code receives the same `Logger` interface (`@jesutobits/shared`) by injection, since it may not depend on the runtime or use `console`.
 - **Redaction:** all log calls pass through the `SecretRegistry` masker. The Host masks every string value of every line again before writing (registered secret values, then the token patterns of SECURITY.md section 6.1); `fixtures/redaction/cases.json` holds the pattern cases both implementations must pass. Model prompts and completions are **not** logged by default; a "Debug: log model traffic" setting enables it with redaction and a warning.
 - **Levels:** `error`, `warn`, `info` (default), `debug` (setting), `trace` (env var only: `JESUTOBITS_HOST_LOG`, `JESUTOBITS_RUNTIME_LOG`). Each process filters its own lines; the Workbench cannot log at `trace`.
 - **In-app diagnostics:** Help > Diagnostics shows runtime status, versions, last 200 log lines with filters, process table (managed processes with PIDs), and "Copy diagnostic bundle" (zips redacted logs and environment summary for bug reports, saved locally; nothing uploaded).

@@ -24,10 +24,16 @@ export class MockHostBridge implements HostBridge {
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
   private currentStatus: RuntimeStatusUpdate = { status: "ready" };
   private readonly started = performance.now();
+  private readonly emitted: RuntimeEventBase[] = [];
   private readonly handlers: Handlers = {
     "runtime.ping": (params) => ({
       uptimeMs: performance.now() - this.started,
       ...(params.echo !== undefined && { echo: params.echo }),
+    }),
+    "events.replay": (params) => ({
+      events: this.emitted.filter((event) => event.seq > params.afterSeq),
+      complete: true,
+      lastSeq: this.emitted.at(-1)?.seq ?? -1,
     }),
   };
 
@@ -72,6 +78,7 @@ export class MockHostBridge implements HostBridge {
 
   /** Test helpers. */
   emitEvent(event: RuntimeEventBase): void {
+    this.emitted.push(event);
     this.events.emit(event);
   }
 

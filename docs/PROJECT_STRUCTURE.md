@@ -59,7 +59,7 @@ jesutobits/
 ├── packages/
 │   ├── protocol/                  # Zod schemas: RPC methods, events, JesutobitsError, bridge messages,
 │   │                              # VisualChange, settings; generates JSON Schemas and the Host allowlist
-│   ├── shared/                    # pure utilities: ids (ULID + prefix), Result, semver helpers; no Node or DOM APIs
+│   ├── shared/                    # pure utilities: ids (ULID + prefix), Result, semver helpers, the Logger interface; no Node or DOM APIs
 │   ├── runtime/                   # RUNTIME entry + AGENT HARNESS (boundary B)
 │   │   ├── src/main.ts            # stdio wiring, dependency injection of services
 │   │   ├── src/rpc/

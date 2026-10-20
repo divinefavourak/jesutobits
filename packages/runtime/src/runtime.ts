@@ -1,10 +1,13 @@
 import {
   ErrorCodes,
+  EVENT_NOTIFICATION_METHOD,
   isProtocolCompatible,
   JesutobitsError,
   MAX_MESSAGE_BYTES,
   PROTOCOL_VERSION,
 } from "@jesutobits/protocol";
+import type { Logger } from "@jesutobits/shared";
+import { EventBus } from "./events/event-bus.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
 import { RpcServer } from "./rpc/server.js";
 import { RUNTIME_VERSION } from "./version.js";
@@ -12,8 +15,8 @@ import { RUNTIME_VERSION } from "./version.js";
 export interface RuntimeIo {
   /** Writes one NDJSON line to the Host (stdout). Resolves once flushed. */
   write(line: string): Promise<void>;
-  /** Diagnostic text for the Host's runtime log (stderr). */
-  diagnostic(message: string): void;
+  /** Structured lines for the Host's runtime log (stderr). */
+  log: Logger;
   exit(code: number): void;
   /** Milliseconds since the runtime started. */
   uptimeMs(): number;
@@ -26,6 +29,8 @@ export interface Runtime {
   receive(chunk: Buffer): void;
   /** stdin reached EOF: the Host is gone (ADR-0002, parent-death detection). */
   endOfInput(): void;
+  /** Where services emit runtime events. */
+  readonly events: EventBus;
 }
 
 type LifecycleState = "awaiting_initialize" | "ready" | "shutting_down";
@@ -38,9 +43,10 @@ export function createRuntime(io: RuntimeIo): Runtime {
     io.exit(0);
   };
 
+  const log = io.log.child({ module: "runtime" });
   const server = new RpcServer({
     send: (line) => io.write(`${line}\n`),
-    diagnostic: io.diagnostic,
+    log: io.log.child({ module: "rpc" }),
     gate(method) {
       if (state === "shutting_down") {
         throw new JesutobitsError(ErrorCodes.runtimeShuttingDown, "The runtime is shutting down");
@@ -88,15 +94,19 @@ export function createRuntime(io: RuntimeIo): Runtime {
     ...(params.echo !== undefined && { echo: params.echo }),
   }));
 
+  const events = new EventBus({
+    send: (event) => server.notify(EVENT_NOTIFICATION_METHOD, event),
+    log: io.log.child({ module: "events" }),
+  });
+  server.register("events.replay", (params) => events.replay(params.afterSeq));
+
   server.register("runtime.shutdown", () => {
     state = "shutting_down";
     return {};
   });
 
   const report = (error: unknown): void => {
-    io.diagnostic(
-      `Failed to handle message: ${error instanceof Error ? error.stack : String(error)}`,
-    );
+    log.error("failed to handle a message", { err: error });
   };
   const splitter = new LineSplitter(
     MAX_MESSAGE_BYTES,
@@ -105,6 +115,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
   );
 
   return {
+    events,
     receive: (chunk) => splitter.push(chunk),
     endOfInput() {
       splitter.end();

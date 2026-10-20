@@ -15,6 +15,8 @@ export interface RpcReply {
 
 export class RuntimeHarness {
   readonly stderr: string[] = [];
+  /** `event` notifications received, in order (runtime events, ADR-0003). */
+  readonly events: Array<Record<string, unknown>> = [];
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly pending = new Map<string, (reply: RpcReply) => void>();
   private buffer = "";
@@ -48,6 +50,20 @@ export class RuntimeHarness {
     });
   }
 
+  /** Writes one line as is, for malformed or unusual input. */
+  sendRaw(line: string): void {
+    this.child.stdin.write(`${line}\n`);
+  }
+
+  /** Stderr split into lines, each parsed as a JSON log line (ARCHITECTURE.md section 10). */
+  logLines(): Array<Record<string, unknown>> {
+    return this.stderr
+      .join("")
+      .split("\n")
+      .filter((line) => line !== "")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+  }
+
   /** Closes stdin, as happens when the Host dies. */
   closeStdin(): void {
     this.child.stdin.end();
@@ -64,7 +80,12 @@ export class RuntimeHarness {
       const line = this.buffer.slice(0, newline);
       this.buffer = this.buffer.slice(newline + 1);
       // Anything on stdout that is not a JSON-RPC message is a protocol violation.
-      const reply = JSON.parse(line) as RpcReply;
+      const message = JSON.parse(line) as RpcReply & { method?: string; params?: unknown };
+      if (message.method === "event" && message.id === undefined) {
+        this.events.push(message.params as Record<string, unknown>);
+        continue;
+      }
+      const reply = message;
       const resolve = this.pending.get(String(reply.id));
       if (!resolve) throw new Error(`Unexpected message on stdout: ${line}`);
       this.pending.delete(String(reply.id));
