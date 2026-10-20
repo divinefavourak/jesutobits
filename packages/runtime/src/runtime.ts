@@ -10,6 +10,7 @@ import type { Logger } from "@jesutobits/shared";
 import { EventBus } from "./events/event-bus.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
 import { RpcServer } from "./rpc/server.js";
+import { openStorage, type Storage } from "./storage/storage.js";
 import { RUNTIME_VERSION } from "./version.js";
 
 export interface RuntimeIo {
@@ -22,6 +23,8 @@ export interface RuntimeIo {
   uptimeMs(): number;
   /** Startup marks in milliseconds since the process started (reported by `initialize`). */
   startupMarks(): { nodeBootstrapMs: number; mainStartMs: number };
+  /** The app data dir from `--data-dir`; without it the database lives in memory. */
+  dataDir: string | undefined;
 }
 
 export interface Runtime {
@@ -37,13 +40,19 @@ type LifecycleState = "awaiting_initialize" | "ready" | "shutting_down";
 
 export function createRuntime(io: RuntimeIo): Runtime {
   let state: LifecycleState = "awaiting_initialize";
+  let storage: Storage | undefined;
+  const log = io.log.child({ module: "runtime" });
 
   const shutdown = (): void => {
-    // Later phases cancel the active turn, stop managed processes and flush SQLite here.
+    // Later phases also cancel the active turn and stop managed processes here.
+    try {
+      storage?.close();
+    } catch (error) {
+      log.error("could not close the database", { err: error });
+    }
     io.exit(0);
   };
 
-  const log = io.log.child({ module: "runtime" });
   const server = new RpcServer({
     send: (line) => io.write(`${line}\n`),
     log: io.log.child({ module: "rpc" }),
@@ -58,8 +67,10 @@ export function createRuntime(io: RuntimeIo): Runtime {
         );
       }
     },
-    onResponded(method) {
+    onResponded(method, ok) {
       if (method === "runtime.shutdown" && state === "shutting_down") shutdown();
+      // After the reply is flushed, so migrations never delay the handshake (NFR-002).
+      if (method === "runtime.initialize" && ok) startStorage();
     },
   });
 
@@ -99,6 +110,26 @@ export function createRuntime(io: RuntimeIo): Runtime {
     log: io.log.child({ module: "events" }),
   });
   server.register("events.replay", (params) => events.replay(params.afterSeq));
+
+  /** Opens the database; problems become events the Workbench shows (DATA_AND_PERSISTENCE.md 6.1). */
+  function startStorage(): void {
+    try {
+      storage = openStorage({ dir: io.dataDir, log: io.log.child({ module: "storage" }) });
+    } catch (error) {
+      log.error("could not open the database", { err: error });
+      events.emit("runtime.error", {
+        error: new JesutobitsError(
+          ErrorCodes.storageUnavailable,
+          "Jesutobits could not open its database. Projects and sessions cannot be saved.",
+          { userAction: "report" },
+        ).toData(),
+      });
+      return;
+    }
+    for (const notice of storage.notices) {
+      events.emit("runtime.warning", { message: notice.message, code: notice.code });
+    }
+  }
 
   server.register("runtime.shutdown", () => {
     state = "shutting_down";

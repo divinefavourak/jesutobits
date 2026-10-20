@@ -46,6 +46,8 @@ Rules:
 - Schema migrations for SQLite live in `packages/runtime/src/storage/migrations/NNNN_name.sql` and run at runtime start inside a transaction, after a file-level backup.
 - Settings JSON carries `"schemaVersion"`. The Host migrates on load and keeps `settings.json.bak-<version>`.
 
+- Phase 1 (2026-10-20) implemented the `Database` interface (`storage/database.ts`) and its `node:sqlite` backend (`storage/node-sqlite.ts`), the migration runner with backups and recovery (DATA_AND_PERSISTENCE.md section 6.1), and the first migration (`projects`). The Host now passes the **local** app data dir (`%LOCALAPPDATA%`) as `--data-dir`; Spike S1 had passed the roaming one.
+
 ## Revisit when
 
 `node:sqlite` causes a data-loss bug, or we need cross-device sync (which would require a different design and an explicit privacy decision).

@@ -239,6 +239,13 @@ No field in either file may contain a secret. A unit test scans the settings sch
 - **Newer database than the app** (downgrade): open read-only and offer to restore the latest compatible backup.
 - **Unclean shutdown** (marker file present at start): run `PRAGMA quick_check`. On failure, move `jesutobits.db` aside as `jesutobits.corrupt-<timestamp>.db`, start with a new database, and tell the user that sessions from the old file can be exported with a recovery tool later.
 
+Implementation (`packages/runtime/src/storage/storage.ts`, Phase 1):
+
+- The unclean-shutdown marker is `jesutobits.db.open`, written when the database opens and removed by a clean `runtime.shutdown` or stdin EOF. A file that cannot be opened at all (for example plain text) is moved aside the same way, even after a clean shutdown.
+- The runtime opens the database right **after** the `runtime.initialize` reply is flushed, so a backup or migration never delays the handshake (NFR-002). Problems are sent as `runtime.warning` events with the codes `storage.corrupt_recovered`, `storage.migration_failed` and `storage.newer_database`; a database that cannot be opened at all is a `runtime.error` with `storage.unavailable`.
+- Migrations are `.sql` files inlined into the bundle as text, each with a `.d.sql.ts` that types the import. A test pins every merged file's SHA-256, so an edited migration fails CI. `schema_migrations` is created by the runner, not by a migration.
+- Without `--data-dir` (some tests) the database lives in memory.
+
 ### 6.2 Settings
 
 - `schemaVersion` is migrated by the Host on load; the previous file is kept as `settings.json.bak-v<old>`.

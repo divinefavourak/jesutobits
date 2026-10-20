@@ -15,6 +15,11 @@
     "runtime.protocol_mismatch",
     "runtime.shutting_down",
     "runtime.unavailable",
+    "storage.corrupt_recovered",
+    "storage.migration_failed",
+    "storage.newer_database",
+    "storage.read_only",
+    "storage.unavailable",
     "visual.element_not_found",
     "visual.not_editable"
   ],

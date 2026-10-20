@@ -23,6 +23,7 @@ function setup() {
     exit: vi.fn(),
     uptimeMs: () => 1234,
     startupMarks: () => ({ nodeBootstrapMs: 40, mainStartMs: 55 }),
+    dataDir: undefined,
   };
   const runtime = createRuntime(io);
 

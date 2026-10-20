@@ -31,13 +31,13 @@ use tokio::sync::{mpsc, watch};
 
 use crate::logging;
 use crate::rpc_relay::lines::{read_line_capped, Line};
-use crate::rpc_relay::{allowlist, unavailable, Connection, MAX_MESSAGE_BYTES};
+use crate::rpc_relay::{allowlist, unavailable, Connection, CODE_TIMEOUT, MAX_MESSAGE_BYTES};
 use restart_policy::{Decision, RestartPolicy};
 
 /// Longest runtime stderr line kept; Node stack traces fit easily.
 const MAX_STDERR_LINE_BYTES: usize = 64 * 1024;
-/// How long a failed handshake waits to learn whether the process is exiting.
-const EXIT_GRACE: Duration = Duration::from_millis(500);
+/// How long to wait for a process whose stdout closed during the handshake to exit.
+const EXIT_WAIT: Duration = Duration::from_secs(5);
 const MODULE: &str = "runtime_supervisor";
 
 /// Environment the runtime inherits (ADR-0011 allowlist plus Jesutobits' own dev settings).
@@ -464,18 +464,27 @@ async fn run_once(
     };
     let result = match handshake {
         Ok(result) => result,
-        Err(error) => {
-            // A process that is exiting fails the call first; tell the two cases apart.
-            if let Ok(status) = tokio::time::timeout(EXIT_GRACE, child.wait()).await {
-                let code = observe_exit(inner, status);
-                return Ended::Crashed(format!(
-                    "The runtime exited during startup (exit code {code})"
-                ));
-            }
+        // Alive but silent: retrying will not help (ADR-0002).
+        Err(error) if error["data"]["code"] == CODE_TIMEOUT => {
             kill_and_reap(inner, &mut child).await;
             return Ended::Fatal(format!(
                 "The runtime did not complete its handshake: {}",
                 error["message"].as_str().unwrap_or("unknown error")
+            ));
+        }
+        // Its stdout closed before the reply: the process is exiting, which is a crash. The
+        // exit can be reported well after stdout closes on a busy machine, so wait for it
+        // rather than guess from timing.
+        Err(_) => {
+            let code = match tokio::time::timeout(EXIT_WAIT, child.wait()).await {
+                Ok(status) => observe_exit(inner, status),
+                Err(_) => {
+                    kill_and_reap(inner, &mut child).await;
+                    "none".to_owned()
+                }
+            };
+            return Ended::Crashed(format!(
+                "The runtime exited during startup (exit code {code})"
             ));
         }
     };

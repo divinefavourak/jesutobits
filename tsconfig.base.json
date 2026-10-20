@@ -12,6 +12,7 @@
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
+    "allowArbitraryExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "composite": true,

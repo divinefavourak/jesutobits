@@ -47,6 +47,16 @@ export const ErrorCodes = {
   runtimeNotInitialized: "runtime.not_initialized",
   runtimeAlreadyInitialized: "runtime.already_initialized",
   runtimeShuttingDown: "runtime.shutting_down",
+  /** A database upgrade failed and was rolled back; the database is open read-only. */
+  storageMigrationFailed: "storage.migration_failed",
+  /** The database was written by a newer Jesutobits; it is open read-only. */
+  storageNewerDatabase: "storage.newer_database",
+  /** The database was unreadable after an unclean shutdown; it was moved aside. */
+  storageCorruptRecovered: "storage.corrupt_recovered",
+  /** The database could not be opened at all. */
+  storageUnavailable: "storage.unavailable",
+  /** A write was refused because the database is open read-only. */
+  storageReadOnly: "storage.read_only",
   /** No JSX element starts at the requested location (the file changed, or a bad loc). */
   visualElementNotFound: "visual.element_not_found",
   /** The property cannot be edited statically, for example a computed className. */

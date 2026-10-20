@@ -219,7 +219,11 @@ async fn a_handshake_timeout_fails_without_retrying() {
     assert!(h
         .detail_of(Failed)
         .starts_with("The runtime did not complete its handshake"));
-    assert_eq!(h.starts(), 1);
+    // No retry. Under load Node may not even reach the fake's first line within 300 ms, so
+    // the start count can be 0; it must never grow.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    assert!(h.starts() <= 1, "started {} times", h.starts());
+    assert_eq!(h.statuses(), [Starting, Failed]);
     h.finish().await;
 }
 

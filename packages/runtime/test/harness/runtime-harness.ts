@@ -13,6 +13,11 @@ export interface RpcReply {
   error?: { code: number; message: string; data?: { code: string } };
 }
 
+export interface HarnessOptions {
+  /** Passed as `--data-dir`, as the Host does. */
+  dataDir?: string;
+}
+
 export class RuntimeHarness {
   readonly stderr: string[] = [];
   /** `event` notifications received, in order (runtime events, ADR-0003). */
@@ -23,8 +28,9 @@ export class RuntimeHarness {
   private nextId = 1;
   readonly exited: Promise<number | null>;
 
-  private constructor() {
-    this.child = spawn(process.execPath, [ENTRY], { stdio: "pipe" });
+  private constructor(options: HarnessOptions) {
+    const args = options.dataDir === undefined ? [] : ["--data-dir", options.dataDir];
+    this.child = spawn(process.execPath, [ENTRY, "--stdio", ...args], { stdio: "pipe" });
     this.child.stdout.setEncoding("utf8");
     this.child.stdout.on("data", (chunk: string) => this.onStdout(chunk));
     this.child.stderr.setEncoding("utf8");
@@ -32,8 +38,9 @@ export class RuntimeHarness {
     this.exited = new Promise((resolve) => this.child.on("exit", (code) => resolve(code)));
   }
 
-  static start(): RuntimeHarness {
-    return new RuntimeHarness();
+  /** Without `dataDir` the runtime keeps its database in memory. */
+  static start(options: HarnessOptions = {}): RuntimeHarness {
+    return new RuntimeHarness(options);
   }
 
   call<M extends MethodName>(method: M, params: MethodParams<M>): Promise<RpcReply> {

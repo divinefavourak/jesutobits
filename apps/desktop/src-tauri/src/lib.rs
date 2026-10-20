@@ -127,9 +127,11 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
         use_job_object = std::env::var("JESUTOBITS_DISABLE_JOB_OBJECT").as_deref() != Ok("1");
     }
 
+    // The database and checkpoints are large and machine-specific, so they go in the local
+    // (not roaming) data dir: %LOCALAPPDATA%\<identifier> (DATA_AND_PERSISTENCE.md section 2).
     let data_dir = match std::env::var_os("JESUTOBITS_DATA_DIR") {
         Some(dir) => PathBuf::from(dir),
-        None => app.path().app_data_dir()?,
+        None => app.path().app_local_data_dir()?,
     };
     std::fs::create_dir_all(&data_dir)?;
 

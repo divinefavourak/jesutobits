@@ -1,5 +1,8 @@
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { getMethod, type MethodResult } from "@jesutobits/protocol";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { RuntimeHarness } from "./harness/runtime-harness.js";
 
 let harness: RuntimeHarness | undefined;
@@ -69,6 +72,40 @@ describe("runtime over stdio", () => {
       lastSeq: -1,
     });
     expect(harness.events).toEqual([]);
+  });
+
+  it("opens its database in --data-dir after the handshake and closes it on shutdown", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "jesutobits-runtime-"));
+    try {
+      harness = RuntimeHarness.start({ dataDir });
+      await harness.initialize();
+      await vi.waitFor(() => expect(existsSync(join(dataDir, "jesutobits.db.open"))).toBe(true));
+      expect(existsSync(join(dataDir, "jesutobits.db"))).toBe(true);
+
+      await harness.call("runtime.shutdown", {});
+      expect(await harness.exited).toBe(0);
+      expect(existsSync(join(dataDir, "jesutobits.db.open"))).toBe(false);
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+  });
+
+  it("reports a recovered corrupt database as a runtime.warning event", async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), "jesutobits-runtime-"));
+    try {
+      writeFileSync(join(dataDir, "jesutobits.db"), "not a database, just text in a file....");
+      harness = RuntimeHarness.start({ dataDir });
+      await harness.initialize();
+      await vi.waitFor(() =>
+        expect(harness?.events).toContainEqual(
+          expect.objectContaining({ type: "runtime.warning", code: "storage.corrupt_recovered" }),
+        ),
+      );
+      harness.kill();
+      await harness.exited;
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
   });
 
   it("exits with code 0 when the Host closes stdin (ADR-0002)", async () => {
