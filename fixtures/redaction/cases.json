@@ -1,0 +1,55 @@
+{
+  "$comment": "Pattern redaction cases (SECURITY.md section 6.1). The Host's logger (Rust) and the runtime's masker (TypeScript) both run every case, so their patterns cannot drift apart. All tokens are fake.",
+  "cases": [
+    {
+      "name": "OpenRouter-style key",
+      "input": "key=sk-or-v1-0123456789abcdef0123456789abcdef in header",
+      "expected": "key=[REDACTED:token] in header"
+    },
+    {
+      "name": "GitHub classic token",
+      "input": "token ghp_FAKEfake0123456789FAKEfake0123456789 end",
+      "expected": "token [REDACTED:token] end"
+    },
+    {
+      "name": "GitHub fine-grained token",
+      "input": "github_pat_11FAKE0000_fakefakefakefakefakefake",
+      "expected": "[REDACTED:token]"
+    },
+    {
+      "name": "AWS access key ID",
+      "input": "id AKIAIOSFODNN7EXAMPLE.",
+      "expected": "id [REDACTED:token]."
+    },
+    {
+      "name": "Slack token",
+      "input": "xoxb-0000-fake-token-value",
+      "expected": "[REDACTED:token]"
+    },
+    {
+      "name": "JWT",
+      "input": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJmYWtlIn0.c2lnbmF0dXJlLWZha2U",
+      "expected": "Bearer [REDACTED:token]"
+    },
+    {
+      "name": "Private key block",
+      "input": "-----BEGIN RSA PRIVATE KEY-----\nMIIfake\n-----END RSA PRIVATE KEY----- after",
+      "expected": "[REDACTED:private-key] after"
+    },
+    {
+      "name": "Unterminated private key block",
+      "input": "x -----BEGIN PRIVATE KEY-----\nMIIfake",
+      "expected": "x [REDACTED:private-key]"
+    },
+    {
+      "name": "Ordinary words are untouched",
+      "input": "task-runner sk-short desk-lamp AKIA12 risky-xoxo eyJ.short",
+      "expected": "task-runner sk-short desk-lamp AKIA12 risky-xoxo eyJ.short"
+    },
+    {
+      "name": "Prefixes inside a word are untouched",
+      "input": "mask-or-v1-0123456789abcdef0123456789abcdef",
+      "expected": "mask-or-v1-0123456789abcdef0123456789abcdef"
+    }
+  ]
+}

@@ -1519,6 +1519,7 @@ dependencies = [
 name = "jesutobits-desktop"
 version = "0.0.0"
 dependencies = [
+ "regex",
  "serde",
  "serde_json",
  "tauri",

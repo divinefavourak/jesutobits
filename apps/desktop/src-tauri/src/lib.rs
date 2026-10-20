@@ -1,5 +1,6 @@
 //! Jesutobits Host (ARCHITECTURE.md section 5.1).
 
+mod logging;
 mod rpc_relay;
 mod runtime_supervisor;
 
@@ -15,7 +16,6 @@ use runtime_supervisor::{LaunchSpec, StatusUpdate, Supervisor};
 
 /// How long a Workbench call may wait for the runtime. Long work streams events instead.
 const WORKBENCH_CALL_TIMEOUT: Duration = Duration::from_secs(60);
-const MAX_LOG_MESSAGE_BYTES: usize = 16 * 1024;
 
 /// Relays a Workbench call to the runtime if the method is on the allowlist (ADR-0003).
 /// `Err` is a JSON-RPC error object whose `data` is a JesutobitsError.
@@ -56,19 +56,18 @@ fn runtime_subscribe(
     supervisor.subscribe(on_event, on_status);
 }
 
-/// The Workbench logs through the Host (ARCHITECTURE.md section 10). Log files and
-/// redaction arrive in Phase 1; until then lines go to the Host's stderr.
+/// The Workbench logs through the Host into `workbench.jsonl` (ARCHITECTURE.md section 10).
 #[tauri::command]
 fn workbench_log(level: String, message: String) {
-    let level = match level.as_str() {
-        "error" | "warn" | "info" | "debug" => level,
-        _ => "info".to_owned(),
-    };
-    let mut end = message.len().min(MAX_LOG_MESSAGE_BYTES);
-    while !message.is_char_boundary(end) {
-        end -= 1;
+    logging::workbench(&level, &message);
+}
+
+/// `JESUTOBITS_LOG_DIR` overrides the app log dir, like `JESUTOBITS_DATA_DIR` for data.
+fn log_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
+    match std::env::var_os("JESUTOBITS_LOG_DIR") {
+        Some(dir) => Ok(PathBuf::from(dir)),
+        None => app.path().app_log_dir(),
     }
-    eprintln!("[workbench:{level}] {}", &message[..end]);
 }
 
 fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error::Error>> {
@@ -110,6 +109,7 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
 pub fn run() {
     let app = tauri::Builder::default()
         .setup(|app| {
+            logging::init(&log_dir(app.handle())?);
             let supervisor = Supervisor::new();
             supervisor.start(launch_spec(app.handle())?);
             app.manage(supervisor);

@@ -21,6 +21,10 @@ use serde_json::{json, Value};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
 use tokio::sync::{oneshot, Mutex as AsyncMutex};
 
+use crate::logging;
+
+const MODULE: &str = "rpc_relay";
+
 /// Largest message either side may send (ADR-0003, decision 7).
 pub const MAX_MESSAGE_BYTES: usize = 4 * 1024 * 1024;
 
@@ -97,7 +101,7 @@ impl Connection {
     /// Routes one line from the runtime's stdout.
     pub async fn handle_line(&self, line: &[u8]) {
         let Ok(Value::Object(message)) = serde_json::from_slice::<Value>(line) else {
-            eprintln!("[host] dropping a runtime line that is not a JSON object");
+            logging::warn(MODULE, "dropping a runtime line that is not a JSON object");
             return;
         };
         let method = message.get("method").and_then(Value::as_str);
@@ -116,13 +120,18 @@ impl Connection {
                 );
                 let reply = json!({ "jsonrpc": "2.0", "id": id, "error": error });
                 if let Err(error) = self.send(&reply).await {
-                    eprintln!("[host] could not answer reverse call {method}: {error}");
+                    logging::warn(
+                        MODULE,
+                        format!("could not answer reverse call {method}: {error}"),
+                    );
                 }
             }
-            (Some(method), None) => eprintln!("[host] ignoring runtime notification {method}"),
+            (Some(method), None) => {
+                logging::warn(MODULE, format!("ignoring runtime notification {method}"))
+            }
             (None, Some(id)) => {
                 let Some(id) = id.as_str() else {
-                    eprintln!("[host] dropping a reply with a non-string id");
+                    logging::warn(MODULE, "dropping a reply with a non-string id");
                     return;
                 };
                 let Some(tx) = self.pending.lock().unwrap().remove(id) else {
@@ -136,7 +145,9 @@ impl Connection {
                 };
                 let _ = tx.send(reply);
             }
-            (None, None) => eprintln!("[host] dropping a runtime message without method or id"),
+            (None, None) => {
+                logging::warn(MODULE, "dropping a runtime message without method or id")
+            }
         }
     }
 

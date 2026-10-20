@@ -48,6 +48,7 @@ jesutobits/
 │               ├── main.rs, lib.rs
 │               ├── runtime_supervisor/   # spawn, health, restart; job_object_windows.rs; process_group_unix.rs
 │               ├── rpc_relay/            # relay + allowlist (allowlist.rs is generated)
+│               ├── logging/              # host/workbench/runtime .jsonl files: rotation, redaction
 │               ├── secret_store.rs
 │               ├── pty_manager.rs
 │               ├── extension_store/      # archive checks, staging, registry, jesutobits-ext protocol

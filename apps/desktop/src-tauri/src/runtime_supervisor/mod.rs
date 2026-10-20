@@ -15,12 +15,13 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use tauri::ipc::Channel;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::BufReader;
 use tokio::process::{Child, Command};
 use tokio::sync::{oneshot, watch};
 
+use crate::logging;
 use crate::rpc_relay::lines::{read_line_capped, Line};
 use crate::rpc_relay::{allowlist, unavailable, Connection, MAX_MESSAGE_BYTES};
 
@@ -30,6 +31,9 @@ const PING_TIMEOUT: Duration = Duration::from_secs(2);
 const MISSED_PINGS_DEGRADED: u32 = 2;
 const SHUTDOWN_REPLY_TIMEOUT: Duration = Duration::from_secs(2);
 const SHUTDOWN_EXIT_TIMEOUT: Duration = Duration::from_secs(5);
+/// Longest runtime stderr line kept; Node stack traces fit easily.
+const MAX_STDERR_LINE_BYTES: usize = 64 * 1024;
+const MODULE: &str = "runtime_supervisor";
 
 /// Environment the runtime inherits (ADR-0011 allowlist plus Jesutobits' own dev settings).
 /// Everything else, including NODE_OPTIONS, is dropped.
@@ -119,7 +123,7 @@ impl Supervisor {
         let inner = self.inner.clone();
         tauri::async_runtime::spawn(async move {
             if let Err(detail) = launch(inner.clone(), spec).await {
-                eprintln!("[host] runtime failed to start: {detail}");
+                logging::error(MODULE, format!("runtime failed to start: {detail}"));
                 inner.set_status(RuntimeStatus::Failed, Some(detail));
                 inner.kill();
             }
@@ -148,6 +152,7 @@ impl Supervisor {
         if *exited.borrow() {
             return;
         }
+        logging::info(MODULE, "shutting down the runtime");
         if let Some(connection) = self.connection() {
             if let Err(error) = host_call(
                 &connection,
@@ -157,14 +162,14 @@ impl Supervisor {
             )
             .await
             {
-                eprintln!("[host] runtime.shutdown failed: {error}");
+                logging::warn(MODULE, format!("runtime.shutdown failed: {error}"));
             }
         }
         if tokio::time::timeout(SHUTDOWN_EXIT_TIMEOUT, exited.wait_for(|done| *done))
             .await
             .is_err()
         {
-            eprintln!("[host] runtime did not exit within 5 s; killing it");
+            logging::warn(MODULE, "runtime did not exit within 5 s; killing it");
             self.inner.kill();
             let _ =
                 tokio::time::timeout(Duration::from_secs(2), exited.wait_for(|done| *done)).await;
@@ -265,11 +270,15 @@ async fn launch(inner: Arc<Inner>, spec: LaunchSpec) -> Result<(), String> {
         }
         // ADR-0011's process-group cleanup (process_group_unix.rs) is not built yet.
         #[cfg(not(windows))]
-        eprintln!(
-            "[host] no process-tree guard on this platform yet; the runtime's stdin-EOF shutdown is the only cleanup"
+        logging::warn(
+            MODULE,
+            "no process-tree guard on this platform yet; the runtime's stdin-EOF shutdown is the only cleanup",
         );
     } else {
-        eprintln!("[host] job object disabled (JESUTOBITS_DISABLE_JOB_OBJECT)");
+        logging::warn(
+            MODULE,
+            "job object disabled (JESUTOBITS_DISABLE_JOB_OBJECT)",
+        );
     }
 
     let stdin = child.stdin.take().expect("stdin is piped");
@@ -289,9 +298,10 @@ async fn launch(inner: Arc<Inner>, spec: LaunchSpec) -> Result<(), String> {
         loop {
             match read_line_capped(&mut stdout, &mut line, MAX_MESSAGE_BYTES).await {
                 Ok(Line::Complete) => reader.handle_line(&line).await,
-                Ok(Line::Oversize) => {
-                    eprintln!("[host] dropped a runtime message over {MAX_MESSAGE_BYTES} bytes")
-                }
+                Ok(Line::Oversize) => logging::warn(
+                    MODULE,
+                    format!("dropped a runtime message over {MAX_MESSAGE_BYTES} bytes"),
+                ),
                 Ok(Line::Eof) | Err(_) => break,
             }
         }
@@ -299,10 +309,18 @@ async fn launch(inner: Arc<Inner>, spec: LaunchSpec) -> Result<(), String> {
     });
 
     tauri::async_runtime::spawn(async move {
-        // The runtime's stderr is unstructured diagnostics; log files arrive in Phase 1.
-        let mut lines = BufReader::new(stderr).lines();
-        while let Ok(Some(line)) = lines.next_line().await {
-            eprintln!("[runtime] {line}");
+        // The runtime's stderr becomes runtime.jsonl; the Host is that file's only writer.
+        let mut stderr = BufReader::new(stderr);
+        let mut line = Vec::new();
+        loop {
+            match read_line_capped(&mut stderr, &mut line, MAX_STDERR_LINE_BYTES).await {
+                Ok(Line::Complete) => logging::runtime_stderr(&String::from_utf8_lossy(&line)),
+                Ok(Line::Oversize) => logging::warn(
+                    MODULE,
+                    format!("dropped a runtime stderr line over {MAX_STDERR_LINE_BYTES} bytes"),
+                ),
+                Ok(Line::Eof) | Err(_) => break,
+            }
         }
     });
 
@@ -328,10 +346,17 @@ async fn launch(inner: Arc<Inner>, spec: LaunchSpec) -> Result<(), String> {
         ));
     }
 
-    eprintln!(
-        "[host] runtime ready in {} ms (node {}, protocol {runtime_protocol})",
-        started.elapsed().as_millis(),
-        result["nodeVersion"].as_str().unwrap_or("?"),
+    let ms = started.elapsed().as_millis() as u64;
+    let node_version = result["nodeVersion"].as_str().unwrap_or("?");
+    let mut fields = Map::new();
+    fields.insert("ms".into(), ms.into());
+    fields.insert("nodeVersion".into(), node_version.into());
+    fields.insert("protocolVersion".into(), runtime_protocol.into());
+    logging::with_fields(
+        logging::Level::Info,
+        MODULE,
+        format!("runtime ready in {ms} ms (node {node_version}, protocol {runtime_protocol})"),
+        fields,
     );
     *inner.connection.lock().unwrap() = Some(connection.clone());
     inner.set_status(RuntimeStatus::Ready, None);
@@ -371,13 +396,25 @@ fn watch_exit(inner: Arc<Inner>, mut child: Child) {
             }
         };
         inner.connection.lock().unwrap().take();
-        inner.exited.send_replace(true);
         let code = status.ok().and_then(|s| s.code());
-        eprintln!("[host] runtime exited with code {code:?}");
+        // No code means the process was ended by a signal or killed.
+        let code_text = code.map_or_else(|| "none".to_owned(), |c| c.to_string());
+        let mut fields = Map::new();
+        fields.insert("exitCode".into(), code.into());
+        // Log before signalling: `shutdown` returns on the signal and the app then exits.
+        logging::with_fields(
+            logging::Level::Info,
+            MODULE,
+            format!("runtime exited with code {code_text}"),
+            fields,
+        );
+        inner.exited.send_replace(true);
         if !inner.shutting_down.load(Ordering::SeqCst) {
             inner.set_status(
                 RuntimeStatus::Failed,
-                Some(format!("The runtime exited unexpectedly (code {code:?})")),
+                Some(format!(
+                    "The runtime exited unexpectedly (code {code_text})"
+                )),
             );
         }
     });
