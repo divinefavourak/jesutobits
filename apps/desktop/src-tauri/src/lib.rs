@@ -130,3 +130,48 @@ pub fn run() {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use serde_json::Value;
+
+    /// Spike S3 found that Tauri injects its IPC into the preview iframe; only capability URL
+    /// scoping refuses the frame's calls. So no capability may ever grant a remote URL, which
+    /// would hand the untrusted preview the Workbench's commands (ADR-0010).
+    #[test]
+    fn capabilities_never_grant_remote_urls() {
+        let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/capabilities");
+        let mut checked = 0;
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            // JSON only, so this test sees every capability file.
+            assert_eq!(
+                path.extension().and_then(|e| e.to_str()),
+                Some("json"),
+                "{} is not JSON; this test cannot check it",
+                path.display()
+            );
+            let capability: Value =
+                serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+            assert!(
+                capability.get("remote").is_none(),
+                "{} grants IPC to remote URLs",
+                path.display()
+            );
+            checked += 1;
+        }
+        assert!(checked > 0, "no capability files found");
+
+        let conf: Value = serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+        for capability in conf["app"]["security"]["capabilities"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            assert!(
+                capability.get("remote").is_none(),
+                "tauri.conf.json defines a capability with remote URLs"
+            );
+        }
+    }
+}

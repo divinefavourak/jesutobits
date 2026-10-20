@@ -296,7 +296,7 @@ type VisualChange =
 
 ## 9. Shell to preview protocol and security boundaries
 
-All messages are `postMessage` objects with `{ jesutobits: 1, type, nonce, ...payload }`.
+All messages are `postMessage` objects with `{ jesutobits: 1, type, nonce, ...payload }`. Schemas live in `packages/protocol/src/bridge.ts`; the nonce is 128 random bits as 32 lowercase hex characters (`BridgeNonceSchema`). The Workbench side is `apps/desktop/src/features/preview/frame-channel.ts`.
 
 | Direction | Types |
 |---|---|

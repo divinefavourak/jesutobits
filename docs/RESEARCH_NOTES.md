@@ -20,7 +20,7 @@ Rules for this file:
 | RN-03 | Tauri does **not** kill a sidecar's descendants for you. Killing the direct child on Windows (`TerminateProcess`) leaves grandchildren running. Kill-on-exit is the app's responsibility. | Community lifecycle notes (https://claudskills.com/skills/tauri-sidecar-lifecycle/SKILL.md); consistent with Windows process semantics. **Observed in Spike S1 (2026-10-20):** with the job object disabled, force-killing a Tauri 2.12.4 Host left its runtime child and that child's grandchild running in 3 of 3 trials (the Host spawns the runtime with `tokio::process`, not the shell plugin). |
 | RN-04 | Current Tauri releases are on the 2.x line (2.11.x through mid 2026, 2.12 by September 2026). A Tauri 3.0 alpha line exists. | https://tauri.app/release/tauri/ ; https://github.com/tauri-apps/tauri/releases |
 | RN-05 | **CVE-2026-42184**: in Tauri 2.0 to 2.11.0, `is_local_url()` could classify remote URLs as trusted local origins on Windows and Android, because Tauri maps custom schemes to `http://<scheme>.localhost/` there. Fixed in 2.11.1 (and backported to 2.10.3). | https://fieldguide.lutrasecurity.com/CVE-2026-42184/ ; GHSA-7gmj-67g7-phm9 |
-| RN-06 | **CVE-2024-35222**: remote-origin iframes could reach Tauri IPC without being allowed in capabilities. Patched in 2.0.0-beta.20 by an invoke key that blocks IPC from frames the Tauri core did not initialise. The key is explicitly **not** a defence against a compromised main webview. | https://www.kodemsecurity.com/cve-archive/cve-2024-35222 |
+| RN-06 | **CVE-2024-35222**: remote-origin iframes could reach Tauri IPC without being allowed in capabilities. Patched in 2.0.0-beta.20 by an invoke key that blocks IPC from frames the Tauri core did not initialise. The key is explicitly **not** a defence against a compromised main webview. Spike S3 shows the key does not stop a cross-origin iframe that Tauri itself initialised from reaching the capability check (RN-37). | https://www.kodemsecurity.com/cve-archive/cve-2024-35222 |
 | RN-07 | Multiple webviews in one window (`Window::add_child`, `WebviewBuilder`) are only available behind Tauri's **`unstable`** cargo feature. | https://docs.rs/tauri/2.12.0/tauri/ |
 | RN-08 | Official `tauri-driver` WebDriver testing supports **Windows and Linux only** on desktop. macOS is unsupported because there is no WKWebView driver. Third-party options (WebdriverIO embedded provider, CrabNebula driver) claim macOS support. | https://v2.tauri.app/develop/tests/webdriver/ ; https://webdriver.io/docs/desktop-testing/tauri/platform-support |
 | RN-09 | Tauri uses the OS webview: WebView2 (Chromium) on Windows, WKWebView on macOS, WebKitGTK on Linux. Rendering differs between them, and WebKitGTK is the most frequent source of quirks. | https://capawesome.io/docs/blog/electron-vs-tauri-for-capacitor-apps/ (secondary; consistent with Tauri docs) |
@@ -82,12 +82,19 @@ Rules for this file:
 | RN-35 | `typescript-eslint` 8.72.0 declares peer dependencies `typescript: ">=4.8.4 <6.1.0"` and `eslint: "^8.57.0 \|\| ^9.0.0 \|\| ^10.0.0"`. TypeScript 7.0.2 (the native compiler) is the latest TypeScript; 6.0.3 is the latest 6.x. Checked 20 October 2026. | npm registry metadata (`npm view typescript-eslint@8.72.0 peerDependencies`; `npm view typescript versions`) |
 | RN-36 | pnpm 11 refuses versions younger than `minimumReleaseAge` (minutes). When a requested range can only be met by such a version, `pnpm install` writes `minimumReleaseAgeExclude` entries into `pnpm-workspace.yaml` unless `minimumReleaseAgeStrict` is set. It also refuses dependency build scripts until they are listed under `allowBuilds` (`ERR_PNPM_IGNORED_BUILDS`). Observed with pnpm 11.15.1. | Observed behaviour, 20 October 2026; https://pnpm.io/settings |
 
+## Webview and preview (observed in spikes)
+
+| ID | Fact | Source |
+|---|---|---|
+| RN-37 | In Tauri 2.12.4 on Windows (WebView2 155), a cross-origin `http://127.0.0.1:<port>` iframe in the main webview has `window.__TAURI_INTERNALS__` (with `invoke`) and `window.chrome.webview`. Its `invoke` calls reach the capability check and are refused: "`<command>` not allowed on window "main", webview "main", URL: http://127.0.0.1:5899/ … allowed on: [windows: "main", URL: local]". That held for app commands and `core:default` plugin commands, with the Workbench on `http://127.0.0.1:1420`, `http://tauri.localhost` and `https://tauri.localhost`. | Spike S3, 20 October 2026 (`scripts/spikes/s3-run.mjs`, `docs/spikes/S3.md`) |
+| RN-38 | In WebView2 155, an `https://tauri.localhost` page (`useHttpsScheme: true`) loads an `http://127.0.0.1:<port>` iframe and exchanges `postMessage` with it; no mixed-content blocking. Consistent with Chromium treating loopback origins as potentially trustworthy. | Spike S3, 20 October 2026 |
+
 ## Open verification items (owned by spikes)
 
 | Item | Owner | Needed before |
 |---|---|---|
 | Inline Vite plugins merge with project plugins (RN-24) | Spike S2 | Phase 5 |
-| Whether `http://localhost:<port>` iframes load without mixed-content issues inside each OS webview, including when the app uses the HTTPS custom scheme on Windows | Spike S3 | Phase 4 |
+| Whether `http://localhost:<port>` iframes load without mixed-content issues inside each OS webview, including when the app uses the HTTPS custom scheme on Windows. **Windows done** (RN-38); WebKitGTK and WKWebView open | Spike S3 | Phase 4 |
 | ~~Windows Job Object assignment of the sidecar from the Host, and grandchild cleanup on crash~~ Done: 0 orphans in 10 forced kills (`docs/spikes/S1.md`) | Spike S1 | Phase 2 |
 | ~~Performance of `node:sqlite` with WAL on Windows under event-heavy sessions~~ Done: 10k rows in 0.2 to 0.9 s when batched in transactions; 2.1 to 2.5 s autocommitted (`docs/spikes/S1.md`) | Spike S1 | Phase 2 |
 | `portable-pty` (Rust) ConPTY behaviour with PowerShell and `cmd.exe` | Phase 3 task | Phase 3 |

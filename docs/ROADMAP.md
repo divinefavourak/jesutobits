@@ -320,4 +320,5 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 - Step 1 is mostly done. The monorepo, boundary lint, CI (first GitHub run green on Windows and Ubuntu) and `apps/desktop/src-tauri` are in place. Still open: a clean-machine run of DEVELOPMENT_SETUP.md.
 - Step 2 is done: the envelope, `JesutobitsError`, the `runtime.initialize`/`ping`/`shutdown` schemas and the Host status schema, plus generated JSON Schemas, `methods.json` and the Rust allowlist.
 - Step 3 (Spike S1) is done on Windows: all four acceptance criteria are met, with one handshake outlier on a cold `pnpm dev` launch (`docs/spikes/S1.md`). It carries two follow-ups into Phase 1: auto-restart with backoff, and explaining one 3.7 s cold-start handshake.
-- Steps 4 and 5 (Spikes S2 and S3) are next.
+- Step 5 (Spike S3) is done on Windows: the preview iframe loads and messages flow with the Workbench on `http://127.0.0.1:1420`, `http://tauri.localhost` and `https://tauri.localhost`; every IPC attempt from the frame is refused (`docs/spikes/S3.md`). ADR-0010 is Accepted with a corrected point 3. WebKit runs are still open.
+- Step 4 (Spike S2) is next.

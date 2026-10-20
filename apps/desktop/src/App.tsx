@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { PROTOCOL_VERSION, type RuntimeStatusUpdate } from "@jesutobits/protocol";
+import { PreviewFrameProbe } from "./features/diagnostics/PreviewFrameProbe";
 import { RelayBenchmark } from "./features/diagnostics/RelayBenchmark";
 import { measureRelayLatency } from "./features/diagnostics/relay-benchmark";
 import type { HostBridge } from "./host-bridge";
@@ -30,6 +31,10 @@ export function App({ bridge }: { bridge: HostBridge }) {
         {status.detail ? ` (${status.detail})` : ""}
       </p>
       <RelayBenchmark bridge={bridge} disabled={!ready} />
+      {/* Spike S3: `VITE_JESUTOBITS_PREVIEW_PROBE=<url>` frames that URL (scripts/spikes/s3-run.mjs). */}
+      {import.meta.env.VITE_JESUTOBITS_PREVIEW_PROBE && (
+        <PreviewFrameProbe bridge={bridge} url={import.meta.env.VITE_JESUTOBITS_PREVIEW_PROBE} />
+      )}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 # ADR-0010: Preview isolation
 
-- **Status:** Accepted (provisional, confirmed by Spike S3)
+- **Status:** Accepted. Confirmed on Windows by Spike S3 (2026-10-20, `docs/spikes/S3.md`); WebKitGTK and WKWebView runs still open
 - **Date:** 2026-10-19
 - **Related:** ADR-0001, ADR-0009, RN-05, RN-06, RN-07, docs/VISUAL_EDITING.md, docs/SECURITY.md
 
@@ -16,7 +16,7 @@ The agent also needs to inspect the running app (console errors, failed requests
 
 1. The preview is a **cross-origin `<iframe>`** in the Workbench pointing at `http://127.0.0.1:<port>/`. Not a Tauri child webview (unstable, RN-07).
 2. The dev server binds to `127.0.0.1` only, never `0.0.0.0`.
-3. The Workbench capabilities in Tauri grant IPC only to the app's own origin. No capability lists `localhost` or `127.0.0.1` as a remote origin. Tauri's invoke key blocks IPC from sub-frames (RN-06). We keep Tauri patched for origin-confusion bugs (RN-05).
+3. The Workbench capabilities in Tauri grant IPC only to the app's own origin. No capability lists `localhost` or `127.0.0.1` as a remote origin. We keep Tauri patched for origin-confusion bugs (RN-05). *Corrected by Spike S3:* this was thought to rely on Tauri's invoke key blocking IPC from sub-frames (RN-06). In fact Tauri 2.12 injects `__TAURI_INTERNALS__` into the preview iframe, and the **capability URL scoping is the boundary**: every command from the frame is refused as "not allowed on … URL: http://127.0.0.1:…" (RN-37). A Rust test fails if any capability grants a remote URL.
 4. iframe attributes: `sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads"` (the app keeps its own origin, which it needs for storage and HMR; it is still cross-origin to the Workbench). `allow` (permissions policy) is empty by default: no camera, microphone, geolocation, clipboard-read. `referrerpolicy="no-referrer"`.
 5. Workbench CSP: `frame-src http://127.0.0.1:* http://localhost:*`. Nothing else may be framed.
 6. Shell ↔ preview communication uses `window.postMessage` with: an exact origin check on both sides, a per-preview-session random `nonce` delivered to the bridge through the dev server plugin, and Zod validation of every message. The bridge can only **report** (selection, hover, layout, console summary) and **apply draft styles**. It cannot ask the Workbench to do anything privileged.
@@ -44,7 +44,7 @@ The agent also needs to inspect the running app (console errors, failed requests
 
 ## Consequences
 
-- Spike S3 must confirm `http://127.0.0.1` frames load inside each OS webview when the Workbench origin is `http://tauri.localhost` (Windows default) or `tauri://localhost` (macOS/Linux), and record behaviour if `useHttpsScheme` is enabled.
+- Spike S3 must confirm `http://127.0.0.1` frames load inside each OS webview when the Workbench origin is `http://tauri.localhost` (Windows default) or `tauri://localhost` (macOS/Linux), and record behaviour if `useHttpsScheme` is enabled. **Windows, WebView2 155 (2026-10-20):** frames load and pass all checks with the Workbench on `http://127.0.0.1:1420` (dev), `http://tauri.localhost` and `https://tauri.localhost` (`useHttpsScheme`). No mixed-content block, so the proxy fallback is not needed on Windows (RN-38). `tauri://localhost` on WebKit is untested.
 - Preview sessions are bound to a project. Closing a project stops its dev server.
 
 ## Revisit when
