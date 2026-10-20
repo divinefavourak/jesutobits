@@ -251,16 +251,23 @@ async fn launch(inner: Arc<Inner>, spec: LaunchSpec) -> Result<(), String> {
         .map_err(|error| format!("could not start {}: {error}", spec.node.display()))?;
 
     // Assign before `initialize`: the runtime starts no children until it is initialised.
-    #[cfg(windows)]
     if spec.use_job_object {
-        let job = job_object_windows::JobObject::new_kill_on_close()
-            .map_err(|error| format!("could not create job object: {error}"))?;
-        let handle = child
-            .raw_handle()
-            .ok_or("runtime exited before job assignment")?;
-        job.assign(handle)
-            .map_err(|error| format!("could not assign job object: {error}"))?;
-        *inner.job.lock().unwrap() = Some(job);
+        #[cfg(windows)]
+        {
+            let job = job_object_windows::JobObject::new_kill_on_close()
+                .map_err(|error| format!("could not create job object: {error}"))?;
+            let handle = child
+                .raw_handle()
+                .ok_or("runtime exited before job assignment")?;
+            job.assign(handle)
+                .map_err(|error| format!("could not assign job object: {error}"))?;
+            *inner.job.lock().unwrap() = Some(job);
+        }
+        // ADR-0011's process-group cleanup (process_group_unix.rs) is not built yet.
+        #[cfg(not(windows))]
+        eprintln!(
+            "[host] no process-tree guard on this platform yet; the runtime's stdin-EOF shutdown is the only cleanup"
+        );
     } else {
         eprintln!("[host] job object disabled (JESUTOBITS_DISABLE_JOB_OBJECT)");
     }
