@@ -56,6 +56,12 @@ fn runtime_subscribe(
     supervisor.subscribe(on_event, on_status);
 }
 
+/// The user's "Restart runtime" from the Failed state (ADR-0002). Ignored in other states.
+#[tauri::command]
+fn runtime_restart(supervisor: State<'_, Supervisor>) {
+    supervisor.restart();
+}
+
 /// The Workbench logs through the Host into `workbench.jsonl` (ARCHITECTURE.md section 10).
 #[tauri::command]
 fn workbench_log(level: String, message: String) {
@@ -101,6 +107,7 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
     Ok(LaunchSpec {
         node,
         entry,
+        entry_args: Vec::new(),
         data_dir,
         use_job_object,
     })
@@ -118,6 +125,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             rpc_call,
             runtime_subscribe,
+            runtime_restart,
             workbench_log
         ])
         .build(tauri::generate_context!())

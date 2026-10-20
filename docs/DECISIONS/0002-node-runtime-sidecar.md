@@ -34,7 +34,7 @@ stateDiagram-v2
     Degraded --> Ready: ping answered
     Degraded --> Restarting: ping missed 5x or process exited
     Ready --> Restarting: unexpected exit
-    Restarting --> Starting: backoff 0.5s, 1s, 2s, 4s, 8s
+    Restarting --> Starting: backoff 0.5s, 1s, 2s, 4s
     Restarting --> Failed: 5 crashes within 2 minutes
     Ready --> ShuttingDown: app quit or project close-all
     ShuttingDown --> [*]: runtime exits within 5s, else hard kill
@@ -68,6 +68,10 @@ Parent-death detection: the runtime treats **EOF on stdin** as "the Host is gone
 - Native dependencies are banned from `packages/runtime` by a lint rule unless an ADR allows one.
 - Standalone helper executables are allowed as additional sidecars because they do not affect the Node packaging choice. The MVP ships one: ripgrep as `jesutobits-rg`, used by the `search_text` tool, with a pure JavaScript fallback if it is missing.
 - Spike S1 (2026-10-20, `docs/spikes/S1.md`) implemented points 1 to 5 as written. The bundle is built to `packages/runtime/dist/bundle/runtime.mjs` and mapped to the `runtime/main.mjs` resource in `tauri.conf.json`. The Host spawns the sidecar itself with `tokio::process` (not the Tauri shell plugin, so the webview gets no shell capability; NFR-008), with the ADR-0011 environment allowlist and `--data-dir`. Auto-restart with backoff is Phase 1 work; S1 ends in `failed` on an unexpected exit.
+- Auto-restart landed in Phase 1 (`runtime_supervisor/`, tests in `runtime_supervisor/tests.rs` against `fixtures/bin/fake-runtime.mjs`). Three clarifications of the diagram:
+  - **What counts as a crash.** A process that exits without being asked, before or after the handshake, or that misses 5 health pings, is a crash and goes through Restarting. A handshake timeout, a protocol mismatch and a failed spawn or job assignment go straight to Failed, because retrying cannot fix them.
+  - **Backoff.** The wait grows with the number of crashes inside the two-minute window: 0.5, 1, 2, then 4 s. The diagram used to list 8 s as a fifth step, but the fifth crash within two minutes already ends in Failed, so that step could never be reached; it was dropped.
+  - **Restart from Failed** is the `runtime_restart` command (`HostBridge.restartRuntime()`). It forgets the crash history and is ignored in every other state.
 - The Node Permission Model (RN-17) is evaluated in Phase 7 as defence in depth. It is not a sandbox for user code, because commands the agent runs are separate processes.
 
 ## Revisit when

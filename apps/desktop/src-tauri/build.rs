@@ -5,6 +5,7 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "rpc_call",
             "runtime_subscribe",
+            "runtime_restart",
             "workbench_log",
         ]),
     ))

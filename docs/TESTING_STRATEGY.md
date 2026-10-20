@@ -68,7 +68,7 @@ Cassettes are JSONL files in `packages/runtime/test/cassettes/`. One line per mo
 | `fixtures/bin/fake-cmd.mjs` | Configurable child process: prints lines, sleeps, exits with a code, spawns grandchildren, ignores SIGTERM (for kill tests), writes files |
 | `fixtures/bin/fake-dev-server.mjs` | Listens on a port after a delay, prints Vite-like URLs, can crash on demand |
 | `fixtures/bin/port-hog.mjs` | Holds a port to test collisions |
-| `fixtures/bin/fake-runtime.mjs` | Stand-in runtime for Host lifecycle tests: answers the handshake, starts a grandchild and ignores stdin EOF, so only the job object can clean up. Loaded through the debug-only `JESUTOBITS_RUNTIME_ENTRY` override (`scripts/spikes/s1-orphans.mjs`) |
+| `fixtures/bin/fake-runtime.mjs` | Stand-in runtime for Host lifecycle tests: answers the handshake, starts a grandchild and ignores stdin EOF, so only the job object can clean up. Loaded through the debug-only `JESUTOBITS_RUNTIME_ENTRY` override (`scripts/spikes/s1-orphans.mjs`). Flags for the supervisor tests: `--cooperative`, `--crash-at-init <n>`, `--crash-after-ready <n>`, `--ignore-pings`, `--silent`, `--protocol <v>` |
 | `MockHostBridge` | In-memory `HostBridge` for Workbench tests; can relay to a real runtime process |
 | `RuntimeHarness` | Spawns the runtime bundle with Node over stdio, exposes typed RPC helpers and an event recorder |
 
@@ -124,7 +124,7 @@ Each journey in PRODUCT_VISION.md section 6 maps to at least one Playwright spec
 | Approval denied | Cassette expects `permission_denied` result | Model receives denial; same call not retried (loop guard) |
 | File changed during agent edit | Test edits file between `read_file` and `edit_file` | `stale_read` returned; agent re-reads (cassette) |
 | Disk full or permission error | Mock `fs` throwing `ENOSPC`/`EPERM` | Write fails atomically; original intact; clear error |
-| Runtime crash loop | Runtime started with a flag that crashes at init | Host backoff sequence; `failed` state after 5 crashes in 2 minutes |
+| Runtime crash loop | `fake-runtime.mjs --crash-at-init` (cargo test, `runtime_supervisor/tests.rs`) | Host backoff sequence; `failed` state after 5 crashes in 2 minutes; Restart from `failed` works |
 | Corrupt database | Truncated `jesutobits.db` | Moved aside, new DB, notice shown |
 | Corrupt settings | Invalid JSON | Defaults loaded, `.corrupt` copy kept |
 

@@ -21,6 +21,8 @@ export interface HostBridge {
   onRuntimeEvent(handler: (event: RuntimeEventBase) => void): Unsubscribe;
   /** Calls the handler with the current status straight away, then on every change. */
   onRuntimeStatus(handler: (update: RuntimeStatusUpdate) => void): Unsubscribe;
+  /** Starts the runtime again after it reached `failed` (ADR-0002). Ignored in other states. */
+  restartRuntime(): Promise<void>;
   /** Writes to the Workbench log through the Host (ARCHITECTURE.md section 10). */
   log(level: LogLevel, message: string): void;
 }

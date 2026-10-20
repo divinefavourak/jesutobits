@@ -21,6 +21,7 @@ export class MockHostBridge implements HostBridge {
   readonly logs: Array<{ level: LogLevel; message: string }> = [];
   private readonly events = new Listeners<RuntimeEventBase>(false);
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
+  private currentStatus: RuntimeStatusUpdate = { status: "ready" };
   private readonly started = performance.now();
   private readonly handlers: Handlers = {
     "runtime.ping": (params) => ({
@@ -30,7 +31,7 @@ export class MockHostBridge implements HostBridge {
   };
 
   constructor() {
-    this.status.emit({ status: "ready" });
+    this.status.emit(this.currentStatus);
   }
 
   async rpc<M extends WorkbenchMethod>(
@@ -52,6 +53,14 @@ export class MockHostBridge implements HostBridge {
     return this.status.add(handler);
   }
 
+  /** Like the Host: only a failed runtime restarts, through `starting` to `ready`. */
+  async restartRuntime(): Promise<void> {
+    if (this.currentStatus.status !== "failed") return;
+    this.setStatus({ status: "starting" });
+    await Promise.resolve();
+    this.setStatus({ status: "ready" });
+  }
+
   log(level: LogLevel, message: string): void {
     this.logs.push({ level, message });
   }
@@ -62,6 +71,7 @@ export class MockHostBridge implements HostBridge {
   }
 
   setStatus(update: RuntimeStatusUpdate): void {
+    this.currentStatus = update;
     this.status.emit(update);
   }
 }

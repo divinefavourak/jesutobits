@@ -30,6 +30,11 @@ export function App({ bridge }: { bridge: HostBridge }) {
         Runtime: {status.status}
         {status.detail ? ` (${status.detail})` : ""}
       </p>
+      {status.status === "failed" && (
+        <button type="button" onClick={() => void bridge.restartRuntime()}>
+          Restart runtime
+        </button>
+      )}
       <RelayBenchmark bridge={bridge} disabled={!ready} />
       {/* Spike S3: `VITE_JESUTOBITS_PREVIEW_PROBE=<url>` frames that URL (scripts/spikes/s3-run.mjs). */}
       {import.meta.env.VITE_JESUTOBITS_PREVIEW_PROBE && (

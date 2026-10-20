@@ -57,6 +57,14 @@ export class TauriHostBridge implements HostBridge {
     return this.status.add(handler);
   }
 
+  async restartRuntime(): Promise<void> {
+    try {
+      await invoke("runtime_restart");
+    } catch (error) {
+      throw toJesutobitsError(error);
+    }
+  }
+
   log(level: LogLevel, message: string): void {
     // Logging must never throw into the caller.
     void invoke("workbench_log", { level, message }).catch(() => undefined);
