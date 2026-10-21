@@ -127,7 +127,8 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 | `shared` | nothing | Any Jesutobits package |
 | `services` | `protocol`, `shared` | `runtime`, `apps/*` |
 | `runtime` | `protocol`, `shared`, `services`, `extension-schema` | `apps/*` |
-| `apps/desktop` (Workbench) | `protocol`, `shared`, `extension-schema` (types and token compiler) | `runtime`, `services`, Node built-ins |
+| `apps/desktop` (Workbench) | `protocol`, `shared`, `extension-schema` (types and token compiler), `builtin-themes` (token files, imported at build time until the Host serves extensions in Phase 6) | `runtime`, `services`, Node built-ins |
+| `extensions/builtin/*` | nothing (data: a manifest and token or asset files) | Everything |
 | `extension-schema` | `zod`, `shared` | `runtime`, `services`, `apps/*` |
 | `extension-cli` | `extension-schema` | `runtime`, `services`, `apps/*` |
 | `vite-plugin`, `visual-bridge`, `preview-launcher` | `protocol` as **type-only** imports; their own bundled dependencies | Everything else at runtime (ADR-0013) |

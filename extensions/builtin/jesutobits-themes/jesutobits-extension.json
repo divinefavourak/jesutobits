@@ -1,0 +1,24 @@
+{
+  "manifestVersion": 1,
+  "id": "builtin.jesutobits-themes",
+  "name": "Jesutobits Themes",
+  "version": "0.1.0",
+  "kind": "theme",
+  "description": "The built-in Light, Dark and High Contrast themes, packaged like any other theme.",
+  "author": { "name": "Jesutobits" },
+  "license": "UNLICENSED",
+  "engines": { "jesutobits": ">=0.1.0" },
+  "capabilities": ["theme"],
+  "contributes": {
+    "themes": [
+      { "id": "dark", "label": "Jesutobits Dark", "tokens": "themes/dark.json" },
+      { "id": "light", "label": "Jesutobits Light", "tokens": "themes/light.json" },
+      {
+        "id": "high-contrast",
+        "label": "Jesutobits High Contrast",
+        "tokens": "themes/high-contrast.json"
+      }
+    ]
+  },
+  "permissions": []
+}

@@ -47,6 +47,12 @@ importers:
 
   apps/desktop:
     dependencies:
+      '@jesutobits/builtin-themes':
+        specifier: workspace:*
+        version: link:../../extensions/builtin/jesutobits-themes
+      '@jesutobits/extension-schema':
+        specifier: workspace:*
+        version: link:../../packages/extension-schema
       '@jesutobits/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -75,6 +81,8 @@ importers:
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(esbuild@0.28.2)
+
+  extensions/builtin/jesutobits-themes: {}
 
   packages/extension-cli:
     dependencies:

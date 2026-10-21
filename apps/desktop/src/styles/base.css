@@ -1,0 +1,42 @@
+/*
+ * Page-wide defaults. Every value is a theme token (EXTENSION_SYSTEM.md section 4.1); the
+ * ThemeEngine sets the variables before the first render.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: light dark;
+  font-size: calc(var(--jesutobits-font-size-base, 13px) * var(--jesutobits-ui-scale, 1));
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--jesutobits-color-canvas);
+  color: var(--jesutobits-color-text);
+  font-family: var(--jesutobits-font-ui, system-ui, sans-serif);
+  line-height: var(--jesutobits-line-height-base, 1.5);
+}
+
+/* The focus ring is never removed (UX_AND_INTERFACE.md section 10). */
+:focus-visible {
+  outline: 2px solid var(--jesutobits-color-focus);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--jesutobits-color-selection);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}

@@ -1,6 +1,9 @@
 packages:
   - apps/*
   - packages/*
+  # Built-in extensions are real packages (EXTENSION_SYSTEM.md section 4.3); the Workbench
+  # imports their data at build time until the Host serves them (Phase 6).
+  - extensions/builtin/*
 
 # Fail on undeclared or mismatched engines instead of warning.
 engineStrict: true

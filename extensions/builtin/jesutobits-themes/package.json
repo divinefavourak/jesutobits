@@ -1,0 +1,11 @@
+{
+  "name": "@jesutobits/builtin-themes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Built-in themes as a real extension package (EXTENSION_SYSTEM.md section 4.3). Data only: a manifest and token files.",
+  "type": "module",
+  "exports": {
+    "./jesutobits-extension.json": "./jesutobits-extension.json",
+    "./themes/*.json": "./themes/*.json"
+  }
+}
