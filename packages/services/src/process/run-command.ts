@@ -5,8 +5,10 @@ import { childEnvironment, resolveExecutable, type Env } from "./environment.js"
 
 /** ADR-0011: commands time out after 120 s unless told otherwise. */
 export const DEFAULT_TIMEOUT_MS = 120_000;
-/** After a graceful stop, a hard kill follows this soon (ADR-0011). */
+/** After a graceful stop on timeout, a hard kill follows this soon (ADR-0011). */
 const HARD_KILL_AFTER_MS = 5_000;
+/** A cancel must stop within 2 s (AGENTS.md), so its hard kill comes sooner (ADR-0011). */
+const CANCEL_HARD_KILL_AFTER_MS = 1_500;
 /** Captured output per stream; the rest is counted, not kept. */
 const DEFAULT_MAX_OUTPUT_BYTES = 1024 * 1024;
 
@@ -98,7 +100,8 @@ export async function runCommand(argv: readonly string[], options: RunOptions): 
       if (stopping) return;
       stopping = reason;
       killTree(child, false);
-      setTimeout(() => killTree(child, true), HARD_KILL_AFTER_MS).unref();
+      const grace = reason === "cancelled" ? CANCEL_HARD_KILL_AFTER_MS : HARD_KILL_AFTER_MS;
+      setTimeout(() => killTree(child, true), grace).unref();
     };
     const timer = setTimeout(() => stop("timeout"), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     const onAbort = () => stop("cancelled");

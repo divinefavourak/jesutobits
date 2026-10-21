@@ -33,7 +33,7 @@ The agent cannot type into user terminals. The user can explicitly share a termi
 - A command that needs shell features (pipes, redirects, `&&`, globbing) must set `shell: true` in the tool call. That always requires approval (SECURITY.md section 5).
 - `cwd` must resolve inside the project root.
 - Environment: start from an allowlist (`PATH`, `HOME`/`USERPROFILE`, `TEMP`, `TMP`, `LANG`, `SystemRoot`, `ComSpec`, `PATHEXT`, `APPDATA`, `LOCALAPPDATA`), then add project-declared variables. Variables that change how child runtimes load code (`NODE_OPTIONS`, `LD_PRELOAD`, `DYLD_*`) are dropped even if the user's shell has them. **Provider credentials are never in the environment.**
-- Timeouts: default 120 s for commands, none for managed processes. On timeout or cancel: graceful stop, then hard kill after 5 s.
+- Timeouts: default 120 s for commands, none for managed processes. On timeout: graceful stop, then hard kill after 5 s. On cancel: graceful stop, then hard kill after 1.5 s, so a cancel stops within AGENTS.md's 2 s.
 
 ### Process tree cleanup
 
@@ -62,6 +62,7 @@ User projects run with the **user's installed Node and package manager**, not Je
 - Phase 1 (2026-10-21) built the spawning core in `packages/services/src/process/` ahead of the full ProcessSupervisor, because onboarding's toolchain check (FR-010) needs it: the environment allowlist, PATH/PATHEXT resolution, `runCommand` (argv, no shell, output caps, timeouts, `AbortSignal` cancellation within 2 s, tree kill) and `detectToolchain`. Only fixed commands Jesutobits chooses use it until Phase 3 adds approvals, the orphan ledger and managed processes on top. Two findings:
   - **Shim arguments are escaped twice for cmd.exe, for every `.cmd`/`.bat`.** cross-spawn escapes twice only for `node_modules/.bin` shims, but npm.cmd and pnpm.cmd also forward `%*`, which cmd.exe parses a second time inside the batch file. Escaped once, an argument containing `"` flips cmd's quote state and a later argument's `&` runs a command: verified by creating a file through `["quote\"inside", "a&echo injected>file&rem "]`. `process.test.ts` keeps that case.
   - On Windows, libuv copies a few system variables a child cannot run without (SystemRoot, USERNAME, WINDIR and similar) even into an allowlisted environment. None carries secrets; `NODE_OPTIONS` and credentials stay out.
+- 2026-10-21, first Linux CI run: this ADR said "on timeout or cancel, hard kill after 5 s", which contradicts AGENTS.md's "stop within 2 s" for cancellation. Windows hid it (`taskkill /F` is a hard kill from the start); on Linux a child ignoring SIGTERM took 5.0 s to cancel. Cancel now escalates after 1.5 s; timeouts keep 5 s, since nobody is waiting on them.
 
 ## Revisit when
 
