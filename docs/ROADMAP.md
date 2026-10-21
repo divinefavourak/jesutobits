@@ -310,6 +310,7 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 | Q10 | General workspace file previews (Markdown, CSV, images) | Markdown and images only in 1.0 | Phase 4 |
 | Q11 | Extension signing scheme for a future repository | Decide with the repository design | Post-1.0 |
 | Q12 | Default for "Install without running scripts" | Off (most projects need scripts), visible on every install card | Phase 3 user testing |
+| Q13 | Who reopens the active project after the runtime restarts? A restarted runtime has none, so `fs.*` fails with `fs.no_project` (found in the 2026-10-21 hands-on check). | The Workbench: when the status returns to Ready after Restarting or Failed, it calls `projects.open` with the project ID it shows, then reloads the explorer and checks open editors against disk | Phase 1 step 13 |
 
 ## 5. Next implementation milestone
 
