@@ -4,8 +4,9 @@ import { PreviewFrameProbe } from "./features/diagnostics/PreviewFrameProbe";
 import { RelayBenchmark } from "./features/diagnostics/RelayBenchmark";
 import { measureRelayLatency } from "./features/diagnostics/relay-benchmark";
 import type { HostBridge } from "./host-bridge";
+import { t } from "./i18n";
 
-// Phase 0 placeholder. The real Workbench (layout, ThemeEngine, explorer) starts in Phase 1.
+// Placeholder until the start screen and layout (Phase 1 steps 13 and 14).
 export function App({ bridge }: { bridge: HostBridge }) {
   const [status, setStatus] = useState<RuntimeStatusUpdate>({ status: "starting" });
   const [opened, setOpened] = useState<string>("");
@@ -27,10 +28,10 @@ export function App({ bridge }: { bridge: HostBridge }) {
 
   return (
     <main>
-      <h1>Jesutobits</h1>
-      <p>Workbench scaffold. Protocol {PROTOCOL_VERSION}.</p>
+      <h1>{t("app.name")}</h1>
+      <p>{t("app.scaffold", { version: PROTOCOL_VERSION })}</p>
       <p role="status">
-        Runtime: {status.status}
+        {t(`runtime.status.${status.status}`)}
         {status.detail ? ` (${status.detail})` : ""}
       </p>
       {/* Temporary until the start screen (Phase 1 step 13): exercises the folder dialog. */}
@@ -39,19 +40,19 @@ export function App({ bridge }: { bridge: HostBridge }) {
         disabled={!ready}
         onClick={() =>
           void (async () => {
-            const path = await bridge.dialogs.pickFolder({ title: "Open folder" });
-            if (path === null) return setOpened("Cancelled");
+            const path = await bridge.dialogs.pickFolder({ title: t("projects.openFolder.title") });
+            if (path === null) return setOpened(t("projects.cancelled"));
             const { project } = await bridge.rpc("projects.open", { path });
-            setOpened(`Opened ${project.name} (${project.trust})`);
-          })().catch((error: unknown) => setOpened(`Failed: ${String(error)}`))
+            setOpened(t("projects.opened", { name: project.name, trust: project.trust }));
+          })().catch((error: unknown) => setOpened(t("projects.failed", { reason: String(error) })))
         }
       >
-        Open folder…
+        {t("projects.openFolder")}
       </button>
       {opened && <p role="status">{opened}</p>}
       {status.status === "failed" && (
         <button type="button" onClick={() => void bridge.restartRuntime()}>
-          Restart runtime
+          {t("runtime.restart")}
         </button>
       )}
       <RelayBenchmark bridge={bridge} disabled={!ready} />

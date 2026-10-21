@@ -277,6 +277,8 @@ All shortcuts are listed in the palette next to their commands and can be reboun
 
 ## 11. UI copy guidelines
 
+Every visible string lives in `apps/desktop/src/i18n/messages.en.ts` and is read with `t(key, params)` (NFR-020); plurals use `Intl.PluralRules` categories and numbers are formatted for the locale.
+
 - Short, plain sentences. Say what happened, then what the user can do.
 - Name real things: "npm install failed (exit 1)", not "Something went wrong".
 - Never claim success without evidence: use the verification labels.
