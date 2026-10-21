@@ -25,6 +25,8 @@ import { ProjectStore } from "./project-store.js";
 export interface ProjectsOptions {
   /** Moves a confined absolute path to the OS trash through the Host (ADR-0014). */
   trash: (absolutePath: string) => Promise<void>;
+  /** Shows a confined absolute path in the OS file manager through the Host. */
+  reveal: (absolutePath: string) => Promise<void>;
   events: EventBus;
   log: Logger;
   /** Resolves once the database is open; rejects if it could not be opened. */
@@ -58,6 +60,7 @@ class ActiveProject {
       root: project.path,
       log,
       trash: options.trash,
+      reveal: options.reveal,
     });
     // Both start in this tick, before the walk reads anything, so no change falls between.
     const index = FileIndex.build(workspace, log);
@@ -252,6 +255,11 @@ export class Projects {
 
     server.register("fs.rename", async (params) => {
       await this.workspace().rename(params.from, params.to);
+      return {};
+    });
+
+    server.register("fs.reveal", async (params) => {
+      await this.workspace().reveal(params.path);
       return {};
     });
 

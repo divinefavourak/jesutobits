@@ -102,7 +102,7 @@ Default: agent panel header, small. Other placements: status bar, or floating wi
 ### 5.1 Explorer
 
 - Lazy tree (NFR-019), ignored files dimmed, `node_modules` collapsed and not expanded by search unless asked.
-- Context menu: New file, New folder, Rename, Delete (to OS trash), Copy path, Reveal in OS, Open in terminal, **Attach to agent message**.
+- Context menu: New file, New folder, Rename, Delete (to OS trash), Copy path, Reveal in OS, Open in terminal, **Attach to agent message**. (Phase 1 has all but Open in terminal and Attach to agent message, which arrive with the terminal and the agent; it adds Copy relative path. Keys: arrows, Home, End, Enter opens, F2 renames, Delete asks before trashing, Shift+F10 or the Menu key opens the menu.)
 - Agent-changed files show a small dot until viewed; files changed by commands show a different marker.
 
 ### 5.2 Editor (Monaco) responsibilities and limits

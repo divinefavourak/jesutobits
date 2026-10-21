@@ -85,7 +85,10 @@ export class RuntimeHarness {
     this.child.kill();
   }
 
-  /** Plays the Host's part: `host.fs.trash` deletes the path (no real trash in tests). */
+  /**
+   * Plays the Host's part: `host.fs.trash` deletes the path (no real trash in tests) and
+   * `host.os.reveal` only records the call.
+   */
   private answerReverseCall(
     id: RpcReply["id"],
     method: string,
@@ -104,6 +107,8 @@ export class RuntimeHarness {
       });
     } else if (method === "host.fs.trash") {
       rmSync(String(params.path), { recursive: true, force: true });
+      reply({ result: {} });
+    } else if (method === "host.os.reveal") {
       reply({ result: {} });
     } else {
       reply({

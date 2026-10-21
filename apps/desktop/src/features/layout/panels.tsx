@@ -11,6 +11,7 @@ import {
   TerminalIcon,
 } from "../../ui/icons";
 import type { PanelId } from "./layout-model";
+import { ExplorerPanel } from "../explorer/ExplorerPanel";
 import { OutputPanel } from "./OutputPanel";
 
 export interface PanelDefinition {
@@ -28,7 +29,7 @@ function later(message: MessageKey): ComponentType {
 
 /** Every panel the dock layout can show (FR-070). */
 export const PANELS: Record<PanelId, PanelDefinition> = {
-  explorer: { title: "panel.explorer", Icon: FilesIcon, Content: later("panel.notYet") },
+  explorer: { title: "panel.explorer", Icon: FilesIcon, Content: ExplorerPanel },
   editor: { title: "panel.editor", Icon: EditorIcon, Content: later("panel.notYet") },
   preview: { title: "panel.preview", Icon: PreviewIcon, Content: later("panel.preview.later") },
   agent: { title: "panel.agent", Icon: AgentIcon, Content: later("panel.agent.later") },

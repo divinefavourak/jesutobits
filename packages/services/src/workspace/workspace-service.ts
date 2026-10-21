@@ -74,6 +74,11 @@ export interface WorkspaceServiceOptions {
    * `host.fs.trash` (ADR-0014); without it, `trash` fails with `fs.trash_failed`.
    */
   trash?: (absolutePath: string) => Promise<void>;
+  /**
+   * Shows an absolute, already confined path in the OS file manager: the Host's
+   * `host.os.reveal`; without it, `reveal` fails with `fs.reveal_failed`.
+   */
+  reveal?: (absolutePath: string) => Promise<void>;
 }
 
 const CASE_INSENSITIVE = process.platform === "win32" || process.platform === "darwin";
@@ -103,7 +108,7 @@ export class WorkspaceService {
   private constructor(
     private readonly guard: PathGuard,
     private readonly log: Logger,
-    private readonly trashPath: ((absolutePath: string) => Promise<void>) | undefined,
+    private readonly host: Pick<WorkspaceServiceOptions, "trash" | "reveal">,
   ) {
     this.ignores = new IgnoreRules(async (relative) => {
       try {
@@ -117,7 +122,10 @@ export class WorkspaceService {
 
   static async open(options: WorkspaceServiceOptions): Promise<WorkspaceService> {
     const guard = await PathGuard.create(options.root, options.extraRoots);
-    return new WorkspaceService(guard, options.log.child({ module: "workspace" }), options.trash);
+    return new WorkspaceService(guard, options.log.child({ module: "workspace" }), {
+      ...(options.trash && { trash: options.trash }),
+      ...(options.reveal && { reveal: options.reveal }),
+    });
   }
 
   get root(): string {
@@ -376,7 +384,7 @@ export class WorkspaceService {
     } catch (error) {
       throw fsError(error, resolved.relative);
     }
-    if (!this.trashPath) {
+    if (!this.host.trash) {
       throw new JesutobitsError(
         ErrorCodes.fsTrashFailed,
         "Moving files to the trash is not available here",
@@ -385,7 +393,7 @@ export class WorkspaceService {
         },
       );
     }
-    const trashPath = this.trashPath;
+    const trashPath = this.host.trash;
     await this.ownChange([resolved.relative], async () => {
       try {
         await trashPath(resolved.absolute);
@@ -403,6 +411,34 @@ export class WorkspaceService {
     this.log.info("moved to the trash", { path: resolved.relative });
   }
 
+  /** Shows a project path in the OS file manager (FR-072); nothing in the project changes. */
+  async reveal(input: string): Promise<void> {
+    const resolved = await this.resolve(input);
+    try {
+      await lstat(resolved.absolute);
+    } catch (error) {
+      throw fsError(error, resolved.relative);
+    }
+    if (!this.host.reveal) {
+      throw new JesutobitsError(
+        ErrorCodes.fsRevealFailed,
+        "Showing files in the OS is not available here",
+        {
+          details: { path: resolved.relative },
+        },
+      );
+    }
+    try {
+      await this.host.reveal(resolved.absolute);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      throw new JesutobitsError(
+        ErrorCodes.fsRevealFailed,
+        `${display(resolved.relative)} could not be shown in the file manager`,
+        { details: { path: resolved.relative, reason } },
+      );
+    }
+  }
   /** Renames or moves within the workspace; never replaces an existing target. */
   async rename(from: string, to: string): Promise<void> {
     const source = await this.resolve(from);

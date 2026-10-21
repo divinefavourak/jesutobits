@@ -13,6 +13,7 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "fs.quickOpen",
     "fs.readFile",
     "fs.rename",
+    "fs.reveal",
     "fs.stat",
     "fs.trash",
     "fs.writeFile",
@@ -38,6 +39,7 @@ pub const HOST_METHODS: &[&str] = &[
 /// Methods the runtime may call on the Host (reverse calls, ADR-0014).
 pub const REVERSE_METHODS: &[&str] = &[
     "host.fs.trash",
+    "host.os.reveal",
 ];
 
 pub fn is_workbench_method(method: &str) -> bool {

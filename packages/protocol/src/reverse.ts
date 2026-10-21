@@ -38,8 +38,23 @@ export const hostFsTrash = defineReverseMethod({
   result: z.object({}),
 });
 
+/**
+ * Opens the OS file manager with a path selected (ADR-0014, same split as the trash). The
+ * runtime confined the path; the Host checks it is absolute and exists.
+ */
+export const hostOsReveal = defineReverseMethod({
+  name: "host.os.reveal",
+  description: "Show a confined project path in the OS file manager.",
+  params: z.object({
+    /** Absolute path inside a workspace root. */
+    path: z.string().min(1),
+  }),
+  result: z.object({}),
+});
+
 export const REVERSE_METHODS = {
   [hostFsTrash.name]: hostFsTrash,
+  [hostOsReveal.name]: hostOsReveal,
 } as const;
 
 export type ReverseMethod = keyof typeof REVERSE_METHODS;

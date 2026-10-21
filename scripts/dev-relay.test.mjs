@@ -1,5 +1,5 @@
 // scripts/dev-relay.mjs against the real runtime bundle (needs `pnpm build:runtime`).
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -75,11 +75,16 @@ describe("dev relay", () => {
 });
 
 describe("dev relay reverse calls", () => {
-  it("refuses Host-only operations at once instead of letting them time out", async () => {
-    const started = Date.now();
+  it("records reveals without opening a file manager", async () => {
+    const body = await (await rpc("fs.reveal", { path: "src/a.ts" })).json();
+    expect(body.result).toEqual({});
+    expect(relay.revealed.at(-1)).toMatch(/[\\/]src[\\/]a\.ts$/);
+  });
+
+  it("moves trashed paths into its data folder instead of the OS trash", async () => {
     const body = await (await rpc("fs.trash", { path: "src/a.ts" })).json();
-    expect(body.error.data.code).toBe("fs.trash_failed");
-    expect(body.error.data.details.reason).toMatch(/needs the desktop app/);
-    expect(Date.now() - started).toBeLessThan(5000);
+    expect(body.result).toEqual({});
+    expect(existsSync(join(base, "project", "src", "a.ts"))).toBe(false);
+    expect(readdirSync(join(base, "data", "trash"))).toEqual(["1-a.ts"]);
   });
 });

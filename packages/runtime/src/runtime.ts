@@ -125,6 +125,9 @@ export function createRuntime(io: RuntimeIo): Runtime {
     trash: async (path) => {
       await server.request("host.fs.trash", { path });
     },
+    reveal: async (path) => {
+      await server.request("host.os.reveal", { path });
+    },
     events,
     log: io.log.child({ module: "projects" }),
     storage: () => storageReady,

@@ -65,6 +65,8 @@ export const ErrorCodes = {
   fsPermissionDenied: "fs.permission_denied",
   /** The OS refused to move the path to the trash (ADR-0014); it was left in place. */
   fsTrashFailed: "fs.trash_failed",
+  /** The OS file manager could not be opened at the path (`fs.reveal`). */
+  fsRevealFailed: "fs.reveal_failed",
   /** No project is open, so there are no files to work on. */
   fsNoProject: "fs.no_project",
   /** Any other file-system failure; details carry the OS error code. */

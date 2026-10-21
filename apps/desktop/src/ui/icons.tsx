@@ -73,3 +73,13 @@ export const CollapseIcon = () => (
     <path d="M4 8h8" />
   </Icon>
 );
+export const ChevronRightIcon = () => (
+  <Icon>
+    <path d="m6 4 4 4-4 4" />
+  </Icon>
+);
+export const ChevronDownIcon = () => (
+  <Icon>
+    <path d="m4 6 4 4 4-4" />
+  </Icon>
+);

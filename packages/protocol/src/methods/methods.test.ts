@@ -53,6 +53,7 @@ describe("method registry", () => {
       | "fs.rename"
       | "fs.quickOpen"
       | "fs.trash"
+      | "fs.reveal"
     >();
   });
 });

@@ -14,6 +14,7 @@ use crate::rpc_relay::{
 const MODULE: &str = "host_methods";
 const INVALID_PARAMS: i64 = -32602;
 pub const CODE_TRASH_FAILED: &str = "fs.trash_failed";
+pub const CODE_REVEAL_FAILED: &str = "fs.reveal_failed";
 pub const CODE_INVALID_PATH: &str = "fs.invalid_path";
 pub const CODE_NOT_FOUND: &str = "fs.not_found";
 
@@ -24,6 +25,7 @@ pub fn reverse_handler() -> ReverseHandler {
 async fn handle(method: &str, params: Value) -> Result<Value, Value> {
     match method {
         "host.fs.trash" => trash(params).await,
+        "host.os.reveal" => reveal(params),
         other => Err(rpc_error(
             METHOD_NOT_FOUND,
             CODE_METHOD_NOT_FOUND,
@@ -69,6 +71,87 @@ async fn trash(params: Value) -> Result<Value, Value> {
             ))
         }
     }
+}
+
+/// Shows a path in the OS file manager (FR-072). The runtime already confined it; the Host
+/// checks that it is absolute and exists.
+fn reveal(params: Value) -> Result<Value, Value> {
+    let Some(path) = params["path"].as_str() else {
+        return Err(rpc_error(
+            INVALID_PARAMS,
+            "rpc.invalid_params",
+            "host.os.reveal needs a path",
+            false,
+        ));
+    };
+    let path = check_revealable(Path::new(path))
+        .map_err(|(code, message)| rpc_error(APPLICATION_ERROR, code, &message, false))?;
+    match open_file_manager(&path) {
+        Ok(()) => {
+            logging::info(
+                MODULE,
+                format!("revealed in the file manager: {}", path.display()),
+            );
+            Ok(json!({}))
+        }
+        Err(reason) => {
+            logging::warn(
+                MODULE,
+                format!("could not reveal {}: {reason}", path.display()),
+            );
+            Err(rpc_error(
+                APPLICATION_ERROR,
+                CODE_REVEAL_FAILED,
+                &format!("The file manager could not be opened: {reason}"),
+                false,
+            ))
+        }
+    }
+}
+
+fn check_revealable(path: &Path) -> Result<PathBuf, (&'static str, String)> {
+    if !path.is_absolute() {
+        return Err((CODE_INVALID_PATH, "The path must be absolute".to_owned()));
+    }
+    if path.symlink_metadata().is_err() {
+        return Err((CODE_NOT_FOUND, "Nothing exists at that path".to_owned()));
+    }
+    Ok(path.to_owned())
+}
+
+/// Starts the OS file manager with `path` selected (on Linux, its folder opened). It is the
+/// user's program, so the Host does not track it; a thread only reaps it when it exits.
+fn open_file_manager(path: &Path) -> std::io::Result<()> {
+    #[cfg(windows)]
+    let mut command = {
+        use std::os::windows::process::CommandExt;
+        let mut command = std::process::Command::new("explorer.exe");
+        // Explorer parses `/select,"<path>"` itself; std's quoting would wrap the whole argument.
+        command.raw_arg(format!("/select,\"{}\"", path.display()));
+        command
+    };
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut command = std::process::Command::new("open");
+        command.arg("-R").arg(path);
+        command
+    };
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let folder = if path.is_dir() {
+            path
+        } else {
+            path.parent().unwrap_or(path)
+        };
+        let mut command = std::process::Command::new("xdg-open");
+        command.arg(folder);
+        command
+    };
+    let mut child = command.spawn()?;
+    std::thread::spawn(move || {
+        let _ = child.wait();
+    });
+    Ok(())
 }
 
 /// Refuses relative paths, missing paths, filesystem roots and the home folder.
@@ -164,6 +247,25 @@ mod tests {
             handle("host.fs.trash", json!({})).await.unwrap_err()["code"],
             INVALID_PARAMS
         );
+        assert_eq!(
+            handle("host.os.reveal", json!({})).await.unwrap_err()["code"],
+            INVALID_PARAMS
+        );
+    }
+
+    #[test]
+    fn reveals_only_absolute_paths_that_exist() {
+        let dir = temp("reveal");
+        assert_eq!(
+            check_revealable(Path::new("relative.txt")).unwrap_err().0,
+            CODE_INVALID_PATH
+        );
+        assert_eq!(
+            check_revealable(&dir.join("missing.txt")).unwrap_err().0,
+            CODE_NOT_FOUND
+        );
+        assert!(check_revealable(&dir).is_ok());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 
     /// The real OS trash. The item is purged from the trash afterwards, so nothing is left in

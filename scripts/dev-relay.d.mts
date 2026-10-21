@@ -5,6 +5,8 @@ export interface DevRelay {
   url: string;
   /** Sent in the `x-jesutobits-token` header. */
   token: string;
+  /** Absolute paths `host.os.reveal` was asked to show, oldest first. */
+  revealed: string[];
   /** Shuts the runtime down and stops listening. */
   close(): Promise<void>;
 }

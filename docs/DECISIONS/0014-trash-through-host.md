@@ -39,6 +39,7 @@ The Host is Rust and already does OS integration.
 - The relay gains reverse-call support (runtime-to-Host requests with replies). Phase 2's `host.secrets.get` uses the same path.
 - The runtime's `RpcServer` can send requests and match replies by ID.
 - `WorkspaceService` takes the trash operation as an injected function, so its tests run without a Host.
+- **Addendum (2026-10-21, Phase 1 step 15):** "Reveal in OS" (FR-072) uses the same split. `fs.reveal` confines the path in `WorkspaceService.reveal` and requires it to exist; the reverse call `host.os.reveal { path }` makes the Host check it is absolute and exists, then start the file manager (`explorer.exe /select,"<path>"` on Windows, `open -R` on macOS, `xdg-open` on the folder on Linux) without waiting for it. Failures are `fs.reveal_failed`. The dev relay (`scripts/dev-relay.mjs`) stands in for both reverse calls in browser tests: it moves trashed paths into its data folder and records reveals, never touching the OS trash or file manager.
 
 ## Revisit when
 

@@ -279,7 +279,7 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | `events` | `replay` |
 | `extensions` | `validate` (called by the Host during install, and by the Workbench for developer-mode reloads) |
 
-Reverse methods the runtime may call: `host.fs.trash` (ADR-0014), `host.secrets.get`, `host.log`, `host.notify` (OS notification when the window is unfocused and approval is needed). They are declared in `packages/protocol/src/reverse.ts` (`REVERSE_METHODS`); the Host answers only those, on their own task, and refuses anything else.
+Reverse methods the runtime may call: `host.fs.trash` and `host.os.reveal` (ADR-0014), `host.secrets.get`, `host.log`, `host.notify` (OS notification when the window is unfocused and approval is needed). They are declared in `packages/protocol/src/reverse.ts` (`REVERSE_METHODS`); the Host answers only those, on their own task, and refuses anything else.
 
 ### 6.4 Runtime event envelope
 

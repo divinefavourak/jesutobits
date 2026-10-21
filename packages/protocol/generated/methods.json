@@ -13,6 +13,7 @@
     "fs.not_found",
     "fs.outside_workspace",
     "fs.permission_denied",
+    "fs.reveal_failed",
     "fs.too_large",
     "fs.trash_failed",
     "process.cancelled",
@@ -54,6 +55,7 @@
     "fs.quickOpen",
     "fs.readFile",
     "fs.rename",
+    "fs.reveal",
     "fs.stat",
     "fs.trash",
     "fs.writeFile",
@@ -74,6 +76,7 @@
     "runtime.shutdown"
   ],
   "reverse": [
-    "host.fs.trash"
+    "host.fs.trash",
+    "host.os.reveal"
   ]
 }

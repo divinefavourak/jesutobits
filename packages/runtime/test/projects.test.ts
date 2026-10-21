@@ -335,6 +335,40 @@ describe("fs.trash (ADR-0014)", () => {
   });
 });
 
+describe("fs.reveal (FR-072)", () => {
+  it("confines the path, then asks the Host to show it", async () => {
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: projectDir }));
+    result<"fs.reveal">(await h.call("fs.reveal", { path: "src" }));
+
+    const canonical = path
+      .join(projectDir, "src")
+      .replace(/^[A-Z]:/, (drive) => (process.platform === "win32" ? drive.toLowerCase() : drive));
+    expect(h.reverseCalls).toEqual([{ method: "host.os.reveal", params: { path: canonical } }]);
+  });
+
+  it("never asks the Host about paths outside the project or missing paths", async () => {
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: projectDir }));
+    expect((await h.call("fs.reveal", { path: "../data" })).error?.data?.code).toBe(
+      "fs.outside_workspace",
+    );
+    expect((await h.call("fs.reveal", { path: "missing.ts" })).error?.data?.code).toBe(
+      "fs.not_found",
+    );
+    expect(h.reverseCalls).toEqual([]);
+  });
+
+  it("reports a file manager that could not be opened", async () => {
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: projectDir }));
+    h.failReverseCalls = "explorer.exe failed";
+    expect((await h.call("fs.reveal", { path: "package.json" })).error?.data?.code).toBe(
+      "fs.reveal_failed",
+    );
+  });
+});
+
 describe("projects.detect and toolchain.detect", () => {
   it("recognises the vite-react-tailwind fixture without writing into it (J-05)", async () => {
     const project = fileURLToPath(

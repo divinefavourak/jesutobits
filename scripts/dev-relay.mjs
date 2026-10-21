@@ -9,12 +9,16 @@
 //   POST /rpc     {"method", "params"} -> {"result"} or {"error"} (a JSON-RPC error object)
 //   GET  /events  NDJSON stream: {"kind":"status",...} and {"kind":"event","event":{...}}
 //
+// It also plays the Host's part in reverse calls (ADR-0014) without touching the OS:
+// `host.fs.trash` moves the path into <data-dir>/trash/, and `host.os.reveal` only records
+// the path in `revealed`. Other reverse calls are refused at once.
+//
 //   node scripts/dev-relay.mjs [--port 1421] [--data-dir <dir>] [--origin http://127.0.0.1:1420]
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync } from "node:fs";
 import { createServer } from "node:http";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -52,6 +56,8 @@ export async function startRelay({
   });
   const pending = new Map();
   const listeners = new Set();
+  const revealed = [];
+  let trashed = 0;
   let nextId = 1;
   let status = { status: "starting" };
   let buffer = "";
@@ -76,13 +82,20 @@ export async function startRelay({
       if (message.method === "event" && message.id === undefined) {
         broadcast({ kind: "event", event: message.params });
       } else if (message.method !== undefined && message.id !== undefined) {
-        // Reverse calls (host.fs.trash, ADR-0014) need the real Host: refuse them at once.
-        const error = rpcError(
-          -32601,
-          "rpc.method_not_found",
-          `${message.method} needs the desktop app; it is not available in dev:web`,
-        );
-        child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: message.id, error })}\n`);
+        const reply = (body) =>
+          child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: message.id, ...body })}\n`);
+        try {
+          reply({ result: answerReverseCall(message.method, message.params) });
+        } catch (error) {
+          const unknown = error.code === "rpc.method_not_found";
+          reply({
+            error: rpcError(
+              unknown ? -32601 : -32000,
+              unknown ? error.code : "fs.io",
+              error.message,
+            ),
+          });
+        }
       } else if (pending.has(message.id)) {
         pending.get(message.id)(message);
         pending.delete(message.id);
@@ -101,6 +114,25 @@ export async function startRelay({
     pending.clear();
     setStatus({ status: "failed", detail: `The runtime exited (code ${code})` });
   });
+
+  /** Stand-ins for the Host's reverse calls; never the real trash or file manager. */
+  function answerReverseCall(method, params) {
+    if (method === "host.fs.trash") {
+      const trash = join(dataDir, "trash");
+      mkdirSync(trash, { recursive: true });
+      trashed += 1;
+      renameSync(params.path, join(trash, `${trashed}-${basename(params.path)}`));
+      return {};
+    }
+    if (method === "host.os.reveal") {
+      revealed.push(params.path);
+      return {};
+    }
+    throw Object.assign(
+      new Error(`${method} needs the desktop app; it is not available in dev:web`),
+      { code: "rpc.method_not_found" },
+    );
+  }
 
   const call = (method, params) =>
     new Promise((resolve) => {
@@ -196,6 +228,7 @@ export async function startRelay({
   return {
     url,
     token,
+    revealed,
     async close() {
       for (const listener of listeners) listener.end();
       server.close();

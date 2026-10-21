@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import { useStore, type StoreApi } from "zustand";
+import { createExplorerStore, type ExplorerStore } from "../features/explorer/explorer-store";
 import type { HostBridge } from "../host-bridge";
 import { createLayoutStore, type LayoutState, type LayoutStore } from "./layout-store";
 import { createOutputStore, type OutputState } from "./output-store";
@@ -11,6 +12,7 @@ export interface Workbench {
   projects: ProjectStore;
   layout: LayoutStore;
   output: StoreApi<OutputState>;
+  explorer: ExplorerStore;
 }
 
 /** Builds the stores once, outside React, so StrictMode's double render cannot subscribe twice. */
@@ -21,6 +23,7 @@ export function createWorkbench(bridge: HostBridge): Workbench {
     projects,
     layout: createLayoutStore(bridge, projects),
     output: createOutputStore(bridge),
+    explorer: createExplorerStore(bridge, projects),
   };
 }
 

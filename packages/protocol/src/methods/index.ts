@@ -8,6 +8,7 @@ import {
   fsQuickOpen,
   fsReadFile,
   fsRename,
+  fsReveal,
   fsStat,
   fsTrash,
   fsWriteFile,
@@ -57,6 +58,7 @@ export const METHODS = {
   [fsRename.name]: fsRename,
   [fsQuickOpen.name]: fsQuickOpen,
   [fsTrash.name]: fsTrash,
+  [fsReveal.name]: fsReveal,
 } as const;
 
 export type MethodName = keyof typeof METHODS;

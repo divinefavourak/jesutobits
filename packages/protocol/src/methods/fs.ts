@@ -150,3 +150,15 @@ export const fsTrash = defineMethod({
   params: z.object({ path: RelativePathSchema.min(1) }),
   result: z.object({}),
 });
+
+/**
+ * Shows a file or folder in the OS file manager (FR-072 "Reveal in OS"). Like `fs.trash`, the
+ * runtime confines the path and the Host acts (ADR-0014).
+ */
+export const fsReveal = defineMethod({
+  name: "fs.reveal",
+  description: "Show a project file or folder in the OS file manager.",
+  callers: ["workbench"],
+  params: z.object({ path: RelativePathSchema }),
+  result: z.object({}),
+});

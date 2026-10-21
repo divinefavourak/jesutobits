@@ -56,7 +56,7 @@ Fixture projects (`fixtures/projects/*`) are separate pnpm roots with their own 
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Full desktop app with hot reload of the Workbench; runtime rebuilt and restarted on change |
-| `pnpm dev:web` | Workbench in a normal browser with `MockHostBridge`; optional `--runtime` flag relays to a real runtime through a dev-only relay bound to `127.0.0.1` with a random token (`scripts/dev-relay.mjs`: only Workbench-callable methods, token in the `x-jesutobits-token` header, events as an NDJSON stream; its database lives in `node_modules/.cache/jesutobits-dev-web`). Host features (settings, dialogs) stay mocked |
+| `pnpm dev:web` | Workbench in a normal browser with `MockHostBridge`; optional `--runtime` flag relays to a real runtime through a dev-only relay bound to `127.0.0.1` with a random token (`scripts/dev-relay.mjs`: only Workbench-callable methods, token in the `x-jesutobits-token` header, events as an NDJSON stream; its database lives in `node_modules/.cache/jesutobits-dev-web`). Host features (settings, dialogs) stay mocked; the relay answers the runtime's reverse calls with stand-ins: trashed files move to `<data dir>/trash/`, reveals are only recorded |
 | `pnpm lint` | ESLint (including boundary rules) and `cargo clippy` |
 | `pnpm typecheck` | `tsc -b` across packages |
 | `pnpm test` | Vitest across packages; Workbench component tests (`*.test.tsx`) run in jsdom with Testing Library |
