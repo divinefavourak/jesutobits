@@ -346,6 +346,11 @@ mod tests {
             CODE_MESSAGE_TOO_LARGE,
             CODE_TIMEOUT,
             CODE_UNAVAILABLE,
+            crate::settings_store::CODE_INVALID_SETTINGS,
+            crate::settings_store::CODE_READ_ONLY,
+            crate::settings_store::CODE_WRITE_FAILED,
+            crate::settings_store::CODE_SETTINGS_NEWER,
+            crate::settings_store::CODE_SETTINGS_CORRUPT,
         ] {
             assert!(
                 codes.iter().any(|c| c == code),

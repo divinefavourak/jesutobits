@@ -8,6 +8,12 @@ fn main() {
             "runtime_restart",
             "workbench_log",
             "workbench_ready",
+            "settings_get",
+            "settings_update",
+            "settings_subscribe",
+            "ui_state_get",
+            "ui_state_update",
+            "host_notices",
         ]),
     ))
     .expect("failed to run tauri-build");

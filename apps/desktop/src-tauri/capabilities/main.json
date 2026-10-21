@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "The Workbench window. Only the relay, runtime subscriptions and restart, logging and startup timing (NFR-008). core:default is trimmed in Phase 7.",
+  "description": "The Workbench window. Only the relay, runtime subscriptions and restart, logging, startup timing and the settings store (NFR-008). core:default is trimmed in Phase 7.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -9,6 +9,12 @@
     "allow-runtime-subscribe",
     "allow-runtime-restart",
     "allow-workbench-log",
-    "allow-workbench-ready"
+    "allow-workbench-ready",
+    "allow-settings-get",
+    "allow-settings-update",
+    "allow-settings-subscribe",
+    "allow-ui-state-get",
+    "allow-ui-state-update",
+    "allow-host-notices"
   ]
 }

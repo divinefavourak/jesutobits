@@ -1,9 +1,13 @@
 import type {
+  AppSettings,
+  HostNotice,
   LogLevel,
   MethodParams,
   MethodResult,
   RuntimeEventBase,
   RuntimeStatusUpdate,
+  SettingsPatch,
+  UiState,
   WorkbenchMethod,
 } from "@jesutobits/protocol";
 
@@ -27,4 +31,21 @@ export interface HostBridge {
   reportReady(): void;
   /** Writes to the Workbench log through the Host (ARCHITECTURE.md section 10). */
   log(level: LogLevel, message: string): void;
+
+  /** `settings.json`, written only by the Host (DATA_AND_PERSISTENCE.md section 5). */
+  settings: {
+    get(): Promise<AppSettings>;
+    /** Merges a partial update; rejects with `storage.invalid_settings` and saves nothing. */
+    update(patch: SettingsPatch): Promise<AppSettings>;
+    /** Every later change, from this window or another source. */
+    onChange(handler: (settings: AppSettings) => void): Unsubscribe;
+  };
+  /** `ui-state.json`. The Host owns `window`; other keys are the Workbench's to validate. */
+  uiState: {
+    get(): Promise<UiState>;
+    /** Replaces the given top-level keys; `null` removes one. */
+    update(patch: Record<string, unknown>): Promise<UiState>;
+  };
+  /** Startup notices about the settings files, shown once. */
+  notices(): Promise<HostNotice[]>;
 }

@@ -1,0 +1,27 @@
+{
+  "$comment": "settings.json validation cases. The Host (serde, settings_store/settings.rs) and the Workbench's Zod schema (packages/protocol/src/settings.ts) both run every case, so the two cannot disagree on what a valid settings file is.",
+  "valid": [
+    { "name": "empty file content gets every default", "settings": {} },
+    {
+      "name": "a chosen workspace folder",
+      "settings": { "workspace": { "defaultFolder": "C:\\Users\\ada\\Documents\\Jesutobits Projects" } }
+    },
+    { "name": "the largest UI scale", "settings": { "appearance": { "uiScale": 1.5 } } },
+    { "name": "the smallest UI scale", "settings": { "appearance": { "uiScale": 0.9 } } },
+    { "name": "an editor font size", "settings": { "appearance": { "editorFontSize": 14 } } },
+    { "name": "light theme without following the OS", "settings": { "appearance": { "theme": "builtin.jesutobits-themes/light", "followOsTheme": false } } },
+    { "name": "a section from a newer version is tolerated", "settings": { "companion": { "enabled": true } } },
+    { "name": "an unknown field inside a section is tolerated", "settings": { "appearance": { "density": "compact" } } }
+  ],
+  "invalid": [
+    { "name": "UI scale above 150%", "settings": { "appearance": { "uiScale": 2 } } },
+    { "name": "UI scale below 90%", "settings": { "appearance": { "uiScale": 0.5 } } },
+    { "name": "editor font size too small", "settings": { "appearance": { "editorFontSize": 7 } } },
+    { "name": "editor font size not whole", "settings": { "appearance": { "editorFontSize": 12.5 } } },
+    { "name": "empty theme", "settings": { "appearance": { "theme": "" } } },
+    { "name": "empty workspace folder", "settings": { "workspace": { "defaultFolder": "" } } },
+    { "name": "a flag as a string", "settings": { "appearance": { "followOsTheme": "yes" } } },
+    { "name": "a section that is not an object", "settings": { "workspace": "C:\\projects" } },
+    { "name": "an unknown schema version", "settings": { "schemaVersion": 2 } }
+  ]
+}

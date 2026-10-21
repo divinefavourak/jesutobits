@@ -1,23 +1,36 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import {
+  AppSettingsSchema,
   getMethod,
+  HostNoticeSchema,
   RuntimeEventBaseSchema,
   RuntimeStatusUpdateSchema,
   toJesutobitsError,
+  UiStateSchema,
+  type AppSettings,
+  type HostNotice,
   type LogLevel,
   type MethodParams,
   type MethodResult,
   type RuntimeEventBase,
   type RuntimeStatusUpdate,
+  type SettingsPatch,
+  type UiState,
   type WorkbenchMethod,
 } from "@jesutobits/protocol";
 import { Listeners } from "./listeners";
 import type { HostBridge, Unsubscribe } from "./types";
 
+/** What the bridge needs from a protocol schema (the Workbench does not depend on Zod). */
+interface Parser<T> {
+  safeParse(value: unknown): { success: true; data: T } | { success: false };
+}
+
 /** HostBridge over Tauri IPC: `invoke` for calls, Channels for streams (ADR-0003). */
 export class TauriHostBridge implements HostBridge {
   private readonly events = new Listeners<RuntimeEventBase>(false);
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
+  private readonly settingsChanges = new Listeners<AppSettings>(false);
   private readyReported = false;
 
   private constructor() {}
@@ -29,6 +42,13 @@ export class TauriHostBridge implements HostBridge {
     const onStatus = new Channel<unknown>();
     onStatus.onmessage = (message) => bridge.receiveStatus(message);
     await invoke("runtime_subscribe", { onEvent, onStatus });
+    const onChange = new Channel<unknown>();
+    onChange.onmessage = (message) => {
+      const settings = AppSettingsSchema.safeParse(message);
+      if (settings.success) bridge.settingsChanges.emit(settings.data);
+      else bridge.log("warn", "Dropped a settings change that failed validation");
+    };
+    await invoke("settings_subscribe", { onChange });
     return bridge;
   }
 
@@ -56,6 +76,43 @@ export class TauriHostBridge implements HostBridge {
 
   onRuntimeStatus(handler: (update: RuntimeStatusUpdate) => void): Unsubscribe {
     return this.status.add(handler);
+  }
+
+  readonly settings = {
+    get: (): Promise<AppSettings> => this.command("settings_get", {}, AppSettingsSchema),
+    update: (patch: SettingsPatch): Promise<AppSettings> =>
+      this.command("settings_update", { patch }, AppSettingsSchema),
+    onChange: (handler: (settings: AppSettings) => void): Unsubscribe =>
+      this.settingsChanges.add(handler),
+  };
+
+  readonly uiState = {
+    get: (): Promise<UiState> => this.command("ui_state_get", {}, UiStateSchema),
+    update: (patch: Record<string, unknown>): Promise<UiState> =>
+      this.command("ui_state_update", { patch }, UiStateSchema),
+  };
+
+  notices(): Promise<HostNotice[]> {
+    return this.command("host_notices", {}, HostNoticeSchema.array());
+  }
+
+  /** Invokes a Host command and checks its result (NFR-024). */
+  private async command<T>(
+    name: string,
+    args: Record<string, unknown>,
+    schema: Parser<T>,
+  ): Promise<T> {
+    let raw: unknown;
+    try {
+      raw = await invoke(name, args);
+    } catch (error) {
+      throw toJesutobitsError(error);
+    }
+    const result = schema.safeParse(raw);
+    if (!result.success) {
+      throw toJesutobitsError({ code: -32603, message: `Invalid result from ${name}` });
+    }
+    return result.data;
   }
 
   async restartRuntime(): Promise<void> {

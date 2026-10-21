@@ -227,6 +227,8 @@ Write patterns: text deltas are streamed to the UI but persisted only as the fin
 
 No field in either file may contain a secret. A unit test scans the settings schema for field names like `key`, `token`, `secret` and fails unless the field is on an explicit allowlist (for example `profile`).
 
+Implementation (Phase 1): the Host's `settings_store/` and the Zod schema `packages/protocol/src/settings.ts` define the sections in use so far (`workspace`, `appearance`, `terminal`, `privacy`, `developer`); later phases add theirs with defaults, which needs no version bump. `workspace.defaultFolder` is `null` until onboarding asks. Sections the Host does not know (from a newer version) are kept when it writes. Both sides run `fixtures/settings/cases.json`, and a Rust test compares the serde defaults with `packages/protocol/generated/settings.defaults.json`, generated from the Zod schema. Nothing is written until the first change. A settings file with a higher `schemaVersion` is read leniently and never written (`storage.settings_newer` notice), so a downgrade cannot destroy it.
+
 `ui-state.json` holds window bounds, per-project layout (keyed by `prj_` ID), open tabs and cursor positions, collapsed panels, onboarding step, last safe-mode marker.
 
 ## 6. Migration and recovery
@@ -249,7 +251,8 @@ Implementation (`packages/runtime/src/storage/storage.ts`, Phase 1):
 ### 6.2 Settings
 
 - `schemaVersion` is migrated by the Host on load; the previous file is kept as `settings.json.bak-v<old>`.
-- Invalid JSON: rename to `settings.json.corrupt-<timestamp>`, load defaults, show a notice. Same for `ui-state.json` (without a notice).
+- Invalid JSON: rename to `settings.json.corrupt-<timestamp>`, load defaults, show a notice. Same for `ui-state.json` (without a notice). Valid JSON that fails validation counts as invalid. An unusable `window` entry in `ui-state.json` is dropped on its own, keeping the rest.
+- Window bounds are saved 500 ms after the window stops moving or resizing, and on close. A saved position that no longer shows at least 100 px on any screen (an unplugged monitor) is ignored. The window starts hidden and is shown after restoring, so it never visibly jumps.
 - Writes are atomic (temp file, then rename).
 
 ### 6.3 Checkpoint store

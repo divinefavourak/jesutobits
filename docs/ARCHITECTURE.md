@@ -205,7 +205,7 @@ flowchart TB
 
 | From → To | Mechanism | Content |
 |---|---|---|
-| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `runtime_restart`, `workbench_log`, `workbench_ready` (startup timing), `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
+| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `runtime_restart`, `workbench_log`, `workbench_ready` (startup timing), `settings_get/update/subscribe`, `ui_state_get/update`, `host_notices`, `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
 | Host → Workbench | Tauri `Channel` | Runtime events, runtime status (`RuntimeStatusUpdate` in `packages/protocol`), PTY output, settings changes |
 | Host ↔ Runtime | NDJSON JSON-RPC 2.0 over stdio (ADR-0003) | Runtime methods, events, `host.*` reverse calls |
 | Workbench ↔ Preview iframe | `window.postMessage` with origin + nonce + Zod | Bridge protocol (VISUAL_EDITING.md section 9) |
@@ -243,6 +243,8 @@ export interface HostBridge {
     update(patch: DeepPartial<AppSettings>): Promise<AppSettings>;
     onChange(handler: (s: AppSettings) => void): Unsubscribe;
   };
+  uiState: { get(): Promise<UiState>; update(patch: Record<string, unknown>): Promise<UiState> }; // `window` is the Host's
+  notices(): Promise<HostNotice[]>; // startup notices about the settings files
   dialogs: { pickFolder(opts?: { title?: string; defaultPath?: string }): Promise<string | null> };
   extensions: {
     list(): Promise<InstalledExtension[]>;

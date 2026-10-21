@@ -1,11 +1,17 @@
 import {
+  AppSettingsSchema,
   ErrorCodes,
   JesutobitsError,
+  UiStateSchema,
+  type AppSettings,
+  type HostNotice,
   type LogLevel,
   type MethodParams,
   type MethodResult,
   type RuntimeEventBase,
   type RuntimeStatusUpdate,
+  type SettingsPatch,
+  type UiState,
   type WorkbenchMethod,
 } from "@jesutobits/protocol";
 import { Listeners } from "./listeners";
@@ -26,6 +32,11 @@ type Handlers = Partial<{
 export class MockHostBridge implements HostBridge {
   readonly logs: Array<{ level: LogLevel; message: string }> = [];
   readyReports = 0;
+  /** Startup notices the next `notices()` returns (test helper). */
+  pendingNotices: HostNotice[] = [];
+  private currentSettings: AppSettings = AppSettingsSchema.parse({});
+  private currentUiState: UiState = UiStateSchema.parse({});
+  private readonly settingsChanges = new Listeners<AppSettings>(false);
   private readonly events = new Listeners<RuntimeEventBase>(false);
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
   private currentStatus: RuntimeStatusUpdate = { status: "ready" };
@@ -82,6 +93,49 @@ export class MockHostBridge implements HostBridge {
     this.logs.push({ level, message });
   }
 
+  /** Same rules as the Host's settings store: deep merge, validate, then save. */
+  readonly settings = {
+    get: async (): Promise<AppSettings> => structuredClone(this.currentSettings),
+    update: async (patch: SettingsPatch): Promise<AppSettings> => {
+      const { schemaVersion: _ignored, ...rest } = patch as Record<string, unknown>;
+      const merged = mergeDeep(structuredClone(this.currentSettings), rest);
+      const parsed = AppSettingsSchema.safeParse(merged);
+      if (!parsed.success) {
+        throw new JesutobitsError(ErrorCodes.storageInvalidSettings, "Invalid settings", {
+          details: { issues: parsed.error.issues.map((issue) => issue.message) },
+        });
+      }
+      this.currentSettings = parsed.data;
+      this.settingsChanges.emit(structuredClone(parsed.data));
+      return structuredClone(parsed.data);
+    },
+    onChange: (handler: (settings: AppSettings) => void): Unsubscribe =>
+      this.settingsChanges.add(handler),
+  };
+
+  readonly uiState = {
+    get: async (): Promise<UiState> => structuredClone(this.currentUiState),
+    update: async (patch: Record<string, unknown>): Promise<UiState> => {
+      const next: Record<string, unknown> = { ...this.currentUiState };
+      for (const [key, value] of Object.entries(patch)) {
+        if (key === "window" || key === "schemaVersion") {
+          throw new JesutobitsError(
+            ErrorCodes.storageInvalidSettings,
+            `${key} cannot be changed by the Workbench`,
+          );
+        }
+        if (value === null) delete next[key];
+        else next[key] = value;
+      }
+      this.currentUiState = UiStateSchema.parse(next);
+      return structuredClone(this.currentUiState);
+    },
+  };
+
+  async notices(): Promise<HostNotice[]> {
+    return this.pendingNotices;
+  }
+
   /** Test helpers. */
   emitEvent(event: RuntimeEventBase): void {
     this.emitted.push(event);
@@ -92,4 +146,18 @@ export class MockHostBridge implements HostBridge {
     this.currentStatus = update;
     this.status.emit(update);
   }
+}
+
+/** Objects merge key by key; anything else replaces (the Host's `merge`). */
+function mergeDeep(target: Record<string, unknown>, patch: Record<string, unknown>) {
+  for (const [key, value] of Object.entries(patch)) {
+    const current = target[key];
+    if (isPlainObject(current) && isPlainObject(value)) mergeDeep(current, value);
+    else target[key] = value;
+  }
+  return target;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

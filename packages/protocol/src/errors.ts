@@ -73,6 +73,14 @@ export const ErrorCodes = {
   storageCorruptRecovered: "storage.corrupt_recovered",
   /** The database could not be opened at all. */
   storageUnavailable: "storage.unavailable",
+  /** A settings or UI-state update failed validation (the Host's settings store). */
+  storageInvalidSettings: "storage.invalid_settings",
+  /** A settings file could not be written. */
+  storageWriteFailed: "storage.write_failed",
+  /** Startup notice: settings.json is from a newer version and is read-only. */
+  storageSettingsNewer: "storage.settings_newer",
+  /** Startup notice: settings.json could not be read and was moved aside. */
+  storageSettingsCorrupt: "storage.settings_corrupt",
   /** A write was refused because the database is open read-only. */
   storageReadOnly: "storage.read_only",
   /** No JSX element starts at the requested location (the file changed, or a bad loc). */

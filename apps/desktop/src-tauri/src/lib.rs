@@ -3,6 +3,7 @@
 mod logging;
 mod rpc_relay;
 mod runtime_supervisor;
+mod settings_store;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -15,6 +16,7 @@ use tauri::{Manager, RunEvent, State};
 
 use rpc_relay::{allowlist, rpc_error, CODE_METHOD_NOT_ALLOWED, METHOD_NOT_FOUND};
 use runtime_supervisor::{LaunchSpec, StatusUpdate, Supervisor};
+use settings_store::{commands as settings, SettingsStore};
 
 /// When the Host started, for startup timing (NFR-001).
 static HOST_STARTED: OnceLock<Instant> = OnceLock::new();
@@ -97,6 +99,14 @@ fn workbench_ready(since_navigation_ms: f64) {
     logging::with_fields(logging::Level::Info, "startup", msg, fields);
 }
 
+/// `JESUTOBITS_CONFIG_DIR` overrides the app config dir (settings.json, ui-state.json).
+fn config_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
+    match std::env::var_os("JESUTOBITS_CONFIG_DIR") {
+        Some(dir) => Ok(PathBuf::from(dir)),
+        None => app.path().app_config_dir(),
+    }
+}
+
 /// `JESUTOBITS_LOG_DIR` overrides the app log dir, like `JESUTOBITS_DATA_DIR` for data.
 fn log_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
     match std::env::var_os("JESUTOBITS_LOG_DIR") {
@@ -149,9 +159,13 @@ pub fn run() {
     let app = tauri::Builder::default()
         .setup(|app| {
             logging::init(&log_dir(app.handle())?);
+            app.manage(SettingsStore::load(&config_dir(app.handle())?));
             let supervisor = Supervisor::new();
             supervisor.start(launch_spec(app.handle())?);
             app.manage(supervisor);
+            if let Some(window) = app.get_webview_window("main") {
+                settings_store::window::restore_and_track(&window);
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -159,7 +173,13 @@ pub fn run() {
             runtime_subscribe,
             runtime_restart,
             workbench_log,
-            workbench_ready
+            workbench_ready,
+            settings::settings_get,
+            settings::settings_update,
+            settings::settings_subscribe,
+            settings::ui_state_get,
+            settings::ui_state_update,
+            settings::host_notices
         ])
         .build(tauri::generate_context!())
         .expect("failed to build the Jesutobits Host");
