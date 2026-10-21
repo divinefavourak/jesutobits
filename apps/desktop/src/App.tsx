@@ -1,19 +1,26 @@
 import { useEffect, useMemo } from "react";
 import { PreviewFrameProbe } from "./features/diagnostics/PreviewFrameProbe";
 import { measureRelayLatency } from "./features/diagnostics/relay-benchmark";
+import { layoutCommands } from "./features/layout/layout-commands";
 import { ProjectView } from "./features/layout/ProjectView";
 import { RuntimeBanner } from "./features/layout/RuntimeBanner";
 import { StatusBar } from "./features/layout/StatusBar";
 import { TrustDialog } from "./features/projects/TrustDialog";
 import { StartScreen } from "./features/start/StartScreen";
-import type { HostBridge } from "./host-bridge";
-import type { ProjectStore } from "./state/project-store";
-import { useProjects, useWorkbench, WorkbenchProvider } from "./state/workbench-context";
+import { useKeybindings } from "./state/use-keybindings";
+import {
+  useProjects,
+  useWorkbench,
+  WorkbenchProvider,
+  type Workbench,
+} from "./state/workbench-context";
 
-export function App({ bridge, projects }: { bridge: HostBridge; projects: ProjectStore }) {
+export function App({ workbench }: { workbench: Workbench }) {
+  const { bridge } = workbench;
   // After the first commit: the Host logs how long the cold start took (NFR-001).
   useEffect(() => bridge.reportReady(), [bridge]);
-  const workbench = useMemo(() => ({ bridge, projects }), [bridge, projects]);
+  const commands = useMemo(() => layoutCommands(workbench), [workbench]);
+  useKeybindings(commands);
 
   return (
     <WorkbenchProvider value={workbench}>

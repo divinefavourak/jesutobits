@@ -111,6 +111,7 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 - `projects.create` offers the Empty and General workspace templates in Phase 1; the React templates arrive with J-04 in Phase 4.
 - Project text search (FR-074, `Ctrl+Shift+F`) needs the ripgrep sidecar and arrives in Phase 2; Phase 1 has quick open.
 - While the npm registry was unreachable (2026-10-21), work that needs no new packages was done first. Tailwind 4.3.3 was installed from the local pnpm store; Zustand is added once the registry is back.
+- Layout presets in Phase 1 (step 14): every project opens with Code, because Build and Design centre on the agent and the preview, which arrive in Phases 2 and 4; Build becomes the default for projects created from the React templates in Phase 4. Panels for later features (agent, preview, inspector, terminal, problems) say which version brings them. Saving a layout as a named preset (UX_AND_INTERFACE.md section 4.3) arrives with Stage 1 layout extensions in Phase 6; Phase 1 keeps the user's arrangement per project as "Custom (based on …)" with Reset.
 - After a runtime restart, the Workbench reopens its project (decided 2026-10-21, was Q13). A restarted runtime has no active project, so `fs.*` fails with `fs.no_project`. When the status returns to Ready after Restarting or Failed, the Workbench calls `projects.open` with the project ID it shows, then reloads the explorer and checks open editors against disk. Built in step 13.
 
 ### Phase 2: Minimal agent harness (3 to 4 weeks) → 0.2

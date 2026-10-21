@@ -85,7 +85,7 @@ After onboarding, a dismissible "First steps" checklist appears in the agent pan
 | **Design** | Agent (left, narrow) · Preview (center, large) · Inspector (right) | Activated automatically when entering Inspect mode, if the user allows |
 | **Focus** | Center only (editor or preview), Agent as a slide-over (`Ctrl+L`) | Manual |
 
-Presets are switched from the title bar or with `Alt+1` to `Alt+4`. User modifications are saved as "Custom (based on Code)" and can be saved as a named preset (FR-071). Layout presets can also be contributed by Stage 1 extensions.
+Presets are switched from the title bar or with `Alt+1` to `Alt+4`. (Phase 1 opens every project with Code and has no named presets yet; see ROADMAP.md Phase 1 notes.) User modifications are saved as "Custom (based on Code)" and can be saved as a named preset (FR-071). Layout presets can also be contributed by Stage 1 extensions.
 
 ### 4.4 Persistence and project switching
 

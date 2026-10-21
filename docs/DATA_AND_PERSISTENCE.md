@@ -231,6 +231,8 @@ Implementation (Phase 1): the Host's `settings_store/` and the Zod schema `packa
 
 `ui-state.json` holds window bounds, per-project layout (keyed by `prj_` ID), open tabs and cursor positions, collapsed panels, onboarding step, last safe-mode marker.
 
+Keys in use: `window` (Host), `layouts` (`{ [prj_ID]: Layout }`, `apps/desktop/src/features/layout/layout-model.ts`: preset, modified flag, and per dock zone its panels, active tab, collapsed flag and size). The Workbench validates what it reads and falls back to the preset; it writes a layout 250 ms after the last change, and at once when the project closes.
+
 ## 6. Migration and recovery
 
 ### 6.1 SQLite

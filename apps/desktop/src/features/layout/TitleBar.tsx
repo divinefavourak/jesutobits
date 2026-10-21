@@ -3,10 +3,11 @@ import { useProjects, useWorkbench } from "../../state/workbench-context";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { TrustBadge } from "../projects/TrustBadge";
+import { PresetSwitcher } from "./PresetSwitcher";
 
 /**
- * Project name, trust badge and what kind of project it is (UX_AND_INTERFACE.md section 4.1,
- * J-05). The layout preset switcher joins in step 14 and the Stop button with the agent.
+ * Project name, trust badge, what kind of project it is and the layout preset switcher
+ * (UX_AND_INTERFACE.md section 4.1, J-05). The Stop button arrives with the agent.
  */
 export function TitleBar() {
   const { projects } = useWorkbench();
@@ -25,6 +26,7 @@ export function TitleBar() {
       <p className="m-0 min-w-0 flex-1 truncate text-text-muted">
         {detection ? detection.visualEditing.reason : t("project.detecting")}
       </p>
+      <PresetSwitcher />
       <Button variant="ghost" disabled={busy} onClick={() => void projects.getState().close()}>
         {t("project.close")}
       </Button>

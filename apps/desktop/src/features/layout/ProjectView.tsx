@@ -1,11 +1,12 @@
+import { DockLayout } from "./DockLayout";
 import { TitleBar } from "./TitleBar";
 
-/** The Workbench for the open project. Step 14 fills the body with the dock layout. */
+/** The Workbench for the open project: title bar and dock layout. */
 export function ProjectView() {
   return (
     <>
       <TitleBar />
-      <main className="flex-1 overflow-hidden" />
+      <DockLayout />
     </>
   );
 }

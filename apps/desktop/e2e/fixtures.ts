@@ -63,3 +63,16 @@ export async function expectAccessible(page: Page): Promise<void> {
     }));
   expect(serious).toEqual([]);
 }
+
+/** Opens a folder from the start screen and answers the trust prompt. */
+export async function openFolder(
+  page: Page,
+  folder: string,
+  trust: "Trust this folder" | "Use Restricted mode" = "Trust this folder",
+): Promise<void> {
+  await expect(page.getByRole("status")).toHaveText("Ready");
+  await chooseFolderInDialog(page, folder);
+  await page.getByRole("button", { name: "Open folder…" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: trust }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+}

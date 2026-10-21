@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { App } from "../../App";
 import { MockHostBridge } from "../../host-bridge";
-import { createProjectStore } from "../../state/project-store";
+import { createWorkbench } from "../../state/workbench-context";
 
 const habits: Project = {
   id: "prj_01JABCDEFGHJKMNPQRSTVWXYZ0",
@@ -41,7 +41,7 @@ function renderApp(recent: Project[]) {
     throw new Error("not needed");
   });
   bridge.handle("projects.setTrust", ({ trust }) => ({ project: { ...habits, trust } }));
-  render(<App bridge={bridge} projects={createProjectStore(bridge)} />);
+  render(<App workbench={createWorkbench(bridge)} />);
   return { bridge, removed };
 }
 

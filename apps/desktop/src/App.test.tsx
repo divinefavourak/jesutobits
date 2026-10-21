@@ -2,12 +2,12 @@ import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { App } from "./App";
 import { MockHostBridge } from "./host-bridge";
-import { createProjectStore } from "./state/project-store";
+import { createWorkbench } from "./state/workbench-context";
 
 describe("App", () => {
   it("shows the runtime status the Host reports and reports its first render", () => {
     const bridge = new MockHostBridge();
-    render(<App bridge={bridge} projects={createProjectStore(bridge)} />);
+    render(<App workbench={createWorkbench(bridge)} />);
 
     expect(screen.getByRole("status").textContent).toBe("Ready");
     expect(bridge.readyReports).toBe(1);
