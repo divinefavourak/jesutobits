@@ -1,6 +1,7 @@
-// `pnpm dev:web [--runtime]`: the Workbench in a normal browser (DEVELOPMENT_SETUP.md
-// section 3). Without --runtime it runs against MockHostBridge alone; with --runtime it also
-// starts scripts/dev-relay.mjs and points the Workbench at it, so projects and files are real.
+// `pnpm dev:web [--runtime] [vite options]`: the Workbench in a normal browser
+// (DEVELOPMENT_SETUP.md section 3). Without --runtime it runs against MockHostBridge alone;
+// with --runtime it also starts scripts/dev-relay.mjs and points the Workbench at it, so
+// projects and files are real. Other arguments go to Vite, for example `--port 1440` (E2E).
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -22,7 +23,8 @@ if (process.argv.includes("--runtime")) {
   process.stdout.write(`dev relay: ${relay.url} (runtime ready)\n`);
 }
 
-const child = spawn(process.execPath, [vite], { cwd: desktop, env, stdio: "inherit" });
+const viteArgs = process.argv.slice(2).filter((arg) => arg !== "--runtime");
+const child = spawn(process.execPath, [vite, ...viteArgs], { cwd: desktop, env, stdio: "inherit" });
 const stop = async (code) => {
   await relay?.close();
   process.exit(code ?? 0);

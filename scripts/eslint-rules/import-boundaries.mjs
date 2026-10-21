@@ -10,11 +10,12 @@
 //   tests         false to skip test files (tests may use node:fs for temp dirs, for example)
 //   imports       regex sources matched against the import specifier
 //   isolate       sibling folders under `dir` may not import each other, except `shared`
-// Relative imports may never leave their own package.
+// Relative imports may never leave their own package, except that test code (unit tests,
+// test/ and e2e/ folders) may import the repository's development scripts in scripts/.
 import { dirname, relative, resolve, sep } from "node:path";
 
 const toPosix = (p) => p.split(sep).join("/");
-const TEST_FILE = /(\.test\.[cm]?[jt]sx?$|\/test\/)/;
+const TEST_FILE = /(\.test\.[cm]?[jt]sx?$|\/test\/|\/e2e\/)/;
 
 /** `packages/<name>/` or `apps/<name>/` for a repo-relative path, if any. */
 function packageRoot(relPath) {
@@ -61,7 +62,8 @@ export default {
 
       if (!source.startsWith(".")) return;
       const target = toPosix(relative(root, resolve(dirname(context.filename), source)));
-      if (pkg && !`${target}/`.startsWith(pkg)) {
+      const devScript = isTest && target.startsWith("scripts/");
+      if (pkg && !`${target}/`.startsWith(pkg) && !devScript) {
         context.report({ node, messageId: "escapesPackage", data: { source, pkg } });
       }
       for (const { dir, shared = [], message } of isolate) {

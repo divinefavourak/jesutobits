@@ -10,7 +10,7 @@ import {
   type WorkbenchMethod,
 } from "@jesutobits/protocol";
 import { Listeners } from "./listeners";
-import { MockHostBridge } from "./mock-host-bridge";
+import { MockHostBridge, type MockStorage } from "./mock-host-bridge";
 import type { Unsubscribe } from "./types";
 
 /**
@@ -28,17 +28,21 @@ export class RelayHostBridge extends MockHostBridge {
     private readonly url: string,
     private readonly token: string,
     private readonly fetchImpl: typeof fetch = (...args) => fetch(...args),
+    options: { storage?: MockStorage | undefined } = {},
   ) {
-    super();
+    super(options);
     this.relayStatus.emit({ status: "starting" });
     void this.stream();
   }
 
   /** `VITE_JESUTOBITS_RELAY` is `<url>#<token>`. */
-  static fromSetting(setting: string): RelayHostBridge {
+  static fromSetting(
+    setting: string,
+    options: { storage?: MockStorage | undefined } = {},
+  ): RelayHostBridge {
     const [url, token] = setting.split("#");
     if (!url || !token) throw new Error("VITE_JESUTOBITS_RELAY must be <url>#<token>");
-    return new RelayHostBridge(url, token);
+    return new RelayHostBridge(url, token, undefined, options);
   }
 
   override async rpc<M extends WorkbenchMethod>(

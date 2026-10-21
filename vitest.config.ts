@@ -12,15 +12,33 @@ export default defineConfig({
     },
   ],
   test: {
-    include: [
-      "packages/*/src/**/*.test.ts",
-      "packages/*/test/**/*.test.ts",
-      "apps/*/src/**/*.test.{ts,tsx}",
-      "scripts/**/*.test.mjs",
-    ],
     // Runtime integration tests spawn processes; keep their failures readable.
     testTimeout: 10_000,
     // Vitest empties CSS imports, `?raw` included; the Tailwind theme test reads this one.
     css: { include: [/styles[\\/]theme\.css/] },
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: [
+            "packages/*/src/**/*.test.ts",
+            "packages/*/test/**/*.test.ts",
+            "apps/*/src/**/*.test.ts",
+            "scripts/**/*.test.mjs",
+          ],
+        },
+      },
+      {
+        // Workbench components with Testing Library (TESTING_STRATEGY.md section 2).
+        extends: true,
+        test: {
+          name: "components",
+          include: ["apps/*/src/**/*.test.tsx"],
+          environment: "jsdom",
+          setupFiles: ["apps/desktop/src/test/setup-components.ts"],
+        },
+      },
+    ],
   },
 });

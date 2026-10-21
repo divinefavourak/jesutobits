@@ -55,3 +55,35 @@ describe("MockHostBridge settings", () => {
     expect(await bridge.uiState.get()).toEqual({ schemaVersion: 1, window: null });
   });
 });
+
+describe("MockHostBridge storage", () => {
+  const memoryStorage = () => {
+    const items = new Map<string, string>();
+    return {
+      items,
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, value),
+    };
+  };
+
+  it("keeps settings and UI state for the next bridge, like the Host's files", async () => {
+    const storage = memoryStorage();
+    const first = new MockHostBridge({ storage });
+    await first.settings.update({ appearance: { uiScale: 1.25 } });
+    await first.uiState.update({ onboarding: { step: 3 } });
+
+    const second = new MockHostBridge({ storage });
+    expect((await second.settings.get()).appearance.uiScale).toBe(1.25);
+    expect((await second.uiState.get()).onboarding).toEqual({ step: 3 });
+  });
+
+  it("falls back to defaults when what is stored does not validate", async () => {
+    const storage = memoryStorage();
+    storage.items.set("jesutobits.mock.settings", '{"appearance":{"uiScale":9}}');
+    storage.items.set("jesutobits.mock.ui-state", "not json");
+
+    const bridge = new MockHostBridge({ storage });
+    expect((await bridge.settings.get()).appearance.uiScale).toBe(1);
+    expect(await bridge.uiState.get()).toEqual({ schemaVersion: 1, window: null });
+  });
+});

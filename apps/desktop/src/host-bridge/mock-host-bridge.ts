@@ -25,9 +25,17 @@ type Handlers = Partial<{
   [M in WorkbenchMethod]: (params: MethodParams<M>) => MethodResult<M>;
 }>;
 
+/** Where the mock keeps settings and UI state between page loads; `localStorage` in a browser. */
+export type MockStorage = Pick<Storage, "getItem" | "setItem">;
+
+const SETTINGS_KEY = "jesutobits.mock.settings";
+const UI_STATE_KEY = "jesutobits.mock.ui-state";
+
 /**
  * In-memory HostBridge for `pnpm dev:web` and browser tests (TESTING_STRATEGY.md section
- * 3.2). It answers from fixed handlers; Phase 1 adds relaying to a real runtime.
+ * 3.2). It answers from fixed handlers; `RelayHostBridge` relays runtime calls instead.
+ * Given a storage, settings and UI state survive a reload, as the Host's files survive a
+ * restart; browser E2E tests get a fresh one per test.
  */
 export class MockHostBridge implements HostBridge {
   readonly logs: Array<{ level: LogLevel; message: string }> = [];
@@ -36,8 +44,9 @@ export class MockHostBridge implements HostBridge {
   nextPickedFolder: string | null = null;
   /** Startup notices the next `notices()` returns (test helper). */
   pendingNotices: HostNotice[] = [];
-  private currentSettings: AppSettings = AppSettingsSchema.parse({});
-  private currentUiState: UiState = UiStateSchema.parse({});
+  private readonly storage: MockStorage | undefined;
+  private currentSettings: AppSettings;
+  private currentUiState: UiState;
   private readonly settingsChanges = new Listeners<AppSettings>(false);
   private readonly events = new Listeners<RuntimeEventBase>(false);
   private readonly status = new Listeners<RuntimeStatusUpdate>(true);
@@ -56,7 +65,11 @@ export class MockHostBridge implements HostBridge {
     }),
   };
 
-  constructor() {
+  constructor(options: { storage?: MockStorage | undefined } = {}) {
+    this.storage = options.storage;
+    // Like the Host: a file that does not validate falls back to defaults.
+    this.currentSettings = load(this.storage, SETTINGS_KEY, AppSettingsSchema);
+    this.currentUiState = load(this.storage, UI_STATE_KEY, UiStateSchema);
     this.status.emit(this.currentStatus);
   }
 
@@ -108,6 +121,7 @@ export class MockHostBridge implements HostBridge {
         });
       }
       this.currentSettings = parsed.data;
+      this.storage?.setItem(SETTINGS_KEY, JSON.stringify(parsed.data));
       this.settingsChanges.emit(structuredClone(parsed.data));
       return structuredClone(parsed.data);
     },
@@ -130,6 +144,7 @@ export class MockHostBridge implements HostBridge {
         else next[key] = value;
       }
       this.currentUiState = UiStateSchema.parse(next);
+      this.storage?.setItem(UI_STATE_KEY, JSON.stringify(this.currentUiState));
       return structuredClone(this.currentUiState);
     },
   };
@@ -152,6 +167,24 @@ export class MockHostBridge implements HostBridge {
     this.currentStatus = update;
     this.status.emit(update);
   }
+}
+
+function load<T>(
+  storage: MockStorage | undefined,
+  key: string,
+  schema: { safeParse(value: unknown): { success: true; data: T } | { success: false } },
+): T {
+  let stored: unknown = {};
+  try {
+    stored = JSON.parse(storage?.getItem(key) ?? "{}");
+  } catch {
+    // Corrupt: defaults, as for an unreadable settings file.
+  }
+  const parsed = schema.safeParse(stored);
+  if (parsed.success) return parsed.data;
+  const defaults = schema.safeParse({});
+  if (!defaults.success) throw new Error(`No defaults for ${key}`);
+  return defaults.data;
 }
 
 /** Objects merge key by key; anything else replaces (the Host's `merge`). */

@@ -19,6 +19,7 @@
     "format": "prettier --write .",
     "test": "tsc -b && pnpm build:runtime && vitest run",
     "test:watch": "vitest",
+    "test:e2e": "pnpm --filter @jesutobits/desktop test:e2e",
     "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
     "gen": "tsc -b packages/protocol && node scripts/gen-protocol.mjs && node scripts/gen-allowlist.mjs",
     "gen:check": "pnpm gen && git diff --exit-code -- packages/protocol/generated apps/desktop/src-tauri/src/rpc_relay/allowlist.rs"
@@ -30,7 +31,7 @@
     "eslint": "^10.13.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.13.0",
-    "playwright-core": "^1.62.1",
+    "playwright-core": "^1.64.1",
     "prettier": "^3.9.10",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.1",
