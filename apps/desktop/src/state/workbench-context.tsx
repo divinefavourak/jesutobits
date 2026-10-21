@@ -16,6 +16,7 @@ import {
 import { createLayoutStore, type LayoutState, type LayoutStore } from "./layout-store";
 import { createOutputStore, type OutputState } from "./output-store";
 import { createProjectStore, type ProjectState, type ProjectStore } from "./project-store";
+import { createUiStore, type UiState, type UiStore } from "./ui-store";
 
 /** What every Workbench view needs: the Host and the stores built on it. */
 export interface Workbench {
@@ -28,6 +29,7 @@ export interface Workbench {
   /** The open files' text; Monaco models in the app (`MonacoBuffers`). */
   buffers: TextBuffers;
   appearance: AppearanceStore;
+  ui: UiStore;
 }
 
 /**
@@ -54,6 +56,7 @@ export function createWorkbench(
     editor,
     buffers,
     appearance: createAppearanceStore(),
+    ui: createUiStore(),
   };
 }
 
@@ -82,6 +85,10 @@ export function useOutput<T>(select: (state: OutputState) => T): T {
 
 export function useEditor<T>(select: (state: EditorState) => T): T {
   return useStore(useWorkbench().editor, select);
+}
+
+export function useUi<T>(select: (state: UiState) => T): T {
+  return useStore(useWorkbench().ui, select);
 }
 
 export function useAppearance<T>(select: (state: AppearanceState) => T): T {

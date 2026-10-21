@@ -305,6 +305,18 @@ describe("changes on disk (UX_AND_INTERFACE.md section 5.2)", () => {
   });
 });
 
+describe("recently shown files (quick open)", () => {
+  it("lists them most recent first, without duplicates", async () => {
+    const { editor } = await opened();
+    await editor.getState().open("a.ts");
+    await editor.getState().open("b.ts");
+    await editor.getState().open("c.ts");
+    editor.getState().activate("a.ts");
+    await editor.getState().open("b.ts");
+    expect(editor.getState().recent).toEqual(["b.ts", "a.ts", "c.ts"]);
+  });
+});
+
 describe("open tabs per project (FR-008)", () => {
   it("are kept for each project and restored, without files deleted since", async () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -325,6 +337,7 @@ describe("open tabs per project (FR-008)", () => {
         ],
         active: "a.ts",
         cursors: { "b.ts": { line: 3, column: 7 } },
+        recent: ["a.ts", "b.ts"],
       });
 
       await projects.getState().openRecent(B);

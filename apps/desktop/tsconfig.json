@@ -13,7 +13,14 @@
   },
   "include": ["src"],
   "references": [
-    { "path": "../../packages/protocol" },
-    { "path": "../../packages/extension-schema" }
+    {
+      "path": "../../packages/protocol"
+    },
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/extension-schema"
+    }
   ]
 }

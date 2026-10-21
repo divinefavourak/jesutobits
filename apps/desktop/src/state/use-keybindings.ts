@@ -14,7 +14,7 @@ export function useKeybindings(commands: readonly Command[]): void {
       if (!command) return;
       event.preventDefault();
       event.stopPropagation();
-      command.run();
+      void command.run();
     };
     window.addEventListener("keydown", onKeyDown, { capture: true });
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });

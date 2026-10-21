@@ -11,7 +11,7 @@ export interface Command {
   keys?: string;
   /** Hidden from the palette and its shortcut ignored when false. */
   enabled?: () => boolean;
-  run: () => void;
+  run: () => void | Promise<void>;
 }
 
 interface Chord {

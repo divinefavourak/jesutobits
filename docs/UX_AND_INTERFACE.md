@@ -269,6 +269,8 @@ Windows/Linux shown; macOS uses `Cmd` for `Ctrl`.
 
 All shortcuts are listed in the palette next to their commands and can be rebound (keybindings live in `settings.json`).
 
+Phase 1 has the palette (commands that cannot run right now are not listed), quick open, the dock and preset shortcuts, Save and Save all; rebinding arrives with the settings UI. Workbench shortcuts are handled before the editor sees them, so `Ctrl+K` opens the palette even inside Monaco, which gives up its own `Ctrl+K` chords. While a dialog is open, only the dialog handles keys.
+
 ## 10. Accessibility (NFR-011)
 
 - **Keyboard:** logical focus order per dock; `F6` cycles docks; tree view uses `role="tree"` with arrow navigation; tabs use `role="tablist"`; splitters are focusable.

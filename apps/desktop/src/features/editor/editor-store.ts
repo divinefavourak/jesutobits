@@ -42,6 +42,8 @@ export interface EditorState {
   files: Record<string, OpenFile>;
   /** Last cursor per path, restored when the file opens again. */
   cursors: Record<string, Cursor>;
+  /** Files shown in the editor, most recent first (quick open ranks them higher). */
+  recent: string[];
   /** Why the last save failed, in the runtime's words. */
   error: string | null;
   /** A tab with unsaved changes the user asked to close: the dialog asks Save or Discard. */
@@ -94,6 +96,8 @@ export type EditorStore = StoreApi<EditorState>;
 /** The `ui-state.json` key with each project's open tabs and cursors (FR-008). */
 export const EDITORS_KEY = "editors";
 export const SAVE_DELAY_MS = 250;
+/** How many recently shown files are remembered (the runtime accepts up to 50). */
+export const MAX_RECENT = 50;
 const CHECK_DELAY_MS = 50;
 
 const StoredEditorsSchema = z.object({
@@ -103,14 +107,16 @@ const StoredEditorsSchema = z.object({
     z.string(),
     z.object({ line: z.number().int().min(1), column: z.number().int().min(1) }),
   ),
+  recent: z.array(z.string().min(1)).max(MAX_RECENT).default([]),
 });
-type StoredEditors = z.infer<typeof StoredEditorsSchema>;
+type StoredEditors = z.input<typeof StoredEditorsSchema>;
 
 const EMPTY = {
   tabs: [],
   active: null,
   files: {},
   cursors: {},
+  recent: [],
   error: null,
   pendingClose: null,
   leaving: null,
@@ -177,7 +183,7 @@ export function createEditorStore(
         const existing = tabs.find((tab) => tab.path === path);
         if (existing) {
           if (!options.preview && existing.preview) get().pin(path);
-          set({ active: path });
+          set((state) => ({ active: path, recent: touch(state.recent, path) }));
           return;
         }
         const preview = options.preview === true;
@@ -192,6 +198,7 @@ export function createEditorStore(
         set((state) => ({
           tabs: nextTabs,
           active: path,
+          recent: touch(state.recent, path),
           files: { ...state.files, [path]: newFile() },
         }));
         await load(path);
@@ -202,7 +209,7 @@ export function createEditorStore(
           tabs: state.tabs.map((tab) => (tab.path === path ? { ...tab, preview: false } : tab)),
         })),
 
-      activate: (path) => set({ active: path }),
+      activate: (path) => set((state) => ({ active: path, recent: touch(state.recent, path) })),
 
       close: (path) => {
         const { tabs, active } = get();
@@ -394,12 +401,13 @@ export function createEditorStore(
   // Tabs, the active tab and cursors are saved per project, like the layout.
   const persist = () => {
     if (!projectId) return;
-    const { tabs, active, cursors } = store.getState();
+    const { tabs, active, cursors, recent } = store.getState();
     const open = new Set(tabs.map((tab) => tab.path));
     const entry: StoredEditors = {
       tabs,
       active,
       cursors: Object.fromEntries(Object.entries(cursors).filter(([path]) => open.has(path))),
+      recent,
     };
     stored = { ...stored, [projectId]: entry };
     bridge.uiState
@@ -418,7 +426,8 @@ export function createEditorStore(
     const unchanged =
       state.tabs === previous.tabs &&
       state.active === previous.active &&
-      state.cursors === previous.cursors;
+      state.cursors === previous.cursors &&
+      state.recent === previous.recent;
     if (restoring || unchanged) return;
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
@@ -434,7 +443,7 @@ export function createEditorStore(
     const parsed = StoredEditorsSchema.safeParse(stored[id]);
     restoring = false;
     if (!parsed.success || projectId !== id) return;
-    const { tabs, active, cursors } = parsed.data;
+    const { tabs, active, cursors, recent } = parsed.data;
     store.setState({ cursors });
     for (const tab of tabs) {
       await store.getState().open(tab.path, { preview: tab.preview });
@@ -446,6 +455,8 @@ export function createEditorStore(
     if (active && store.getState().tabs.some((tab) => tab.path === active)) {
       store.setState({ active });
     }
+    // Reopening the tabs reordered the list; the stored order is the real one.
+    store.setState({ recent });
   };
 
   projects.subscribe((state) => {
@@ -492,4 +503,11 @@ function failureOf(error: unknown): { code: string; message: string } {
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** `path` first, without duplicates, at most MAX_RECENT. */
+function touch(recent: string[], path: string): string[] {
+  return recent[0] === path
+    ? recent
+    : [path, ...recent.filter((entry) => entry !== path)].slice(0, MAX_RECENT);
 }

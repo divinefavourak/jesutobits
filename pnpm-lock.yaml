@@ -56,6 +56,9 @@ importers:
       '@jesutobits/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
+      '@jesutobits/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@tauri-apps/api':
         specifier: ^2.12.4
         version: 2.12.4

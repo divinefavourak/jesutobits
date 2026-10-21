@@ -4,14 +4,19 @@ import { measureRelayLatency } from "./features/diagnostics/relay-benchmark";
 import { editorCommands } from "./features/editor/editor-commands";
 import { CloseDirtyDialog, LeaveDialog } from "./features/editor/EditorPanel";
 import { layoutCommands } from "./features/layout/layout-commands";
+import { CommandPalette } from "./features/search/CommandPalette";
+import { QuickOpen } from "./features/search/QuickOpen";
+import type { Command } from "./state/commands";
 import { ProjectView } from "./features/layout/ProjectView";
 import { RuntimeBanner } from "./features/layout/RuntimeBanner";
 import { StatusBar } from "./features/layout/StatusBar";
 import { TrustDialog } from "./features/projects/TrustDialog";
 import { StartScreen } from "./features/start/StartScreen";
 import { useKeybindings } from "./state/use-keybindings";
+import { workbenchCommands } from "./state/workbench-commands";
 import {
   useProjects,
+  useUi,
   useWorkbench,
   WorkbenchProvider,
   type Workbench,
@@ -22,7 +27,11 @@ export function App({ workbench }: { workbench: Workbench }) {
   // After the first commit: the Host logs how long the cold start took (NFR-001).
   useEffect(() => bridge.reportReady(), [bridge]);
   const commands = useMemo(
-    () => [...layoutCommands(workbench), ...editorCommands(workbench)],
+    () => [
+      ...workbenchCommands(workbench),
+      ...editorCommands(workbench),
+      ...layoutCommands(workbench),
+    ],
     [workbench],
   );
   useKeybindings(commands);
@@ -39,6 +48,7 @@ export function App({ workbench }: { workbench: Workbench }) {
         <Screen />
         <StatusBar />
       </div>
+      <Overlay commands={commands} />
       <TrustDialog />
       <CloseDirtyDialog />
       <LeaveDialog />
@@ -49,6 +59,14 @@ export function App({ workbench }: { workbench: Workbench }) {
       )}
     </WorkbenchProvider>
   );
+}
+
+/** Quick open or the command palette, mounted only while shown. */
+function Overlay({ commands }: { commands: readonly Command[] }) {
+  const overlay = useUi((state) => state.overlay);
+  if (overlay === "files") return <QuickOpen />;
+  if (overlay === "commands") return <CommandPalette commands={commands} />;
+  return null;
 }
 
 /** The start screen, or the project once one is open (one per window, FR-012). */
