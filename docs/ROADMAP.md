@@ -110,7 +110,7 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 - The spawning core (`services/src/process`) is built in Phase 1 for the toolchain check; Phase 3's ProcessSupervisor builds on it (ADR-0011 notes).
 - `projects.create` offers the Empty and General workspace templates in Phase 1; the React templates arrive with J-04 in Phase 4.
 - Project text search (FR-074, `Ctrl+Shift+F`) needs the ripgrep sidecar and arrives in Phase 2; Phase 1 has quick open.
-- While the npm registry was unreachable (2026-10-21), work that needs no new packages was done first; Tailwind and Zustand are added once it is back.
+- While the npm registry was unreachable (2026-10-21), work that needs no new packages was done first. Tailwind 4.3.3 was installed from the local pnpm store; Zustand is added once the registry is back.
 
 ### Phase 2: Minimal agent harness (3 to 4 weeks) → 0.2
 

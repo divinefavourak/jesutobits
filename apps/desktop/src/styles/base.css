@@ -1,3 +1,7 @@
+/* Scan only the Workbench sources for class names, not src-tauri or node_modules. */
+@import "tailwindcss" source("..");
+@import "./theme.css";
+
 /*
  * Page-wide defaults. Every value is a theme token (EXTENSION_SYSTEM.md section 4.1); the
  * ThemeEngine sets the variables before the first render.

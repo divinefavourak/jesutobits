@@ -20,5 +20,7 @@ export default defineConfig({
     ],
     // Runtime integration tests spawn processes; keep their failures readable.
     testTimeout: 10_000,
+    // Vitest empties CSS imports, `?raw` included; the Tailwind theme test reads this one.
+    css: { include: [/styles[\\/]theme\.css/] },
   },
 });

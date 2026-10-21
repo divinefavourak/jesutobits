@@ -1,0 +1,54 @@
+/*
+ * Tailwind 4 utilities on theme tokens (EXTENSION_SYSTEM.md section 4.1). `inline` keeps each
+ * utility pointing at the CSS variable the ThemeEngine sets, so switching themes recolours
+ * everything without rebuilding. Tailwind's own palette is switched off: `bg-blue-500` does
+ * not exist, only token colours do. theme-css.test.ts checks every UI colour token is here.
+ */
+@theme inline {
+  --color-*: initial;
+  --font-*: initial;
+  --shadow-*: initial;
+  --radius-*: initial;
+
+  --color-canvas: var(--jesutobits-color-canvas);
+  --color-surface: var(--jesutobits-color-surface);
+  --color-surface-raised: var(--jesutobits-color-surface-raised);
+  --color-surface-sunken: var(--jesutobits-color-surface-sunken);
+  --color-text: var(--jesutobits-color-text);
+  --color-text-muted: var(--jesutobits-color-text-muted);
+  --color-text-subtle: var(--jesutobits-color-text-subtle);
+  --color-text-on-accent: var(--jesutobits-color-text-on-accent);
+  --color-border: var(--jesutobits-color-border);
+  --color-border-strong: var(--jesutobits-color-border-strong);
+  --color-accent: var(--jesutobits-color-accent);
+  --color-accent-hover: var(--jesutobits-color-accent-hover);
+  --color-accent-subtle: var(--jesutobits-color-accent-subtle);
+  --color-focus: var(--jesutobits-color-focus);
+  --color-selection: var(--jesutobits-color-selection);
+  --color-item-hover: var(--jesutobits-color-item-hover);
+  --color-item-active: var(--jesutobits-color-item-active);
+  --color-success: var(--jesutobits-color-success);
+  --color-success-subtle: var(--jesutobits-color-success-subtle);
+  --color-warning: var(--jesutobits-color-warning);
+  --color-warning-subtle: var(--jesutobits-color-warning-subtle);
+  --color-danger: var(--jesutobits-color-danger);
+  --color-danger-subtle: var(--jesutobits-color-danger-subtle);
+  --color-info: var(--jesutobits-color-info);
+  --color-info-subtle: var(--jesutobits-color-info-subtle);
+  --color-diff-added: var(--jesutobits-color-diff-added);
+  --color-diff-removed: var(--jesutobits-color-diff-removed);
+  --color-preview-chrome: var(--jesutobits-color-preview-chrome);
+  --color-preview-inspect: var(--jesutobits-color-preview-inspect);
+  --color-preview-draft: var(--jesutobits-color-preview-draft);
+
+  --font-ui: var(--jesutobits-font-ui);
+  --font-mono: var(--jesutobits-font-mono);
+  --radius-sm: var(--jesutobits-radius-sm);
+  --radius-md: var(--jesutobits-radius-md);
+  --radius-lg: var(--jesutobits-radius-lg);
+  --shadow-sm: var(--jesutobits-shadow-sm);
+  --shadow-md: var(--jesutobits-shadow-md);
+  --shadow-lg: var(--jesutobits-shadow-lg);
+  /* One spacing step is the theme's unit (density x space.scale), so p-2 = 2 units. */
+  --spacing: var(--jesutobits-space-1);
+}
