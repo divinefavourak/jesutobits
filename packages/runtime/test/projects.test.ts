@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { MethodResult } from "@jesutobits/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RuntimeHarness, type RpcReply } from "./harness/runtime-harness.js";
@@ -332,4 +333,29 @@ describe("fs.trash (ADR-0014)", () => {
     );
     expect(readdirSync(projectDir)).toContain("package.json");
   });
+});
+
+describe("projects.detect and toolchain.detect", () => {
+  it("recognises the vite-react-tailwind fixture without writing into it (J-05)", async () => {
+    const project = fileURLToPath(
+      new URL("../../../fixtures/projects/vite-react-tailwind/", import.meta.url),
+    );
+    const before = fingerprint(path.join(project, "src"));
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: project }));
+    const detected = result<"projects.detect">(await h.call("projects.detect", {}));
+    expect(detected).toMatchObject({
+      previewStrategy: "vite-react",
+      styling: "tailwind-4",
+      visualEditing: { level: "full" },
+    });
+    expect(fingerprint(path.join(project, "src"))).toEqual(before);
+  });
+
+  it("reports the toolchain, including the Node running these tests", async () => {
+    const h = await start();
+    const { tools } = result<"toolchain.detect">(await h.call("toolchain.detect", {}));
+    expect(tools.map((tool) => tool.name)).toEqual(["git", "node", "npm", "pnpm", "yarn", "bun"]);
+    expect(tools.find((tool) => tool.name === "node")?.found).toBe(true);
+  }, 30_000);
 });

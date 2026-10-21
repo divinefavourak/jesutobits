@@ -5,9 +5,12 @@ import {
   MAX_EDITOR_FILE_BYTES,
   type Project,
 } from "@jesutobits/protocol";
+import { homedir } from "node:os";
 import {
   canonicalProjectPath,
   createProjectFolder,
+  detectProject,
+  detectToolchain,
   FileIndex,
   folderExists,
   WorkspaceService,
@@ -211,6 +214,18 @@ export class Projects {
       const project = store.relocate(params.id, canonicalPath, path.basename(canonicalPath));
       return { project };
     });
+
+    server.register("projects.detect", async () => {
+      const active = this.requireActive();
+      // CSS Modules and Tailwind's CSS import are found through the index; give its first
+      // build a moment, but answer without it rather than wait on a huge project.
+      await Promise.race([active.index.ready, new Promise((resolve) => setTimeout(resolve, 5000))]);
+      return detectProject(active.workspace, active.isIndexing ? undefined : active.index);
+    });
+
+    server.register("toolchain.detect", async () => ({
+      tools: await detectToolchain({ cwd: homedir() }),
+    }));
 
     server.register("fs.listDir", async (params) => ({
       entries: await this.workspace().listDir(params.path),

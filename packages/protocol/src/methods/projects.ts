@@ -100,3 +100,35 @@ export const projectsLocate = defineMethod({
   params: z.object({ id: ProjectIdSchema, path: z.string().min(1) }),
   result: z.object({ project: ProjectSchema }),
 });
+
+/** What kind of project the active one is (J-05, VISUAL_EDITING.md section 3). */
+export const projectsDetect = defineMethod({
+  name: "projects.detect",
+  description: "Package manager, scripts, preview strategy and visual-editing support.",
+  callers: ["workbench"],
+  params: z.object({}),
+  result: z.object({
+    packageManager: z
+      .object({
+        name: z.enum(["npm", "pnpm", "yarn", "bun"]),
+        source: z.enum(["packageManager field", "lockfile"]),
+      })
+      .nullable(),
+    scripts: z.object({
+      dev: z.string().optional(),
+      start: z.string().optional(),
+      build: z.string().optional(),
+      test: z.string().optional(),
+      lint: z.string().optional(),
+      typecheck: z.string().optional(),
+    }),
+    previewStrategy: z.enum(["vite-react", "generic", "none"]),
+    framework: z.string().nullable(),
+    styling: z.enum(["tailwind-4", "tailwind-3", "inline", "css-modules", "css-in-js"]).nullable(),
+    visualEditing: z.object({
+      level: z.enum(["full", "inspect-only", "unavailable"]),
+      /** Plain language, shown in the project header and preview panel (FR-120). */
+      reason: z.string(),
+    }),
+  }),
+});

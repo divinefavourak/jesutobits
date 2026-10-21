@@ -69,6 +69,16 @@ export const ErrorCodes = {
   fsNoProject: "fs.no_project",
   /** Any other file-system failure; details carry the OS error code. */
   fsIo: "fs.io",
+  /** The program is not installed or not on PATH. */
+  processNotFound: "process.not_found",
+  /** The program could not be started (permissions, a broken shim). */
+  processSpawnFailed: "process.spawn_failed",
+  /** The command ran longer than its timeout and was stopped. */
+  processTimeout: "process.timeout",
+  /** The command was cancelled and stopped. */
+  processCancelled: "process.cancelled",
+  /** The command line is malformed (empty argv, NUL, a working folder outside the project). */
+  processInvalidCommand: "process.invalid_command",
   /** A database upgrade failed and was rolled back; the database is open read-only. */
   storageMigrationFailed: "storage.migration_failed",
   /** The database was written by a newer Jesutobits; it is open read-only. */

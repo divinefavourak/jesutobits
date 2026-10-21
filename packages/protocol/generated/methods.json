@@ -15,6 +15,11 @@
     "fs.permission_denied",
     "fs.too_large",
     "fs.trash_failed",
+    "process.cancelled",
+    "process.invalid_command",
+    "process.not_found",
+    "process.spawn_failed",
+    "process.timeout",
     "rpc.internal",
     "rpc.invalid_params",
     "rpc.invalid_request",
@@ -54,12 +59,14 @@
     "fs.writeFile",
     "projects.close",
     "projects.create",
+    "projects.detect",
     "projects.list",
     "projects.locate",
     "projects.open",
     "projects.remove",
     "projects.setTrust",
-    "runtime.ping"
+    "runtime.ping",
+    "toolchain.detect"
   ],
   "host": [
     "runtime.initialize",

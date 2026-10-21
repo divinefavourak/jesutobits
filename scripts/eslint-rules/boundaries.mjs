@@ -87,7 +87,8 @@ export const boundaryRules = [
   },
   {
     files: ["packages/services/src/"],
-    except: ["packages/services/src/workspace/"],
+    // environment.ts only checks PATH folders for executables, never project files.
+    except: ["packages/services/src/workspace/", "packages/services/src/process/environment.ts"],
     tests: false,
     imports: [FS],
     message:

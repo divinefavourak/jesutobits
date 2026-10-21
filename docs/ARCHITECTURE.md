@@ -265,7 +265,8 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | Namespace | Methods |
 |---|---|
 | `runtime` | `initialize` and `shutdown` (Host only); `ping` (Host health checks, and the Workbench for relay latency) |
-| `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`; `detect` (toolchain, preview strategy, checks) arrives with onboarding |
+| `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`, `detect` (package manager, scripts, preview strategy, visual-editing level: VISUAL_EDITING.md section 3) |
+| `toolchain` | `detect` (Git, Node.js and package managers with versions, FR-010) |
 | `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`, `trash` (the runtime confines the path, the Host moves it to the OS trash: ADR-0014); `search` arrives with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |
 | `sessions` | `list`, `create`, `get`, `rename`, `archive`, `delete`, `export` |
 | `agent` | `sendMessage`, `cancelTurn`, `pauseTurn`, `resumeTurn`, `retryTurn`, `answerQuestion`, `setModel` |

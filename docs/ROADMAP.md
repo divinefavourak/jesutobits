@@ -105,6 +105,13 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 
 **Definition of done:** acceptance criteria met, docs updated, CI and nightly green.
 
+**Decisions made while planning Phase 1 (2026-10-20):**
+- Deleting from the explorer goes through the Host (ADR-0014).
+- The spawning core (`services/src/process`) is built in Phase 1 for the toolchain check; Phase 3's ProcessSupervisor builds on it (ADR-0011 notes).
+- `projects.create` offers the Empty and General workspace templates in Phase 1; the React templates arrive with J-04 in Phase 4.
+- Project text search (FR-074, `Ctrl+Shift+F`) needs the ripgrep sidecar and arrives in Phase 2; Phase 1 has quick open.
+- While the npm registry was unreachable (2026-10-21), work that needs no new packages was done first; Tailwind and Zustand are added once it is back.
+
 ### Phase 2: Minimal agent harness (3 to 4 weeks) → 0.2
 
 **Objectives:** a real agent loop with streaming, file tools and honest events.

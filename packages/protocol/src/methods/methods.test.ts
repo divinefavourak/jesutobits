@@ -42,6 +42,8 @@ describe("method registry", () => {
       | "projects.setTrust"
       | "projects.remove"
       | "projects.locate"
+      | "projects.detect"
+      | "toolchain.detect"
       | "fs.listDir"
       | "fs.stat"
       | "fs.readFile"

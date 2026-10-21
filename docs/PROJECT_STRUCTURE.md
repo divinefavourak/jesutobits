@@ -142,7 +142,7 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 | Only `features/companion/renderers/` imports animation libraries | Renderer isolation (ADR-0006) |
 | Only `ui/markdown/` may produce HTML from strings; `dangerouslySetInnerHTML` banned elsewhere | XSS defence (SECURITY.md section 8) |
 | Components use theme tokens only; raw colour literals banned in `features/` and `ui/` | Theming (EXTENSION_SYSTEM.md section 4) |
-| In `services`, only `workspace/` imports `node:fs` for project paths; only `process/` imports `node:child_process` | Single enforcement points |
+| In `services`, only `workspace/` imports `node:fs` for project paths (plus `process/environment.ts`, which only checks PATH folders for executables); only `process/` imports `node:child_process` | Single enforcement points |
 | In `runtime`, only `storage/` imports `node:sqlite`; only `providers/` performs model HTTP | Swappability and audit |
 | `console.*` banned in `runtime` and `services` | Stdout carries the protocol (ADR-0003) |
 | Native addons banned in `runtime` and `services` | ADR-0002 |

@@ -18,12 +18,14 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "fs.writeFile",
     "projects.close",
     "projects.create",
+    "projects.detect",
     "projects.list",
     "projects.locate",
     "projects.open",
     "projects.remove",
     "projects.setTrust",
     "runtime.ping",
+    "toolchain.detect",
 ];
 
 /// Runtime methods the Host itself sends.

@@ -59,6 +59,10 @@ User projects run with the **user's installed Node and package manager**, not Je
 - Spike S1 must prove job-object assignment and descendant cleanup on Windows, including when the Host is killed from Task Manager. **Proven (2026-10-20, `docs/spikes/S1.md`):** 0 orphans in 10 forced kills (`TerminateProcess`, as Task Manager's End task does) with a runtime that ignores stdin EOF and holds a grandchild; with the job object disabled, every trial left both behind. `cargo test` covers job-close cleanup of a process tree on every Windows CI run.
 - The Host gains a small PTY module with its own allowlisted commands (`pty.open`, `pty.write`, `pty.resize`, `pty.close`).
 
+- Phase 1 (2026-10-21) built the spawning core in `packages/services/src/process/` ahead of the full ProcessSupervisor, because onboarding's toolchain check (FR-010) needs it: the environment allowlist, PATH/PATHEXT resolution, `runCommand` (argv, no shell, output caps, timeouts, `AbortSignal` cancellation within 2 s, tree kill) and `detectToolchain`. Only fixed commands Jesutobits chooses use it until Phase 3 adds approvals, the orphan ledger and managed processes on top. Two findings:
+  - **Shim arguments are escaped twice for cmd.exe, for every `.cmd`/`.bat`.** cross-spawn escapes twice only for `node_modules/.bin` shims, but npm.cmd and pnpm.cmd also forward `%*`, which cmd.exe parses a second time inside the batch file. Escaped once, an argument containing `"` flips cmd's quote state and a later argument's `&` runs a command: verified by creating a file through `["quote\"inside", "a&echo injected>file&rem "]`. `process.test.ts` keeps that case.
+  - On Windows, libuv copies a few system variables a child cannot run without (SystemRoot, USERNAME, WINDIR and similar) even into an allowlisted environment. None carries secrets; `NODE_OPTIONS` and credentials stay out.
+
 ## Revisit when
 
 Orphaned processes are observed in practice, or we adopt OS-level sandboxing for agent commands (which may change who spawns them).
