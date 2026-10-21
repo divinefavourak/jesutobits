@@ -172,7 +172,8 @@ mod tests {
     #[tokio::test]
     async fn moves_a_file_to_the_trash() {
         let dir = temp("real");
-        let name = format!("jesutobits-trash-test-{}.txt", std::process::id());
+        let stem = format!("jesutobits-trash-test-{}", std::process::id());
+        let name = format!("{stem}.txt");
         let file = dir.join(&name);
         std::fs::write(&file, "x").unwrap();
 
@@ -183,9 +184,14 @@ mod tests {
 
         let listed = trash::os_limited::list().unwrap();
         let total = listed.len();
+        // On Windows the name is the shell's display name, which drops the extension when
+        // Explorer hides known ones (the default, and on CI runners).
         let items: Vec<_> = listed
             .into_iter()
-            .filter(|item| item.name.to_string_lossy() == name)
+            .filter(|item| {
+                let shown = item.name.to_string_lossy();
+                shown == name || shown == stem
+            })
             .collect();
         assert_eq!(
             items.len(),
