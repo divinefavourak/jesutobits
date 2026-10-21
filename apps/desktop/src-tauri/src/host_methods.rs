@@ -181,13 +181,60 @@ mod tests {
             .unwrap();
         assert!(!file.exists());
 
-        let items: Vec<_> = trash::os_limited::list()
-            .unwrap()
+        let listed = trash::os_limited::list().unwrap();
+        let total = listed.len();
+        let items: Vec<_> = listed
             .into_iter()
             .filter(|item| item.name.to_string_lossy() == name)
             .collect();
-        assert_eq!(items.len(), 1, "the file is in the trash");
+        assert_eq!(
+            items.len(),
+            1,
+            "the file is in the trash (the trash lists {total} items; {})",
+            recycle_bin_records(&file, &name)
+        );
         trash::os_limited::purge_all(items).unwrap();
         std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    /// For the failure message: whether the Recycle Bin folder on disk has a record for `name`,
+    /// which tells "recycled but not listed by the shell" from "deleted for good".
+    #[cfg(windows)]
+    fn recycle_bin_records(file: &Path, name: &str) -> String {
+        let Some(std::path::Component::Prefix(drive)) = file.components().next() else {
+            return "no drive in the path".into();
+        };
+        let bin = format!("{}\\$Recycle.Bin", drive.as_os_str().to_string_lossy());
+        let Ok(users) = std::fs::read_dir(&bin) else {
+            return format!("{bin} is not readable");
+        };
+        let mut records = 0;
+        for user in users.flatten() {
+            for entry in std::fs::read_dir(user.path())
+                .into_iter()
+                .flatten()
+                .flatten()
+            {
+                if !entry.file_name().to_string_lossy().starts_with("$I") {
+                    continue;
+                }
+                let bytes = std::fs::read(entry.path()).unwrap_or_default();
+                let units: Vec<u16> = bytes
+                    .as_chunks::<2>()
+                    .0
+                    .iter()
+                    .map(|pair| u16::from_le_bytes(*pair))
+                    .collect();
+                if String::from_utf16_lossy(&units).contains(name) {
+                    records += 1;
+                }
+            }
+        }
+        format!("{records} $I records for it under {bin}")
+    }
+
+    #[cfg(not(windows))]
+    fn recycle_bin_records(_file: &Path, _name: &str) -> String {
+        "no Recycle Bin check on this platform".into()
     }
 }
