@@ -47,6 +47,8 @@ export const ErrorCodes = {
   runtimeNotInitialized: "runtime.not_initialized",
   runtimeAlreadyInitialized: "runtime.already_initialized",
   runtimeShuttingDown: "runtime.shutting_down",
+  /** The Host refused a second folder dialog while one is open. */
+  runtimeDialogOpen: "runtime.dialog_open",
   /** The path resolves outside every workspace root, including through a link (SECURITY.md 5.2). */
   fsOutsideWorkspace: "fs.outside_workspace",
   /** The path is malformed or unsafe: NUL, reserved device name, stream, trailing dot. */

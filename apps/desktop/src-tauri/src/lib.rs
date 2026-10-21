@@ -1,5 +1,6 @@
 //! Jesutobits Host (ARCHITECTURE.md section 5.1).
 
+mod dialogs;
 mod logging;
 mod rpc_relay;
 mod runtime_supervisor;
@@ -179,7 +180,8 @@ pub fn run() {
             settings::settings_subscribe,
             settings::ui_state_get,
             settings::ui_state_update,
-            settings::host_notices
+            settings::host_notices,
+            dialogs::dialog_pick_folder
         ])
         .build(tauri::generate_context!())
         .expect("failed to build the Jesutobits Host");

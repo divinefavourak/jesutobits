@@ -8,6 +8,7 @@ import type { HostBridge } from "./host-bridge";
 // Phase 0 placeholder. The real Workbench (layout, ThemeEngine, explorer) starts in Phase 1.
 export function App({ bridge }: { bridge: HostBridge }) {
   const [status, setStatus] = useState<RuntimeStatusUpdate>({ status: "starting" });
+  const [opened, setOpened] = useState<string>("");
 
   useEffect(() => bridge.onRuntimeStatus(setStatus), [bridge]);
   // After the first commit: the Host logs how long the cold start took (NFR-001).
@@ -32,6 +33,22 @@ export function App({ bridge }: { bridge: HostBridge }) {
         Runtime: {status.status}
         {status.detail ? ` (${status.detail})` : ""}
       </p>
+      {/* Temporary until the start screen (Phase 1 step 13): exercises the folder dialog. */}
+      <button
+        type="button"
+        disabled={!ready}
+        onClick={() =>
+          void (async () => {
+            const path = await bridge.dialogs.pickFolder({ title: "Open folder" });
+            if (path === null) return setOpened("Cancelled");
+            const { project } = await bridge.rpc("projects.open", { path });
+            setOpened(`Opened ${project.name} (${project.trust})`);
+          })().catch((error: unknown) => setOpened(`Failed: ${String(error)}`))
+        }
+      >
+        Open folder…
+      </button>
+      {opened && <p role="status">{opened}</p>}
       {status.status === "failed" && (
         <button type="button" onClick={() => void bridge.restartRuntime()}>
           Restart runtime

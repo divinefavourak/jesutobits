@@ -32,6 +32,8 @@ type Handlers = Partial<{
 export class MockHostBridge implements HostBridge {
   readonly logs: Array<{ level: LogLevel; message: string }> = [];
   readyReports = 0;
+  /** What the next folder dialog returns: a path, or null for Cancel (test helper). */
+  nextPickedFolder: string | null = null;
   /** Startup notices the next `notices()` returns (test helper). */
   pendingNotices: HostNotice[] = [];
   private currentSettings: AppSettings = AppSettingsSchema.parse({});
@@ -130,6 +132,10 @@ export class MockHostBridge implements HostBridge {
       this.currentUiState = UiStateSchema.parse(next);
       return structuredClone(this.currentUiState);
     },
+  };
+
+  readonly dialogs = {
+    pickFolder: async (): Promise<string | null> => this.nextPickedFolder,
   };
 
   async notices(): Promise<HostNotice[]> {

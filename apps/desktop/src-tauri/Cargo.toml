@@ -19,6 +19,9 @@ tauri-build = { version = "2.7.3", features = [] }
 tauri = { version = "2.12.4", features = [] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
+# Folder picker, called by the Host itself (dialogs.rs) so the webview gets no dialog
+# plugin. GTK on Linux (already linked by Tauri), not the D-Bus portal stack.
+rfd = { version = "0.17.2", default-features = false, features = ["gtk3"] }
 # Log redaction patterns (logging/redact.rs); already in the tree through Tauri.
 regex = "1.13.1"
 tokio = { version = "1.53.3", features = ["io-util", "macros", "process", "rt", "sync", "time"] }

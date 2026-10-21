@@ -48,4 +48,8 @@ export interface HostBridge {
   };
   /** Startup notices about the settings files, shown once. */
   notices(): Promise<HostNotice[]>;
+  dialogs: {
+    /** The OS folder picker; null when the user cancels. One at a time. */
+    pickFolder(options?: { title?: string; defaultPath?: string }): Promise<string | null>;
+  };
 }

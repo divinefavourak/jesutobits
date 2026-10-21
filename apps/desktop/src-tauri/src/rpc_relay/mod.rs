@@ -351,6 +351,7 @@ mod tests {
             crate::settings_store::CODE_WRITE_FAILED,
             crate::settings_store::CODE_SETTINGS_NEWER,
             crate::settings_store::CODE_SETTINGS_CORRUPT,
+            crate::dialogs::CODE_DIALOG_OPEN,
         ] {
             assert!(
                 codes.iter().any(|c| c == code),

@@ -92,6 +92,15 @@ export class TauriHostBridge implements HostBridge {
       this.command("ui_state_update", { patch }, UiStateSchema),
   };
 
+  readonly dialogs = {
+    pickFolder: (options: { title?: string; defaultPath?: string } = {}): Promise<string | null> =>
+      this.command(
+        "dialog_pick_folder",
+        { title: options.title ?? null, defaultPath: options.defaultPath ?? null },
+        nullableString,
+      ),
+  };
+
   notices(): Promise<HostNotice[]> {
     return this.command("host_notices", {}, HostNoticeSchema.array());
   }
@@ -148,3 +157,10 @@ export class TauriHostBridge implements HostBridge {
     else this.log("warn", "Dropped a runtime status update that failed validation");
   }
 }
+
+const nullableString: Parser<string | null> = {
+  safeParse: (value) =>
+    value === null || typeof value === "string"
+      ? { success: true, data: value }
+      : { success: false },
+};

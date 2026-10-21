@@ -23,6 +23,7 @@
     "rpc.parse_error",
     "rpc.timeout",
     "runtime.already_initialized",
+    "runtime.dialog_open",
     "runtime.not_initialized",
     "runtime.protocol_mismatch",
     "runtime.shutting_down",

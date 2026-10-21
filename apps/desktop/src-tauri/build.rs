@@ -14,6 +14,7 @@ fn main() {
             "ui_state_get",
             "ui_state_update",
             "host_notices",
+            "dialog_pick_folder",
         ]),
     ))
     .expect("failed to run tauri-build");
