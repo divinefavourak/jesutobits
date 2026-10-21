@@ -111,6 +111,8 @@ Monaco provides editing, highlighting, find/replace, multi-cursor, folding and d
 
 - **Tabs** with dirty state; Save (`Ctrl+S`), Save all; preview tabs (single-click opens a temporary tab).
 - **External changes:** when the agent or a command changes an open file, an unmodified tab updates in place and highlights changed lines for 5 seconds; a modified tab shows a bar "This file changed on disk" with Compare and Keep mine / Take theirs.
+- **Deleted files:** a file moved to the trash from the explorer updates its tab at once; a file deleted elsewhere does once the runtime confirms it is gone (a delete followed by a new file, as atomic saves do, changes nothing). A tab without unsaved changes closes; a tab with them stays with the bar "This file was deleted on disk. Saving creates it again."
+- **Unsaved changes on close:** closing a tab, the project or the window with unsaved changes asks Save (all) / Don't save / Cancel.
 - **Agent diffs:** "Review changes" opens a multi-file diff view for a turn with per-file Revert.
 - **Limitations stated in UI:** in-editor TypeScript hints are approximate in large projects; the Problems panel (from real checks) is authoritative.
 - Large files over 5 MB open read-only with a warning; binary files show a metadata view. Until `fs.readFile` can page, files over 2 MB (`MAX_EDITOR_FILE_BYTES`) are not opened at all and the editor says so (`fs.too_large`): one message must stay under the 4 MiB relay limit after JSON escaping (ADR-0003).

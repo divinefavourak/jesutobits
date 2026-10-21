@@ -156,6 +156,20 @@ export class MockHostBridge implements HostBridge {
     pickFolder: async (): Promise<string | null> => this.nextPickedFolder,
   };
 
+  private closeHandler: (() => Promise<boolean>) | undefined;
+
+  onCloseRequested(handler: () => Promise<boolean>): Unsubscribe {
+    this.closeHandler = handler;
+    return () => {
+      if (this.closeHandler === handler) this.closeHandler = undefined;
+    };
+  }
+
+  /** Test helper: what closing the window would do; true means it closes. */
+  async requestClose(): Promise<boolean> {
+    return this.closeHandler ? this.closeHandler() : true;
+  }
+
   async notices(): Promise<HostNotice[]> {
     return this.pendingNotices;
   }

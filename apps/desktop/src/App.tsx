@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { PreviewFrameProbe } from "./features/diagnostics/PreviewFrameProbe";
 import { measureRelayLatency } from "./features/diagnostics/relay-benchmark";
+import { editorCommands } from "./features/editor/editor-commands";
+import { CloseDirtyDialog, LeaveDialog } from "./features/editor/EditorPanel";
 import { layoutCommands } from "./features/layout/layout-commands";
 import { ProjectView } from "./features/layout/ProjectView";
 import { RuntimeBanner } from "./features/layout/RuntimeBanner";
@@ -19,8 +21,16 @@ export function App({ workbench }: { workbench: Workbench }) {
   const { bridge } = workbench;
   // After the first commit: the Host logs how long the cold start took (NFR-001).
   useEffect(() => bridge.reportReady(), [bridge]);
-  const commands = useMemo(() => layoutCommands(workbench), [workbench]);
+  const commands = useMemo(
+    () => [...layoutCommands(workbench), ...editorCommands(workbench)],
+    [workbench],
+  );
   useKeybindings(commands);
+  // Closing the window with unsaved files asks first.
+  useEffect(
+    () => bridge.onCloseRequested(() => workbench.editor.getState().confirmLeave("window")),
+    [bridge, workbench],
+  );
 
   return (
     <WorkbenchProvider value={workbench}>
@@ -30,6 +40,8 @@ export function App({ workbench }: { workbench: Workbench }) {
         <StatusBar />
       </div>
       <TrustDialog />
+      <CloseDirtyDialog />
+      <LeaveDialog />
       <RelayBenchOnReady />
       {/* Spike S3: `VITE_JESUTOBITS_PREVIEW_PROBE=<url>` frames that URL (scripts/spikes/s3-run.mjs). */}
       {import.meta.env.VITE_JESUTOBITS_PREVIEW_PROBE && (

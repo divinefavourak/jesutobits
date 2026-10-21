@@ -32,8 +32,8 @@ export interface ExplorerState {
   collapse(path: string): void;
   collapseAll(): void;
   select(path: string | null): void;
-  /** Selects a file and opens it in the editor. */
-  open(path: string): void;
+  /** Selects a file and opens it in the editor; `preview` opens a temporary tab. */
+  open(path: string, options?: { preview?: boolean }): void;
   /** Lists every loaded folder again. */
   refresh(): void;
   startEdit(edit: ExplorerEdit): void;
@@ -70,7 +70,11 @@ const EMPTY = { dirs: {}, expanded: {}, selected: null, editing: null, error: nu
 export function createExplorerStore(
   bridge: HostBridge,
   projects: ProjectStore,
-  options: { open?: (path: string) => void } = {},
+  options: {
+    open?: (path: string, options: { preview?: boolean }) => void;
+    /** A path this explorer moved to the trash; the editor closes or flags its tabs at once. */
+    removed?: (path: string) => void;
+  } = {},
 ): ExplorerStore {
   let projectId: string | null = null;
   let generation = 0;
@@ -140,9 +144,9 @@ export function createExplorerStore(
         }),
       collapseAll: () => set({ expanded: {} }),
       select: (path) => set({ selected: path }),
-      open: (path) => {
+      open: (path, openOptions = {}) => {
         set({ selected: path });
-        options.open?.(path);
+        options.open?.(path, openOptions);
       },
       refresh: () => {
         for (const path of Object.keys(get().dirs)) void get().load(path);
@@ -181,12 +185,13 @@ export function createExplorerStore(
         if (!done) return;
         set({ editing: null, selected: target });
         await get().load(parentOf(target));
-        if (edit.kind === "newFile") options.open?.(target);
+        if (edit.kind === "newFile") options.open?.(target, {});
       },
 
       trash: async (path) => {
         const done = await act(() => bridge.rpc("fs.trash", { path }));
         if (!done) return;
+        options.removed?.(path);
         set((state) => ({
           ...forget(state, path),
           selected: state.selected === path ? null : state.selected,

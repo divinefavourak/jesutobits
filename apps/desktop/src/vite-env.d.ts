@@ -8,3 +8,6 @@ interface ImportMetaEnv {
   /** `<url>#<token>` of scripts/dev-relay.mjs, set by `pnpm dev:web --runtime`. */
   readonly VITE_JESUTOBITS_RELAY?: string;
 }
+
+/** Monaco's single prebuilt stylesheet, aliased in vite.config.ts. */
+declare module "monaco-editor-stylesheet";

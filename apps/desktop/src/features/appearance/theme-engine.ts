@@ -53,7 +53,10 @@ export class ThemeEngine {
   ): AppliedTheme {
     this.onApplied = onApplied;
     this.stopWatching ??= this.media.watch(OS_QUERIES, () => {
-      if (this.appearance) this.onApplied?.(this.apply(this.appearance));
+      if (!this.appearance) return;
+      // Apply first: `onApplied?.(this.apply(…))` would skip applying without a callback.
+      const applied = this.apply(this.appearance);
+      this.onApplied?.(applied);
     });
     return this.apply(appearance);
   }

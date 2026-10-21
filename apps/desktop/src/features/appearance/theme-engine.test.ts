@@ -81,6 +81,15 @@ describe("ThemeEngine", () => {
     engine.stop();
   });
 
+  it("re-applies on an OS change even without a callback", () => {
+    const { engine, attributes, osChanged } = setup({ "(prefers-color-scheme: dark)": false });
+    engine.start(appearance());
+    expect(attributes.get("data-theme")).toBe("builtin.jesutobits-themes/light");
+    osChanged({ "(prefers-color-scheme: dark)": true });
+    expect(attributes.get("data-theme")).toBe("builtin.jesutobits-themes/dark");
+    engine.stop();
+  });
+
   it("turns motion off for the OS setting or the app setting", () => {
     const os = setup({ "(prefers-reduced-motion: reduce)": true });
     os.engine.apply(appearance());

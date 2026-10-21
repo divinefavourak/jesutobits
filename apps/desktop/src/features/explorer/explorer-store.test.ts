@@ -67,8 +67,12 @@ function setup() {
   });
   const opened: string[] = [];
   const projects = createProjectStore(bridge);
-  const explorer = createExplorerStore(bridge, projects, { open: (path) => opened.push(path) });
-  return { bridge, tree, listed, calls, opened, projects, explorer };
+  const removed: string[] = [];
+  const explorer = createExplorerStore(bridge, projects, {
+    open: (path) => void opened.push(path),
+    removed: (path) => void removed.push(path),
+  });
+  return { bridge, tree, listed, calls, opened, removed, projects, explorer };
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -191,8 +195,8 @@ describe("explorer store", () => {
     expect(explorer.getState().editing).toBeNull();
   });
 
-  it("moves a file to the trash and forgets the selection", async () => {
-    const { calls, projects, explorer } = setup();
+  it("moves a file to the trash, forgets the selection and tells the editor", async () => {
+    const { calls, removed, projects, explorer } = setup();
     await projects.getState().openRecent(A);
     await settle();
     explorer.getState().select("README.md");
@@ -200,6 +204,7 @@ describe("explorer store", () => {
 
     expect(calls).toEqual([{ method: "fs.trash", params: { path: "README.md" } }]);
     expect(explorer.getState().selected).toBeNull();
+    expect(removed).toEqual(["README.md"]);
   });
 
   it("keeps expanded folders and lists them again after a runtime restart", async () => {

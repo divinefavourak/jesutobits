@@ -32,6 +32,11 @@ body {
   outline-offset: 2px;
 }
 
+/* Lines a file gained or changed on disk, for a few seconds (UX_AND_INTERFACE.md 5.2). */
+.jesutobits-changed-line {
+  background: var(--jesutobits-color-info-subtle);
+}
+
 ::selection {
   background: var(--jesutobits-color-selection);
 }

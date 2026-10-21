@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "main",
-  "description": "The Workbench window. Only the relay, runtime subscriptions and restart, logging, startup timing, the settings store and the folder picker (NFR-008). core:default is trimmed in Phase 7.",
+  "description": "The Workbench window. Only the relay, runtime subscriptions and restart, logging, startup timing, the settings store, the folder picker, and closing its own window after asking about unsaved files (NFR-008). core:default is trimmed in Phase 7.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -16,6 +16,7 @@
     "allow-ui-state-get",
     "allow-ui-state-update",
     "allow-host-notices",
-    "allow-dialog-pick-folder"
+    "allow-dialog-pick-folder",
+    "core:window:allow-destroy"
   ]
 }

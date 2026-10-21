@@ -247,10 +247,11 @@ function Tree({
     if (row?.type === "entry") explorer.getState().select(row.entry.path);
   };
 
-  const activate = (row: ExplorerRow) => {
+  /** A click previews a file; Enter and double click open it to stay (UX 5.2). */
+  const activate = (row: ExplorerRow, preview: boolean) => {
     if (row.type !== "entry") return;
     if (row.entry.kind === "directory") explorer.getState().toggle(row.entry.path);
-    else explorer.getState().open(row.entry.path);
+    else explorer.getState().open(row.entry.path, { preview });
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -280,7 +281,7 @@ function Tree({
           explorer.getState().select(parentOf(active.entry.path));
         break;
       case "Enter":
-        activate(active);
+        activate(active, false);
         break;
       case "F2":
         explorer.getState().startEdit({ kind: "rename", path: active.entry.path });
@@ -340,7 +341,12 @@ function Tree({
                   if (row.type !== "entry") return;
                   treeRef.current?.focus();
                   explorer.getState().select(row.entry.path);
-                  activate(row);
+                  activate(row, true);
+                }}
+                onDoubleClick={() => {
+                  if (row.type === "entry" && row.entry.kind !== "directory") {
+                    explorer.getState().open(row.entry.path);
+                  }
                 }}
                 onContextMenu={(at) => {
                   if (row.type !== "entry") return;
@@ -375,6 +381,7 @@ function Row({
   height,
   active,
   onClick,
+  onDoubleClick,
   onContextMenu,
 }: {
   id: string;
@@ -383,6 +390,7 @@ function Row({
   height: number;
   active: boolean;
   onClick: () => void;
+  onDoubleClick: () => void;
   onContextMenu: (at: { x: number; y: number }) => void;
 }) {
   const style = { top, height, paddingLeft: indent(row.level) };
@@ -426,6 +434,7 @@ function Row({
       aria-selected={active}
       style={style}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       onContextMenu={(event) => {
         event.preventDefault();
         onContextMenu({ x: event.clientX, y: event.clientY });

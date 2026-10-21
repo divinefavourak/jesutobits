@@ -1,4 +1,5 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   AppSettingsSchema,
   getMethod,
@@ -50,6 +51,31 @@ export class TauriHostBridge implements HostBridge {
     };
     await invoke("settings_subscribe", { onChange });
     return bridge;
+  }
+
+  onCloseRequested(handler: () => Promise<boolean>): Unsubscribe {
+    let stopped = false;
+    let unlisten: (() => void) | undefined;
+    // While a listener exists, Tauri leaves closing to it: it destroys the window unless the
+    // handler prevents that (capability core:window:allow-destroy).
+    void getCurrentWindow()
+      .onCloseRequested(async (event) => {
+        let close = true;
+        try {
+          close = await handler();
+        } catch (error) {
+          this.log("error", `close handler failed, closing anyway: ${String(error)}`);
+        }
+        if (!close) event.preventDefault();
+      })
+      .then((stop) => {
+        if (stopped) stop();
+        else unlisten = stop;
+      });
+    return () => {
+      stopped = true;
+      unlisten?.();
+    };
   }
 
   async rpc<M extends WorkbenchMethod>(
