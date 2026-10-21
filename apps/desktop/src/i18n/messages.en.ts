@@ -21,6 +21,12 @@ export const en = {
   "projects.failed": "Failed: {reason}",
 
   "files.count": { one: "{count} file", other: "{count} files" },
+
+  "diagnostics.roundTrip.title": "Round-trip latency",
+  "diagnostics.roundTrip.scope":
+    "Workbench to runtime and back, including the webview's own IPC. The Host relay's share is measured separately (docs/spikes/S1.md).",
+  "diagnostics.roundTrip.run": "Measure 1,000 round trips (1 KB)",
+  "diagnostics.roundTrip.running": "Measuring…",
 } as const;
 
 export type Messages = typeof en;
