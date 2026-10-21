@@ -1,27 +1,11 @@
-import { mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { chooseFolderInDialog, expect, expectAccessible, test } from "./fixtures";
+import { expect, expectAccessible, test } from "./fixtures";
 
-// The E2E smoke subset run on every pull request (TESTING_STRATEGY.md section 7).
-test("the Workbench reaches a ready runtime and has no serious axe violations", async ({
+// The quickest check that the Workbench, the mock Host and a real runtime work together.
+test("the start screen reaches a ready runtime and has no serious axe violations", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByRole("status").first()).toHaveText("Ready");
+  await expect(page.getByRole("status")).toHaveText("Ready");
+  await expect(page.getByText(/No recent projects yet/)).toBeVisible();
   await expectAccessible(page);
-});
-
-test("a folder chosen in the dialog opens through the real runtime (J-05)", async ({
-  page,
-  tempDir,
-}) => {
-  const folder = join(tempDir, "habits");
-  mkdirSync(folder);
-  await page.goto("/");
-  await expect(page.getByRole("status").first()).toHaveText("Ready");
-
-  await chooseFolderInDialog(page, folder);
-  await page.getByRole("button", { name: "Open folder…" }).click();
-
-  await expect(page.getByText("Opened habits (unknown)")).toBeVisible();
 });

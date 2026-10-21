@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { documentTarget, ThemeEngine, windowMedia } from "./features/appearance/theme-engine";
 import { createHostBridge } from "./host-bridge";
+import { createProjectStore } from "./state/project-store";
 import "./styles/base.css";
 
 const root = document.getElementById("root");
@@ -19,8 +20,11 @@ bridge.settings.onChange((settings) => {
   bridge.log("info", `theme ${next.theme.id} applied in ${next.ms.toFixed(1)} ms`);
 });
 
+// Outside React, so StrictMode's double render cannot subscribe twice.
+const projects = createProjectStore(bridge);
+
 createRoot(root).render(
   <StrictMode>
-    <App bridge={bridge} />
+    <App bridge={bridge} projects={projects} />
   </StrictMode>,
 );

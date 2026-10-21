@@ -18,12 +18,13 @@ import { Listeners } from "./listeners";
 import type { HostBridge, Unsubscribe } from "./types";
 
 /**
- * Fixed answers for the methods the mock knows. Others fail with `rpc.method_not_found`;
- * relaying to a real runtime (Phase 1 step 12) covers projects and files.
+ * Answers for the methods the mock knows. Others fail with `rpc.method_not_found`; tests add
+ * their own with `handle`, and `RelayHostBridge` relays to a real runtime instead.
  */
-type Handlers = Partial<{
-  [M in WorkbenchMethod]: (params: MethodParams<M>) => MethodResult<M>;
-}>;
+type Handler<M extends WorkbenchMethod> = (
+  params: MethodParams<M>,
+) => MethodResult<M> | Promise<MethodResult<M>>;
+type Handlers = Partial<{ [M in WorkbenchMethod]: Handler<M> }>;
 
 /** Where the mock keeps settings and UI state between page loads; `localStorage` in a browser. */
 export type MockStorage = Pick<Storage, "getItem" | "setItem">;
@@ -58,6 +59,8 @@ export class MockHostBridge implements HostBridge {
       uptimeMs: performance.now() - this.started,
       ...(params.echo !== undefined && { echo: params.echo }),
     }),
+    // No runtime behind the plain mock: no recent projects (`dev:web` without --runtime).
+    "projects.list": () => ({ projects: [] }),
     "events.replay": (params) => ({
       events: this.emitted.filter((event) => event.seq > params.afterSeq),
       complete: true,
@@ -77,7 +80,7 @@ export class MockHostBridge implements HostBridge {
     method: M,
     params: MethodParams<M>,
   ): Promise<MethodResult<M>> {
-    const handler = this.handlers[method] as ((p: MethodParams<M>) => MethodResult<M>) | undefined;
+    const handler = this.handlers[method] as Handler<M> | undefined;
     if (!handler) {
       throw new JesutobitsError(ErrorCodes.rpcMethodNotFound, `MockHostBridge has no ${method}`);
     }
@@ -158,6 +161,10 @@ export class MockHostBridge implements HostBridge {
   }
 
   /** Test helpers. */
+  handle<M extends WorkbenchMethod>(method: M, handler: Handler<M>): void {
+    (this.handlers as Record<string, unknown>)[method] = handler;
+  }
+
   emitEvent(event: RuntimeEventBase): void {
     this.emitted.push(event);
     this.events.emit(event);

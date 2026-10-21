@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { t } from "./index";
+import { formatDateTime, t } from "./index";
 import { en } from "./messages.en";
 
 describe("t", () => {
@@ -8,8 +8,8 @@ describe("t", () => {
   });
 
   it("fills parameters and formats numbers", () => {
-    expect(t("projects.opened", { name: "habits", trust: "trusted" })).toBe(
-      "Opened habits (trusted)",
+    expect(t("start.recent.removeLabel", { name: "habits" })).toBe(
+      "Remove habits from recent projects",
     );
     expect(t("files.count", { count: 12345 })).toBe("12,345 files");
   });
@@ -20,7 +20,12 @@ describe("t", () => {
   });
 
   it("leaves a missing parameter visible", () => {
-    expect(t("projects.failed")).toBe("Failed: {reason}");
+    expect(t("errors.open")).toBe("Could not open the project. {reason}");
+  });
+
+  it("formats dates for the locale", () => {
+    // ICU puts a narrow no-break space before PM.
+    expect(formatDateTime(new Date(2026, 9, 21, 14, 5))).toMatch(/^Oct 21, 2026, 2:05\sPM$/);
   });
 
   it("uses only known plural categories and no empty strings", () => {

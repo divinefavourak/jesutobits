@@ -5,7 +5,7 @@
  */
 export const en = {
   "app.name": "Jesutobits",
-  "app.scaffold": "Workbench scaffold. Protocol {version}.",
+  "app.tagline": "Build and change software with an AI agent you can watch.",
 
   "runtime.status.starting": "Starting agent runtime…",
   "runtime.status.ready": "Ready",
@@ -13,12 +13,69 @@ export const en = {
   "runtime.status.restarting": "Restarting agent runtime…",
   "runtime.status.failed": "Agent runtime stopped",
   "runtime.restart": "Restart runtime",
+  "runtime.failedBanner":
+    "The agent runtime stopped and could not restart by itself. Projects and files are unavailable until it runs again.",
 
-  "projects.openFolder": "Open folder…",
-  "projects.openFolder.title": "Open folder",
-  "projects.opened": "Opened {name} ({trust})",
-  "projects.cancelled": "Cancelled",
-  "projects.failed": "Failed: {reason}",
+  "start.title": "Start",
+  "start.newProject": "New project…",
+  "start.openFolder": "Open folder…",
+  "start.openFolder.title": "Open folder",
+  "start.recent": "Recent projects",
+  "start.recent.loading": "Loading recent projects…",
+  "start.recent.empty": "No recent projects yet. Open a folder or create a project to start.",
+  "start.recent.lastOpened": "Last opened {date}",
+  "start.recent.never": "Never opened",
+  "start.recent.missing": "Missing",
+  "start.recent.missingHint": "The folder was not found at {path}.",
+  "start.recent.locate": "Locate…",
+  "start.recent.locate.title": "Locate {name}",
+  "start.recent.remove": "Remove",
+  "start.recent.removeLabel": "Remove {name} from recent projects",
+  "start.diagnostics": "Diagnostics",
+
+  "project.trust.trusted": "Trusted",
+  "project.trust.restricted": "Restricted",
+  "project.trust.unknown": "Trust not decided",
+  "project.kind.general": "General workspace",
+  "project.close": "Close project",
+  "project.detecting": "Detecting project type…",
+
+  "create.title": "New project",
+  "create.name": "Name",
+  "create.template": "Template",
+  "create.template.empty": "Empty project",
+  "create.template.empty.hint": "An empty folder, for code you write or ask the agent to set up.",
+  "create.template.general": "General workspace",
+  "create.template.general.hint":
+    "A scratch folder for tasks that are not code. The preview is hidden.",
+  "create.template.later": "React templates arrive in a later version.",
+  "create.location": "Location",
+  "create.location.none": "No folder chosen",
+  "create.location.change": "Change…",
+  "create.location.choose": "Choose…",
+  "create.location.title": "Where new projects go",
+  "create.location.hint": "The project goes in a new folder named after it.",
+  "create.submit": "Create",
+  "create.cancel": "Cancel",
+
+  "trust.title": "Do you trust this folder?",
+  "trust.body": "{name} was not created by Jesutobits.",
+  "trust.safe":
+    "Opening is safe. Running the dev server, tests or installs executes code from this folder.",
+  "trust.restricted":
+    "In Restricted mode you can browse and edit files, but the agent cannot run commands, start previews or install packages. You can change this later.",
+  "trust.trust": "Trust this folder",
+  "trust.restrict": "Use Restricted mode",
+  "trust.later": "Decide later",
+
+  "errors.open": "Could not open the project. {reason}",
+  "errors.create": "Could not create the project. {reason}",
+  "errors.close": "Could not close the project. {reason}",
+  "errors.trust": "Could not save the trust decision. {reason}",
+  "errors.remove": "Could not remove the project from the list. {reason}",
+  "errors.locate": "Could not point the project at that folder. {reason}",
+  "errors.list": "Could not load recent projects. {reason}",
+  "errors.dismiss": "Dismiss",
 
   "files.count": { one: "{count} file", other: "{count} files" },
 

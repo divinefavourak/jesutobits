@@ -26,3 +26,10 @@ export function t(key: MessageKey, params: Params = {}): string {
     return typeof value === "number" ? numbers.format(value) : value;
   });
 }
+
+const dateTimes = new Intl.DateTimeFormat(LOCALE, { dateStyle: "medium", timeStyle: "short" });
+
+/** A date and time for the locale, for example "21 Oct 2026, 14:05". */
+export function formatDateTime(date: Date | string): string {
+  return dateTimes.format(typeof date === "string" ? new Date(date) : date);
+}
