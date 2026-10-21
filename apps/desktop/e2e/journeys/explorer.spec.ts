@@ -77,7 +77,8 @@ test("files are created, renamed and moved to the trash through the runtime", as
   await page.getByRole("button", { name: "New folder" }).click();
   await page.getByLabel("Name of the new folder").fill("lib");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("alert")).toContainText("already exists");
+  // Monaco (loaded by the file just created) has role="alert" live regions of its own.
+  await expect(page.getByRole("alert").filter({ hasText: "already exists" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByLabel("Name of the new folder")).toHaveCount(0);
 
