@@ -137,3 +137,16 @@ export const fsQuickOpen = defineMethod({
     complete: z.boolean(),
   }),
 });
+
+/**
+ * Moves a file or folder to the OS trash (FR-072). The runtime confines the path, then asks
+ * the Host to do it (ADR-0014). Fails with `fs.trash_failed` when the OS refuses, for example
+ * on a drive without a Recycle Bin; the file is then left where it is.
+ */
+export const fsTrash = defineMethod({
+  name: "fs.trash",
+  description: "Move a file or folder in the project to the OS trash.",
+  callers: ["workbench"],
+  params: z.object({ path: RelativePathSchema.min(1) }),
+  result: z.object({}),
+});

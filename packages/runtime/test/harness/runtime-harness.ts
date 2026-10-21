@@ -1,6 +1,7 @@
 // RuntimeHarness (TESTING_STRATEGY.md section 3.2): spawns the bundled runtime with Node and
 // talks NDJSON JSON-RPC over pipes, exactly as the Host does (ADR-0003).
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PROTOCOL_VERSION, type MethodName, type MethodParams } from "@jesutobits/protocol";
 
@@ -22,6 +23,10 @@ export class RuntimeHarness {
   readonly stderr: string[] = [];
   /** `event` notifications received, in order (runtime events, ADR-0003). */
   readonly events: Array<Record<string, unknown>> = [];
+  /** Reverse calls the runtime made, in order; the harness answers them like the Host. */
+  readonly reverseCalls: Array<{ method: string; params: Record<string, unknown> }> = [];
+  /** Set to make the next reverse calls fail with this message. */
+  failReverseCalls: string | undefined;
   private readonly child: ChildProcessWithoutNullStreams;
   private readonly pending = new Map<string, (reply: RpcReply) => void>();
   private buffer = "";
@@ -80,6 +85,37 @@ export class RuntimeHarness {
     this.child.kill();
   }
 
+  /** Plays the Host's part: `host.fs.trash` deletes the path (no real trash in tests). */
+  private answerReverseCall(
+    id: RpcReply["id"],
+    method: string,
+    params: Record<string, unknown>,
+  ): void {
+    this.reverseCalls.push({ method, params });
+    const reply = (body: Record<string, unknown>) =>
+      this.child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id, ...body })}\n`);
+    if (this.failReverseCalls) {
+      reply({
+        error: {
+          code: -32000,
+          message: this.failReverseCalls,
+          data: { code: "fs.trash_failed", message: this.failReverseCalls, retryable: false },
+        },
+      });
+    } else if (method === "host.fs.trash") {
+      rmSync(String(params.path), { recursive: true, force: true });
+      reply({ result: {} });
+    } else {
+      reply({
+        error: {
+          code: -32601,
+          message: `no ${method}`,
+          data: { code: "rpc.method_not_found", message: `no ${method}`, retryable: false },
+        },
+      });
+    }
+  }
+
   private onStdout(chunk: string): void {
     this.buffer += chunk;
     let newline: number;
@@ -90,6 +126,14 @@ export class RuntimeHarness {
       const message = JSON.parse(line) as RpcReply & { method?: string; params?: unknown };
       if (message.method === "event" && message.id === undefined) {
         this.events.push(message.params as Record<string, unknown>);
+        continue;
+      }
+      if (message.method !== undefined && message.id !== undefined) {
+        this.answerReverseCall(
+          message.id,
+          message.method,
+          message.params as Record<string, unknown>,
+        );
         continue;
       }
       const reply = message;

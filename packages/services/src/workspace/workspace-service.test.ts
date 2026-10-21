@@ -25,7 +25,7 @@ beforeEach(() => {
   mkdirSync(path.join(root, "src"), { recursive: true });
 });
 
-afterEach(() => rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }));
+afterEach(() => rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
 
 const open = () => WorkspaceService.open({ root, log: nullLogger });
 const write = (relative: string, content: string | Buffer) => {
@@ -239,5 +239,61 @@ describe("canonicalProjectPath", () => {
 
   it.runIf(process.platform === "win32")("lower-cases the drive letter", async () => {
     expect(await canonicalProjectPath(root)).toMatch(/^[a-z]:\\/);
+  });
+});
+
+describe("WorkspaceService.trash", () => {
+  it("passes the confined absolute path to the trash function and counts the change", async () => {
+    write("src/a.ts", "a");
+    const trashed: string[] = [];
+    const ws = await WorkspaceService.open({
+      root,
+      log: nullLogger,
+      trash: async (absolute) => {
+        trashed.push(absolute);
+        rmSync(absolute);
+      },
+    });
+    await ws.trash("src/a.ts");
+    expect(trashed).toEqual([path.join(root, "src", "a.ts")]);
+    expect(ws.changeCounter).toBe(1);
+  });
+
+  it("refuses the project folder, missing paths, and works only with a trash function", async () => {
+    write("a.ts", "a");
+    const ws = await WorkspaceService.open({ root, log: nullLogger, trash: async () => {} });
+    await expect(ws.trash("")).rejects.toMatchObject({ code: "fs.invalid_path" });
+    await expect(ws.trash("missing.ts")).rejects.toMatchObject({ code: "fs.not_found" });
+
+    const without = await WorkspaceService.open({ root, log: nullLogger });
+    await expect(without.trash("a.ts")).rejects.toMatchObject({ code: "fs.trash_failed" });
+  });
+
+  it("trashes a link inside the project, not the folder it points to", async () => {
+    write("src/a.ts", "a");
+    symlinkSync(path.join(root, "src"), path.join(root, "alias"), "junction");
+    const trashed: string[] = [];
+    const ws = await WorkspaceService.open({
+      root,
+      log: nullLogger,
+      trash: async (absolute) => void trashed.push(absolute),
+    });
+    await ws.trash("alias");
+    expect(trashed).toEqual([path.join(root, "alias")]);
+  });
+
+  it("wraps a refused trash as fs.trash_failed", async () => {
+    write("a.ts", "a");
+    const ws = await WorkspaceService.open({
+      root,
+      log: nullLogger,
+      trash: async () => {
+        throw new Error("no Recycle Bin");
+      },
+    });
+    await expect(ws.trash("a.ts")).rejects.toMatchObject({
+      code: "fs.trash_failed",
+      details: { reason: "no Recycle Bin" },
+    });
   });
 });

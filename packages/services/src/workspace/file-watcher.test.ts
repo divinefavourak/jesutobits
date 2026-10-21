@@ -17,7 +17,7 @@ beforeEach(() => {
 afterEach(() => {
   handle?.close();
   handle = undefined;
-  rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 /** A watcher whose OS events the test sends itself. */

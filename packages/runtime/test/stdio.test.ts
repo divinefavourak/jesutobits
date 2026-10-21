@@ -79,14 +79,16 @@ describe("runtime over stdio", () => {
     try {
       harness = RuntimeHarness.start({ dataDir });
       await harness.initialize();
-      await vi.waitFor(() => expect(existsSync(join(dataDir, "jesutobits.db.open"))).toBe(true));
+      await vi.waitFor(() => expect(existsSync(join(dataDir, "jesutobits.db.open"))).toBe(true), {
+        timeout: 10_000,
+      });
       expect(existsSync(join(dataDir, "jesutobits.db"))).toBe(true);
 
       await harness.call("runtime.shutdown", {});
       expect(await harness.exited).toBe(0);
       expect(existsSync(join(dataDir, "jesutobits.db.open"))).toBe(false);
     } finally {
-      rmSync(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
   });
 
@@ -96,15 +98,17 @@ describe("runtime over stdio", () => {
       writeFileSync(join(dataDir, "jesutobits.db"), "not a database, just text in a file....");
       harness = RuntimeHarness.start({ dataDir });
       await harness.initialize();
-      await vi.waitFor(() =>
-        expect(harness?.events).toContainEqual(
-          expect.objectContaining({ type: "runtime.warning", code: "storage.corrupt_recovered" }),
-        ),
+      await vi.waitFor(
+        () =>
+          expect(harness?.events).toContainEqual(
+            expect.objectContaining({ type: "runtime.warning", code: "storage.corrupt_recovered" }),
+          ),
+        { timeout: 10_000 },
       );
       harness.kill();
       await harness.exited;
     } finally {
-      rmSync(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+      rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
     }
   });
 

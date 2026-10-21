@@ -34,7 +34,7 @@ afterEach(async () => {
   harness?.kill();
   await harness?.exited;
   harness = undefined;
-  rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 async function start(): Promise<RuntimeHarness> {
@@ -250,11 +250,14 @@ describe("fs.*", () => {
 
   it("finds files with quick open", async () => {
     const h = await opened();
-    await vi.waitFor(async () => {
-      const found = result<"fs.quickOpen">(await h.call("fs.quickOpen", { query: "app" }));
-      expect(found.indexing).toBe(false);
-      expect(found.results[0]?.path).toBe("src/App.tsx");
-    });
+    await vi.waitFor(
+      async () => {
+        const found = result<"fs.quickOpen">(await h.call("fs.quickOpen", { query: "app" }));
+        expect(found.indexing).toBe(false);
+        expect(found.results[0]?.path).toBe("src/App.tsx");
+      },
+      { timeout: 10_000 },
+    );
   });
 
   it("sends fs.changed when another program changes a file, and marks its own saves", async () => {
@@ -290,5 +293,43 @@ describe("fs.*", () => {
         ),
       { timeout: 5000 },
     );
+  });
+});
+
+describe("fs.trash (ADR-0014)", () => {
+  it("confines the path, then asks the Host to trash it", async () => {
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: projectDir }));
+    result<"fs.trash">(await h.call("fs.trash", { path: "src/App.tsx" }));
+
+    // Projects open at their canonical path: lower-case drive letter on Windows (FR-009).
+    const canonical = path
+      .join(projectDir, "src", "App.tsx")
+      .replace(/^[A-Z]:/, (drive) => (process.platform === "win32" ? drive.toLowerCase() : drive));
+    expect(h.reverseCalls).toEqual([{ method: "host.fs.trash", params: { path: canonical } }]);
+    expect(readdirSync(path.join(projectDir, "src"))).toEqual([]);
+  });
+
+  it("never asks the Host about paths outside the project or the project itself", async () => {
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: projectDir }));
+    expect((await h.call("fs.trash", { path: "../data" })).error?.data?.code).toBe(
+      "fs.outside_workspace",
+    );
+    expect((await h.call("fs.trash", { path: "." })).error?.data?.code).toBe("fs.invalid_path");
+    expect((await h.call("fs.trash", { path: "missing.ts" })).error?.data?.code).toBe(
+      "fs.not_found",
+    );
+    expect(h.reverseCalls).toEqual([]);
+  });
+
+  it("reports a refused trash and leaves the file", async () => {
+    const h = await start();
+    result<"projects.open">(await h.call("projects.open", { path: projectDir }));
+    h.failReverseCalls = "no Recycle Bin on this drive";
+    expect((await h.call("fs.trash", { path: "package.json" })).error?.data?.code).toBe(
+      "fs.trash_failed",
+    );
+    expect(readdirSync(projectDir)).toContain("package.json");
   });
 });

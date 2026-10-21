@@ -20,6 +20,8 @@ import type { Storage } from "../storage/storage.js";
 import { ProjectStore } from "./project-store.js";
 
 export interface ProjectsOptions {
+  /** Moves a confined absolute path to the OS trash through the Host (ADR-0014). */
+  trash: (absolutePath: string) => Promise<void>;
   events: EventBus;
   log: Logger;
   /** Resolves once the database is open; rejects if it could not be opened. */
@@ -49,7 +51,11 @@ class ActiveProject {
 
   static async open(project: Project, options: ProjectsOptions): Promise<ActiveProject> {
     const log = options.log.child({ projectId: project.id });
-    const workspace = await WorkspaceService.open({ root: project.path, log });
+    const workspace = await WorkspaceService.open({
+      root: project.path,
+      log,
+      trash: options.trash,
+    });
     // Both start in this tick, before the walk reads anything, so no change falls between.
     const index = FileIndex.build(workspace, log);
     const watcher = workspace.watch(
@@ -231,6 +237,11 @@ export class Projects {
 
     server.register("fs.rename", async (params) => {
       await this.workspace().rename(params.from, params.to);
+      return {};
+    });
+
+    server.register("fs.trash", async (params) => {
+      await this.workspace().trash(params.path);
       return {};
     });
 

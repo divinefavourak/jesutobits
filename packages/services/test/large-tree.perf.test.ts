@@ -24,7 +24,7 @@ describe.runIf(process.env.JESUTOBITS_PERF === "1")("large tree (NFR-019)", () =
   }, 600_000);
 
   afterAll(
-    () => rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }),
+    () => rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }),
     600_000,
   );
 

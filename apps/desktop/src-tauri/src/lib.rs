@@ -1,6 +1,7 @@
 //! Jesutobits Host (ARCHITECTURE.md section 5.1).
 
 mod dialogs;
+mod host_methods;
 mod logging;
 mod rpc_relay;
 mod runtime_supervisor;

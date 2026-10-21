@@ -122,6 +122,9 @@ export function createRuntime(io: RuntimeIo): Runtime {
   server.register("events.replay", (params) => events.replay(params.afterSeq));
 
   const projects = new Projects({
+    trash: async (path) => {
+      await server.request("host.fs.trash", { path });
+    },
     events,
     log: io.log.child({ module: "projects" }),
     storage: () => storageReady,
@@ -168,6 +171,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
     receive: (chunk) => splitter.push(chunk),
     endOfInput() {
       splitter.end();
+      server.failPending("the Host is gone");
       state = "shutting_down";
       shutdown();
     },

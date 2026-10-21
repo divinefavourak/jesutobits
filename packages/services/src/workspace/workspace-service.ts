@@ -69,6 +69,11 @@ export interface WorkspaceServiceOptions {
   /** User-approved extra roots (SECURITY.md section 5.2). */
   extraRoots?: readonly string[];
   log: Logger;
+  /**
+   * Moves an absolute, already confined path to the OS trash. The runtime passes the Host's
+   * `host.fs.trash` (ADR-0014); without it, `trash` fails with `fs.trash_failed`.
+   */
+  trash?: (absolutePath: string) => Promise<void>;
 }
 
 const CASE_INSENSITIVE = process.platform === "win32" || process.platform === "darwin";
@@ -98,6 +103,7 @@ export class WorkspaceService {
   private constructor(
     private readonly guard: PathGuard,
     private readonly log: Logger,
+    private readonly trashPath: ((absolutePath: string) => Promise<void>) | undefined,
   ) {
     this.ignores = new IgnoreRules(async (relative) => {
       try {
@@ -111,7 +117,7 @@ export class WorkspaceService {
 
   static async open(options: WorkspaceServiceOptions): Promise<WorkspaceService> {
     const guard = await PathGuard.create(options.root, options.extraRoots);
-    return new WorkspaceService(guard, options.log.child({ module: "workspace" }));
+    return new WorkspaceService(guard, options.log.child({ module: "workspace" }), options.trash);
   }
 
   get root(): string {
@@ -348,6 +354,53 @@ export class WorkspaceService {
       await this.markSelf(resolved.relative, resolved.real);
     });
     this.counter++;
+  }
+
+  /**
+   * Moves a file or folder to the OS trash (FR-072, ADR-0014). The path is confined first;
+   * the project folder itself cannot be trashed. A link is trashed, not what it points to.
+   */
+  async trash(input: string): Promise<void> {
+    const resolved = await this.resolve(input);
+    if (resolved.relative === "") {
+      throw new JesutobitsError(
+        ErrorCodes.fsInvalidPath,
+        "The project folder cannot be moved to the trash",
+        {
+          details: { path: "" },
+        },
+      );
+    }
+    try {
+      await lstat(resolved.absolute);
+    } catch (error) {
+      throw fsError(error, resolved.relative);
+    }
+    if (!this.trashPath) {
+      throw new JesutobitsError(
+        ErrorCodes.fsTrashFailed,
+        "Moving files to the trash is not available here",
+        {
+          details: { path: resolved.relative },
+        },
+      );
+    }
+    const trashPath = this.trashPath;
+    await this.ownChange([resolved.relative], async () => {
+      try {
+        await trashPath(resolved.absolute);
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new JesutobitsError(
+          ErrorCodes.fsTrashFailed,
+          `${display(resolved.relative)} could not be moved to the trash`,
+          { details: { path: resolved.relative, reason } },
+        );
+      }
+      await this.markSelf(resolved.relative, resolved.absolute, true);
+    });
+    this.counter++;
+    this.log.info("moved to the trash", { path: resolved.relative });
   }
 
   /** Renames or moves within the workspace; never replaces an existing target. */

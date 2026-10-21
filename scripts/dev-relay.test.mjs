@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await relay?.close();
-  rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 const rpc = (method, params, token = relay.token) =>
@@ -71,5 +71,15 @@ describe("dev relay", () => {
     }
     expect(text).toContain('"type":"fs.changed"');
     abort.abort();
+  });
+});
+
+describe("dev relay reverse calls", () => {
+  it("refuses Host-only operations at once instead of letting them time out", async () => {
+    const started = Date.now();
+    const body = await (await rpc("fs.trash", { path: "src/a.ts" })).json();
+    expect(body.error.data.code).toBe("fs.trash_failed");
+    expect(body.error.data.details.reason).toMatch(/needs the desktop app/);
+    expect(Date.now() - started).toBeLessThan(5000);
   });
 });

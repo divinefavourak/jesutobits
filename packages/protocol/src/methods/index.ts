@@ -9,6 +9,7 @@ import {
   fsReadFile,
   fsRename,
   fsStat,
+  fsTrash,
   fsWriteFile,
 } from "./fs.js";
 import {
@@ -50,6 +51,7 @@ export const METHODS = {
   [fsCreateDirectory.name]: fsCreateDirectory,
   [fsRename.name]: fsRename,
   [fsQuickOpen.name]: fsQuickOpen,
+  [fsTrash.name]: fsTrash,
 } as const;
 
 export type MethodName = keyof typeof METHODS;

@@ -266,7 +266,7 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 |---|---|
 | `runtime` | `initialize` and `shutdown` (Host only); `ping` (Host health checks, and the Workbench for relay latency) |
 | `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`; `detect` (toolchain, preview strategy, checks) arrives with onboarding |
-| `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`; `trash` arrives with the explorer, `search` with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |
+| `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`, `trash` (the runtime confines the path, the Host moves it to the OS trash: ADR-0014); `search` arrives with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |
 | `sessions` | `list`, `create`, `get`, `rename`, `archive`, `delete`, `export` |
 | `agent` | `sendMessage`, `cancelTurn`, `pauseTurn`, `resumeTurn`, `retryTurn`, `answerQuestion`, `setModel` |
 | `permissions` | `respond`, `listRules`, `addRule`, `removeRule`, `getPolicy`, `setPolicy` |
@@ -278,7 +278,7 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | `events` | `replay` |
 | `extensions` | `validate` (called by the Host during install, and by the Workbench for developer-mode reloads) |
 
-Reverse methods the runtime may call: `host.secrets.get`, `host.log`, `host.notify` (OS notification when the window is unfocused and approval is needed).
+Reverse methods the runtime may call: `host.fs.trash` (ADR-0014), `host.secrets.get`, `host.log`, `host.notify` (OS notification when the window is unfocused and approval is needed). They are declared in `packages/protocol/src/reverse.ts` (`REVERSE_METHODS`); the Host answers only those, on their own task, and refuses anything else.
 
 ### 6.4 Runtime event envelope
 

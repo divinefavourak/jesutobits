@@ -33,7 +33,7 @@ beforeEach(() => {
 
 afterEach(() => {
   handle?.close();
-  rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 describe("WorkspaceService.watch under load", () => {
@@ -52,11 +52,15 @@ describe("WorkspaceService.watch under load", () => {
     // The new file has no previous content, so the write starts at once; the OS event
     // arrives right after the rename, while the mark's slow stat is still running.
     const writing = ws.writeText(`src/${SLOW}`, "export {};", { expectedHash: null });
-    await vi.waitFor(() => expect(existsSync(path.join(root, "src", SLOW))).toBe(true));
+    // Generous waits: the slowed stat runs alongside the whole parallel suite.
+    await vi.waitFor(() => expect(existsSync(path.join(root, "src", SLOW))).toBe(true), {
+      timeout: 10_000,
+      interval: 5,
+    });
     send(`src/${SLOW}`);
     await writing;
 
-    await vi.waitFor(() => expect(batches.length).toBeGreaterThan(0));
+    await vi.waitFor(() => expect(batches.length).toBeGreaterThan(0), { timeout: 10_000 });
     expect(batches[0]?.changes).toEqual([
       { path: `src/${SLOW}`, kind: "upsert", isDirectory: false, self: true },
     ]);

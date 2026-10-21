@@ -63,6 +63,8 @@ export const ErrorCodes = {
   /** The file is not text, so it cannot be read or written as text. */
   fsBinary: "fs.binary",
   fsPermissionDenied: "fs.permission_denied",
+  /** The OS refused to move the path to the trash (ADR-0014); it was left in place. */
+  fsTrashFailed: "fs.trash_failed",
   /** No project is open, so there are no files to work on. */
   fsNoProject: "fs.no_project",
   /** Any other file-system failure; details carry the OS error code. */

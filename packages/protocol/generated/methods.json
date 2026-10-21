@@ -14,6 +14,7 @@
     "fs.outside_workspace",
     "fs.permission_denied",
     "fs.too_large",
+    "fs.trash_failed",
     "rpc.internal",
     "rpc.invalid_params",
     "rpc.invalid_request",
@@ -49,6 +50,7 @@
     "fs.readFile",
     "fs.rename",
     "fs.stat",
+    "fs.trash",
     "fs.writeFile",
     "projects.close",
     "projects.create",
@@ -63,5 +65,8 @@
     "runtime.initialize",
     "runtime.ping",
     "runtime.shutdown"
+  ],
+  "reverse": [
+    "host.fs.trash"
   ]
 }

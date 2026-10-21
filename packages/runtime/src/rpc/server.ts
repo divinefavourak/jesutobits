@@ -12,6 +12,11 @@ import {
   type MethodResult,
   type METHODS,
   type RequestId,
+  REVERSE_METHODS,
+  toJesutobitsError,
+  type ReverseMethod,
+  type ReverseParams,
+  type ReverseResult,
 } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
 import { z } from "zod";
@@ -38,8 +43,16 @@ type AnyHandler = (params: unknown) => unknown;
  * against its schema in `@jesutobits/protocol` before a handler runs (NFR-024), and every
  * result is validated before it is sent.
  */
+/** How long a reverse call may take before it fails with `rpc.timeout`. */
+const REVERSE_CALL_TIMEOUT_MS = 30_000;
+
 export class RpcServer {
   private readonly handlers = new Map<MethodName, AnyHandler>();
+  private readonly pending = new Map<
+    string,
+    { resolve: (value: unknown) => void; reject: (error: unknown) => void; method: string }
+  >();
+  private nextRequestId = 1;
 
   constructor(private readonly options: RpcServerOptions) {}
 
@@ -73,12 +86,18 @@ export class RpcServer {
         this.options.log.warn("ignoring a notification", { method: classified.message.method });
         return;
       case "success":
-      case "failure":
-        // Reverse calls (host.*) arrive with Phase 2; until then nothing awaits a response.
-        this.options.log.warn("ignoring an unexpected response", {
-          id: String(classified.message.id),
-        });
+      case "failure": {
+        const id = String(classified.message.id);
+        const waiting = this.pending.get(id);
+        if (!waiting) {
+          this.options.log.warn("ignoring an unexpected response", { id });
+          return;
+        }
+        this.pending.delete(id);
+        if (classified.kind === "success") waiting.resolve(classified.message.result);
+        else waiting.reject(toJesutobitsError(classified.message.error));
         return;
+      }
       case "request":
         return this.dispatch(
           classified.message.id,
@@ -104,6 +123,54 @@ export class RpcServer {
     this.options.send(line).catch((error: unknown) => {
       this.options.log.error("could not send a notification", { method, err: error });
     });
+  }
+
+  /**
+   * Calls a Host method (a reverse call, ADR-0014) and waits for its reply. The result is
+   * checked against the method's schema; Host errors reject with a JesutobitsError.
+   */
+  async request<M extends ReverseMethod>(
+    method: M,
+    params: ReverseParams<M>,
+    timeoutMs = REVERSE_CALL_TIMEOUT_MS,
+  ): Promise<ReverseResult<M>> {
+    const id = `r-${this.nextRequestId++}`;
+    const reply = new Promise<unknown>((resolve, reject) => {
+      this.pending.set(id, { resolve, reject, method });
+    });
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => {
+        this.pending.delete(id);
+        reject(
+          new JesutobitsError(ErrorCodes.rpcTimeout, `${method} did not reply in time`, {
+            retryable: true,
+          }),
+        );
+      }, timeoutMs);
+    });
+    try {
+      await this.options.send(JSON.stringify({ jsonrpc: JSONRPC_VERSION, id, method, params }));
+      const raw = await Promise.race([reply, timeout]);
+      const result = REVERSE_METHODS[method].result.safeParse(raw);
+      if (!result.success) {
+        throw new JesutobitsError(ErrorCodes.rpcInternal, `Invalid result from ${method}`);
+      }
+      return result.data as ReverseResult<M>;
+    } finally {
+      clearTimeout(timer);
+      this.pending.delete(id);
+    }
+  }
+
+  /** Fails every reverse call still waiting (the Host is gone). */
+  failPending(reason: string): void {
+    for (const [id, waiting] of this.pending) {
+      waiting.reject(
+        new JesutobitsError(ErrorCodes.runtimeUnavailable, `${waiting.method}: ${reason}`),
+      );
+      this.pending.delete(id);
+    }
   }
 
   /** Reports a line the splitter dropped for exceeding MAX_MESSAGE_BYTES. */

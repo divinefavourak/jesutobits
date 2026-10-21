@@ -26,6 +26,7 @@ Each ADR records one important decision: the context, the decision, the alternat
 | [0011](0011-process-execution-and-terminals.md) | Process execution and terminals | Accepted |
 | [0012](0012-checkpoints-and-undo.md) | Checkpoints and undo for agent edits | Accepted |
 | [0013](0013-monorepo-tooling.md) | Monorepo and build tooling | Accepted |
+| [0014](0014-trash-through-host.md) | Deleting to the OS trash through the Host | Accepted |
 
 ## Writing a new ADR
 

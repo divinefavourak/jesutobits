@@ -439,10 +439,13 @@ async fn run_once(
     let stderr = child.stderr.take().expect("stderr is piped");
 
     let events = inner.clone();
-    let connection = Arc::new(Connection::new(
-        Box::new(stdin),
-        Box::new(move |event| events.forward_event(event)),
-    ));
+    let connection = Arc::new(
+        Connection::new(
+            Box::new(stdin),
+            Box::new(move |event| events.forward_event(event)),
+        )
+        .with_reverse_handler(crate::host_methods::reverse_handler()),
+    );
     pump_stdout(connection.clone(), stdout);
     pump_stderr(stderr);
 

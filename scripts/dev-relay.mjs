@@ -75,6 +75,14 @@ export async function startRelay({
       const message = JSON.parse(line);
       if (message.method === "event" && message.id === undefined) {
         broadcast({ kind: "event", event: message.params });
+      } else if (message.method !== undefined && message.id !== undefined) {
+        // Reverse calls (host.fs.trash, ADR-0014) need the real Host: refuse them at once.
+        const error = rpcError(
+          -32601,
+          "rpc.method_not_found",
+          `${message.method} needs the desktop app; it is not available in dev:web`,
+        );
+        child.stdin.write(`${JSON.stringify({ jsonrpc: "2.0", id: message.id, error })}\n`);
       } else if (pending.has(message.id)) {
         pending.get(message.id)(message);
         pending.delete(message.id);

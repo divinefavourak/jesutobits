@@ -6,3 +6,4 @@ export * from "./host.js";
 export * from "./bridge.js";
 export * from "./methods/index.js";
 export * from "./settings.js";
+export * from "./reverse.js";

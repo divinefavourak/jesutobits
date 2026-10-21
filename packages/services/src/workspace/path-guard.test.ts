@@ -81,7 +81,7 @@ describe("PathGuard on a real file system", () => {
     writeFileSync(path.join(outside, "id_rsa"), "secret");
   });
 
-  afterEach(() => rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }));
+  afterEach(() => rmSync(base, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
 
   // Junctions on Windows need no privileges; elsewhere this is a directory symlink.
   const linkDir = (target: string, link: string) => symlinkSync(target, link, "junction");

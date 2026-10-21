@@ -14,6 +14,7 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "fs.readFile",
     "fs.rename",
     "fs.stat",
+    "fs.trash",
     "fs.writeFile",
     "projects.close",
     "projects.create",
@@ -32,6 +33,15 @@ pub const HOST_METHODS: &[&str] = &[
     "runtime.shutdown",
 ];
 
+/// Methods the runtime may call on the Host (reverse calls, ADR-0014).
+pub const REVERSE_METHODS: &[&str] = &[
+    "host.fs.trash",
+];
+
 pub fn is_workbench_method(method: &str) -> bool {
     WORKBENCH_METHODS.contains(&method)
+}
+
+pub fn is_reverse_method(method: &str) -> bool {
+    REVERSE_METHODS.contains(&method)
 }

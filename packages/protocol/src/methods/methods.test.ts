@@ -3,11 +3,12 @@ import { describe, expect, expectTypeOf, it } from "vitest";
 import { z } from "zod";
 import { MethodNameSchema } from "../envelope.js";
 import { isProtocolCompatible, PROTOCOL_VERSION } from "../version.js";
+import { REVERSE_METHODS } from "../reverse.js";
 import { METHODS, methodsCallableBy, runtimeInitialize, type WorkbenchMethod } from "./index.js";
 
 const generated = JSON.parse(
   readFileSync(new URL("../../generated/methods.json", import.meta.url), "utf8"),
-) as { workbench: string[]; host: string[] };
+) as { workbench: string[]; host: string[]; reverse: string[] };
 
 describe("method registry", () => {
   it.each(Object.values(METHODS))("$name is well formed", (method) => {
@@ -21,6 +22,7 @@ describe("method registry", () => {
   it("matches generated/methods.json", () => {
     expect(generated.workbench).toEqual(methodsCallableBy("workbench"));
     expect(generated.host).toEqual(methodsCallableBy("host"));
+    expect(generated.reverse).toEqual(Object.keys(REVERSE_METHODS).sort());
   });
 
   it("never lets the Workbench initialise or shut down the runtime", () => {
@@ -48,6 +50,7 @@ describe("method registry", () => {
       | "fs.createDirectory"
       | "fs.rename"
       | "fs.quickOpen"
+      | "fs.trash"
     >();
   });
 });

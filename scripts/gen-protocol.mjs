@@ -26,6 +26,8 @@ await writeJson(join(protocolDir, "generated", "methods.json"), {
   errorCodes: Object.values(protocol.ErrorCodes).sort(),
   workbench: protocol.methodsCallableBy("workbench"),
   host: protocol.methodsCallableBy("host"),
+  // Runtime-to-Host methods the Host answers (ADR-0014).
+  reverse: Object.keys(protocol.REVERSE_METHODS).sort(),
 });
 
 // The Host's serde defaults must equal these (settings_store/settings.rs contract test).
@@ -52,6 +54,10 @@ await writeJson(
   join(schemaDir, "runtime-event-base.json"),
   toSchema(protocol.RuntimeEventBaseSchema),
 );
+for (const method of Object.values(protocol.REVERSE_METHODS)) {
+  await writeJson(join(schemaDir, `${method.name}.params.json`), toSchema(method.params));
+  await writeJson(join(schemaDir, `${method.name}.result.json`), toSchema(method.result));
+}
 for (const event of Object.values(protocol.EVENTS)) {
   await writeJson(join(schemaDir, `event.${event.type}.json`), toSchema(event.schema));
 }
