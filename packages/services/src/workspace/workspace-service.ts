@@ -91,6 +91,8 @@ type SelfMark = { size: number; mtimeMs: number } | "removed" | "directory";
 export class WorkspaceService {
   private counter = 0;
   private readonly selfMarks = new Map<string, { mark: SelfMark; expires: number }>();
+  /** Changes this service has started but not yet marked: the watcher waits for them. */
+  private readonly pendingSelf = new Map<string, Promise<void>>();
   readonly ignores: IgnoreRules;
 
   private constructor(
@@ -320,13 +322,15 @@ export class WorkspaceService {
       format = decoded.format;
     }
     const bytes = encodeText(text, format);
-    try {
-      await mkdir(path.dirname(resolved.real), { recursive: true });
-      await writeFileAtomic(resolved.real, bytes);
-    } catch (error) {
-      throw fsError(error, relative);
-    }
-    await this.markSelf(relative, resolved.real);
+    await this.ownChange([relative], async () => {
+      try {
+        await mkdir(path.dirname(resolved.real), { recursive: true });
+        await writeFileAtomic(resolved.real, bytes);
+      } catch (error) {
+        throw fsError(error, relative);
+      }
+      await this.markSelf(relative, resolved.real);
+    });
     const changeCounter = ++this.counter;
     this.log.debug("file written", { path: relative, bytes: bytes.length, changeCounter });
     return { path: relative, hash: hashBytes(bytes), size: bytes.length, changeCounter };
@@ -335,12 +339,14 @@ export class WorkspaceService {
   /** Creates a folder and any missing parents; fails if a file is in the way. */
   async createDirectory(input: string): Promise<void> {
     const resolved = await this.resolve(input);
-    try {
-      await mkdir(resolved.real, { recursive: true });
-    } catch (error) {
-      throw fsError(error, resolved.relative);
-    }
-    await this.markSelf(resolved.relative, resolved.real);
+    await this.ownChange([resolved.relative], async () => {
+      try {
+        await mkdir(resolved.real, { recursive: true });
+      } catch (error) {
+        throw fsError(error, resolved.relative);
+      }
+      await this.markSelf(resolved.relative, resolved.real);
+    });
     this.counter++;
   }
 
@@ -372,18 +378,40 @@ export class WorkspaceService {
     // The requested name, not target.real's: for a case-only rename, realpath finds the
     // existing file under its old case.
     const destination = path.join(path.dirname(target.real), path.basename(target.absolute));
-    try {
-      await lstat(source.absolute);
-      await mkdir(path.dirname(destination), { recursive: true });
-      await rename(source.absolute, destination);
-    } catch (error) {
-      throw fsError(error, source.relative);
-    }
-    if (!sameFile) await this.markSelf(source.relative, source.real, true);
-    await this.markSelf(target.relative, destination);
+    await this.ownChange([source.relative, target.relative], async () => {
+      try {
+        await lstat(source.absolute);
+        await mkdir(path.dirname(destination), { recursive: true });
+        await rename(source.absolute, destination);
+      } catch (error) {
+        throw fsError(error, source.relative);
+      }
+      if (!sameFile) await this.markSelf(source.relative, source.real, true);
+      await this.markSelf(target.relative, destination);
+    });
     this.counter++;
     // A move can change what a path points at (SECURITY.md section 5.2, rule 5).
     await this.resolve(to);
+  }
+
+  /**
+   * Runs a change this service makes. Until it is done and marked, the watcher waits before
+   * judging these paths: under load, the OS event can arrive before the mark is recorded.
+   */
+  private async ownChange<T>(paths: readonly string[], work: () => Promise<T>): Promise<T> {
+    let done: () => void = () => undefined;
+    const finished = new Promise<void>((resolve) => {
+      done = resolve;
+    });
+    for (const relative of paths) this.pendingSelf.set(relative, finished);
+    try {
+      return await work();
+    } finally {
+      done();
+      for (const relative of paths) {
+        if (this.pendingSelf.get(relative) === finished) this.pendingSelf.delete(relative);
+      }
+    }
   }
 
   private async markSelf(relative: string, real: string, removed = false): Promise<void> {
@@ -398,6 +426,7 @@ export class WorkspaceService {
 
   /** Looks at a changed path now: whether it exists, and whether this service changed it. */
   private async classify(relative: string): Promise<FileChange> {
+    await this.pendingSelf.get(relative);
     const now = Date.now();
     for (const [key, entry] of this.selfMarks) {
       if (entry.expires < now) this.selfMarks.delete(key);
