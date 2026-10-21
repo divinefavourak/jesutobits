@@ -72,7 +72,7 @@ describe("PathGuard on a real file system", () => {
   let outside: string;
 
   beforeEach(() => {
-    base = realpathSync(mkdtempSync(path.join(tmpdir(), "jesutobits-guard-")));
+    base = realpathSync.native(mkdtempSync(path.join(tmpdir(), "jesutobits-guard-")));
     root = path.join(base, "project");
     outside = path.join(base, "secrets");
     mkdirSync(path.join(root, "src"), { recursive: true });

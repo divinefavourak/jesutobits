@@ -20,7 +20,7 @@ let base: string;
 let root: string;
 
 beforeEach(() => {
-  base = realpathSync(mkdtempSync(path.join(tmpdir(), "jesutobits-ws-")));
+  base = realpathSync.native(mkdtempSync(path.join(tmpdir(), "jesutobits-ws-")));
   root = path.join(base, "project");
   mkdirSync(path.join(root, "src"), { recursive: true });
 });

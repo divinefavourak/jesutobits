@@ -9,7 +9,7 @@ import { detectProject, majorVersion } from "./detect-project.js";
 
 let root: string;
 beforeEach(() => {
-  root = realpathSync(mkdtempSync(path.join(tmpdir(), "jesutobits-detect-")));
+  root = realpathSync.native(mkdtempSync(path.join(tmpdir(), "jesutobits-detect-")));
 });
 afterEach(() => rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
 

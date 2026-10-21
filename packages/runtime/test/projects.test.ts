@@ -23,7 +23,7 @@ let projectDir: string;
 let harness: RuntimeHarness | undefined;
 
 beforeEach(() => {
-  base = realpathSync(mkdtempSync(path.join(tmpdir(), "jesutobits-projects-")));
+  base = realpathSync.native(mkdtempSync(path.join(tmpdir(), "jesutobits-projects-")));
   dataDir = path.join(base, "data");
   projectDir = path.join(base, "my-app");
   mkdirSync(path.join(projectDir, "src"), { recursive: true });

@@ -21,7 +21,7 @@ const isWindows = process.platform === "win32";
 let dir: string;
 
 beforeEach(() => {
-  dir = realpathSync(mkdtempSync(path.join(tmpdir(), "jesutobits-process-")));
+  dir = realpathSync.native(mkdtempSync(path.join(tmpdir(), "jesutobits-process-")));
 });
 afterEach(() => rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }));
 

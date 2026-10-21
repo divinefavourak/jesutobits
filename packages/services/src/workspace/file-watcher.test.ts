@@ -10,7 +10,7 @@ let root: string;
 let handle: WatchHandle | undefined;
 
 beforeEach(() => {
-  root = realpathSync(mkdtempSync(path.join(tmpdir(), "jesutobits-watch-")));
+  root = realpathSync.native(mkdtempSync(path.join(tmpdir(), "jesutobits-watch-")));
   mkdirSync(path.join(root, "src"));
 });
 
