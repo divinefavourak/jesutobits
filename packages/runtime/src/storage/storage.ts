@@ -7,7 +7,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { ErrorCodes, type JesutobitsErrorCode } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
 import type { Database } from "./database.js";
@@ -76,7 +76,8 @@ export function openStorage(options: OpenStorageOptions): Storage {
   const marker = join(dir, OPEN_MARKER);
   const unclean = existsSync(marker);
 
-  let db: Database = openChecked(path, unclean, log) ?? startFresh(dir, now(), log, notices);
+  let db: Database =
+    openChecked(path, unclean, log) ?? startFresh(dir, unclean, now(), log, notices);
   writeFileSync(marker, String(process.pid));
 
   const close = (): void => {
@@ -145,14 +146,23 @@ function openChecked(path: string, unclean: boolean, log: Logger): Database | un
   return undefined;
 }
 
-/** Moves an unusable database aside and creates a new one, with a notice for the user. */
-function startFresh(dir: string, at: Date, log: Logger, notices: StorageNotice[]): Database {
+/**
+ * Moves an unusable database aside and creates a new one, with a notice for the user. The
+ * notice names an unexpected shutdown only when the marker shows there was one.
+ */
+function startFresh(
+  dir: string,
+  unclean: boolean,
+  at: Date,
+  log: Logger,
+  notices: StorageNotice[],
+): Database {
   const aside = moveAside(dir, at);
   log.error("the database was unreadable and was moved aside", { movedTo: aside });
+  const when = unclean ? " after an unexpected shutdown" : "";
   notices.push({
     code: ErrorCodes.storageCorruptRecovered,
-    message:
-      "Jesutobits could not read its database after an unexpected shutdown and started a new one. The old file was kept.",
+    message: `Jesutobits could not read its database${when} and started a new one. The old file was kept as ${basename(aside)}.`,
     details: { movedTo: aside },
   });
   return new NodeSqliteDatabase(join(dir, DATABASE_FILE));

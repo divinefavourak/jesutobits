@@ -149,8 +149,10 @@ describe("openStorage", () => {
     expect(storage.mode).toBe("read_write");
     expect(storage.notices).toMatchObject([{ code: "storage.corrupt_recovered" }]);
     expect(tableNames(storage)).toContain("projects");
-    expect(readdirSync(dir).filter((name) => name.startsWith("jesutobits.corrupt-"))).toHaveLength(
-      1,
+    const aside = readdirSync(dir).filter((name) => name.startsWith("jesutobits.corrupt-"));
+    expect(aside).toHaveLength(1);
+    expect(storage.notices[0]?.message).toBe(
+      `Jesutobits could not read its database after an unexpected shutdown and started a new one. The old file was kept as ${aside[0]}.`,
     );
   });
 
@@ -160,6 +162,11 @@ describe("openStorage", () => {
     const storage = start(dir);
     expect(storage.notices).toMatchObject([{ code: "storage.corrupt_recovered" }]);
     expect(tableNames(storage)).toContain("projects");
+    // Found in the hands-on check: it blamed an "unexpected shutdown" that never happened.
+    expect(storage.notices[0]?.message).not.toContain("unexpected shutdown");
+    expect(storage.notices[0]?.message).toMatch(
+      /^Jesutobits could not read its database and started a new one\. The old file was kept as jesutobits\.corrupt-.+\.db\.$/,
+    );
   });
 
   it("keeps a healthy database after an unclean shutdown", () => {
