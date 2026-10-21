@@ -12,7 +12,7 @@
     "build:guest": "node scripts/build-guest.mjs",
     "fetch:sidecars": "node scripts/fetch-node.mjs",
     "dev": "pnpm build:packages && pnpm --filter @jesutobits/desktop tauri dev --config src-tauri/tauri.dev.conf.json",
-    "dev:web": "pnpm --filter @jesutobits/desktop dev:web",
+    "dev:web": "node scripts/dev-web.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint . --max-warnings 0 && prettier --check . && pnpm lint:rust",
     "lint:rust": "cargo fmt --manifest-path apps/desktop/src-tauri/Cargo.toml --check && cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings",

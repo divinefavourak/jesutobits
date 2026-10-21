@@ -5,4 +5,6 @@ interface ImportMetaEnv {
   readonly VITE_JESUTOBITS_BENCH?: string;
   /** A preview URL for the Spike S3 frame probe; unset in normal builds. */
   readonly VITE_JESUTOBITS_PREVIEW_PROBE?: string;
+  /** `<url>#<token>` of scripts/dev-relay.mjs, set by `pnpm dev:web --runtime`. */
+  readonly VITE_JESUTOBITS_RELAY?: string;
 }

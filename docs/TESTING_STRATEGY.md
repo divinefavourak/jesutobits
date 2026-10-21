@@ -69,7 +69,7 @@ Cassettes are JSONL files in `packages/runtime/test/cassettes/`. One line per mo
 | `fixtures/bin/fake-dev-server.mjs` | Listens on a port after a delay, prints Vite-like URLs, can crash on demand |
 | `fixtures/bin/port-hog.mjs` | Holds a port to test collisions |
 | `fixtures/bin/fake-runtime.mjs` | Stand-in runtime for Host lifecycle tests: answers the handshake, starts a grandchild and ignores stdin EOF, so only the job object can clean up. Loaded through the debug-only `JESUTOBITS_RUNTIME_ENTRY` override (`scripts/spikes/s1-orphans.mjs`). Flags for the supervisor tests: `--cooperative`, `--crash-at-init <n>`, `--crash-after-ready <n>`, `--ignore-pings`, `--silent`, `--protocol <v>` |
-| `MockHostBridge` | In-memory `HostBridge` for Workbench tests; can relay to a real runtime process |
+| `MockHostBridge` | In-memory `HostBridge` for Workbench tests; `RelayHostBridge` extends it to relay runtime calls and events to a real runtime through `scripts/dev-relay.mjs` |
 | `RuntimeHarness` | Spawns the runtime bundle with Node over stdio, exposes typed RPC helpers and an event recorder |
 
 ### 3.3 Fixture projects (`fixtures/projects/`)
