@@ -195,6 +195,11 @@ impl Connection {
         self.closed.send_replace(true);
     }
 
+    /// Whether the runtime's stdout has ended.
+    pub fn is_closed(&self) -> bool {
+        *self.closed.borrow()
+    }
+
     /// Resolves once the runtime's stdout has ended: the earliest sign that it is gone.
     pub async fn closed(&self) {
         let mut closed = self.closed.subscribe();

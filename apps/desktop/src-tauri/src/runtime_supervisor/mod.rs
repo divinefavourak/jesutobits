@@ -506,10 +506,14 @@ async fn run_once(
 
     // Supervise until the process exits or stops answering.
     let mut pings = tokio::time::interval(timings.ping_interval);
+    // A stalled loop (a busy machine) sends the next ping later, not a burst of them.
+    pings.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     pings.tick().await; // The first tick fires immediately; the handshake just succeeded.
     let mut missed = 0;
     loop {
+        // Exits first: when the runtime has gone, report that, not missed health checks.
         tokio::select! {
+            biased;
             // Stdout ended: the runtime is exiting. On a busy machine the OS can report the
             // exit a second or more later, so stop pinging a dead pipe and wait for it here.
             _ = connection.closed() => {
@@ -548,6 +552,8 @@ async fn run_once(
                         missed = 0;
                         inner.set_status(RuntimeStatus::Ready, None);
                     }
+                    // The pipe closed while the ping was out: the exit branch reports it.
+                    Err(_) if connection.is_closed() => {}
                     Err(_) => {
                         missed += 1;
                         if missed >= timings.missed_pings_restart {
