@@ -7,6 +7,10 @@ import {
 } from "../features/editor/editor-store";
 import { MemoryBuffers, type TextBuffers } from "../features/editor/text-buffers";
 import { createExplorerStore, type ExplorerStore } from "../features/explorer/explorer-store";
+import {
+  createOnboardingStore,
+  type OnboardingStore,
+} from "../features/onboarding/onboarding-store";
 import type { HostBridge } from "../host-bridge";
 import {
   createAppearanceStore,
@@ -30,6 +34,7 @@ export interface Workbench {
   buffers: TextBuffers;
   appearance: AppearanceStore;
   ui: UiStore;
+  onboarding: OnboardingStore;
 }
 
 /**
@@ -57,6 +62,7 @@ export function createWorkbench(
     buffers,
     appearance: createAppearanceStore(),
     ui: createUiStore(),
+    onboarding: createOnboardingStore(bridge),
   };
 }
 

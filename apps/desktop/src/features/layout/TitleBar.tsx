@@ -10,7 +10,7 @@ import { PresetSwitcher } from "./PresetSwitcher";
  * (UX_AND_INTERFACE.md section 4.1, J-05). The Stop button arrives with the agent.
  */
 export function TitleBar() {
-  const { projects, editor } = useWorkbench();
+  const { projects, editor, ui } = useWorkbench();
   const project = useProjects((state) => state.active);
   const detection = useProjects((state) => state.detection);
   const busy = useProjects((state) => state.busy);
@@ -27,6 +27,9 @@ export function TitleBar() {
         {detection ? detection.visualEditing.reason : t("project.detecting")}
       </p>
       <PresetSwitcher />
+      <Button variant="ghost" onClick={() => ui.getState().openSettings()}>
+        {t("settings.title")}
+      </Button>
       <Button
         variant="ghost"
         disabled={busy}

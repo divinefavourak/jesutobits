@@ -4,14 +4,13 @@ import { formatDateTime, t } from "../../i18n";
 import { useProjects, useWorkbench } from "../../state/workbench-context";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
-import { RelayBenchmark } from "../diagnostics/RelayBenchmark";
 import { CreateProjectDialog } from "../projects/CreateProjectDialog";
 import { ProjectError } from "../projects/ProjectError";
 import { TrustBadge } from "../projects/TrustBadge";
 
 /** Start screen (UX_AND_INTERFACE.md section 2): new project, open folder, recent projects. */
 export function StartScreen() {
-  const { bridge, projects } = useWorkbench();
+  const { bridge, projects, ui } = useWorkbench();
   const ready = useProjects((state) => state.runtime.status === "ready");
   const busy = useProjects((state) => state.busy);
   const [creating, setCreating] = useState(false);
@@ -43,17 +42,13 @@ export function StartScreen() {
         <Button disabled={!ready || busy} onClick={() => void openFolder()}>
           {t("start.openFolder")}
         </Button>
+        <Button variant="ghost" onClick={() => ui.getState().openSettings()}>
+          {t("settings.title")}
+        </Button>
       </div>
 
       <ProjectError only={["open", "close", "remove", "locate", "list"]} />
       <RecentProjects />
-
-      <details className="text-text-muted">
-        <summary className="cursor-pointer">{t("start.diagnostics")}</summary>
-        <div className="mt-2">
-          <RelayBenchmark bridge={bridge} disabled={!ready} />
-        </div>
-      </details>
 
       <CreateProjectDialog open={creating} onClose={() => setCreating(false)} />
     </main>

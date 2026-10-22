@@ -53,3 +53,36 @@ export async function folderExists(target: string): Promise<boolean> {
     () => false,
   );
 }
+
+/**
+ * Creates the default workspace folder when the user confirms it (FR-002, J-03). Creates
+ * missing parents, refuses a relative path or a file, and never writes inside a folder that
+ * exists. Returns whether it created anything.
+ */
+export async function prepareWorkspaceFolder(folder: string): Promise<boolean> {
+  if (!path.isAbsolute(folder)) {
+    throw new JesutobitsError(
+      ErrorCodes.fsInvalidPath,
+      "The workspace folder must be a full path",
+      {
+        details: { path: folder },
+      },
+    );
+  }
+  try {
+    const existing = await stat(folder).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return undefined;
+      throw error;
+    });
+    if (existing?.isDirectory()) return false;
+    if (existing) {
+      throw new JesutobitsError(ErrorCodes.fsNotADirectory, `${folder} is a file, not a folder`, {
+        details: { path: folder },
+      });
+    }
+    await mkdir(folder, { recursive: true });
+    return true;
+  } catch (error) {
+    throw fsError(error, folder);
+  }
+}

@@ -369,6 +369,39 @@ describe("fs.reveal (FR-072)", () => {
   });
 });
 
+describe("projects.prepareWorkspaceFolder (FR-002)", () => {
+  it("creates the folder and missing parents, and reports an existing one untouched", async () => {
+    const h = await start();
+    const folder = path.join(base, "Documents", "Jesutobits Projects");
+    const made = result<"projects.prepareWorkspaceFolder">(
+      await h.call("projects.prepareWorkspaceFolder", { path: folder }),
+    );
+    expect(made.created).toBe(true);
+    expect(statSync(folder).isDirectory()).toBe(true);
+
+    const before = fingerprint(projectDir);
+    const again = result<"projects.prepareWorkspaceFolder">(
+      await h.call("projects.prepareWorkspaceFolder", { path: projectDir }),
+    );
+    expect(again.created).toBe(false);
+    expect(fingerprint(projectDir)).toEqual(before);
+  });
+
+  it("refuses a relative path and a file", async () => {
+    const h = await start();
+    expect(
+      (await h.call("projects.prepareWorkspaceFolder", { path: "relative" })).error?.data?.code,
+    ).toBe("fs.invalid_path");
+    expect(
+      (
+        await h.call("projects.prepareWorkspaceFolder", {
+          path: path.join(projectDir, "package.json"),
+        })
+      ).error?.data?.code,
+    ).toBe("fs.not_a_directory");
+  });
+});
+
 describe("projects.detect and toolchain.detect", () => {
   it("recognises the vite-react-tailwind fixture without writing into it (J-05)", async () => {
     const project = fileURLToPath(

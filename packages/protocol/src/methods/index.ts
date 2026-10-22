@@ -20,6 +20,7 @@ import {
   projectsList,
   projectsLocate,
   projectsOpen,
+  projectsPrepareWorkspaceFolder,
   projectsRemove,
   projectsSetTrust,
 } from "./projects.js";
@@ -48,6 +49,7 @@ export const METHODS = {
   [projectsRemove.name]: projectsRemove,
   [projectsLocate.name]: projectsLocate,
   [projectsDetect.name]: projectsDetect,
+  [projectsPrepareWorkspaceFolder.name]: projectsPrepareWorkspaceFolder,
   [toolchainDetect.name]: toolchainDetect,
   [fsListDir.name]: fsListDir,
   [fsStat.name]: fsStat,

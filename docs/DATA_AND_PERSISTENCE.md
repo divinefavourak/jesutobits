@@ -231,7 +231,7 @@ Implementation (Phase 1): the Host's `settings_store/` and the Zod schema `packa
 
 `ui-state.json` holds window bounds, per-project layout (keyed by `prj_` ID), open tabs and cursor positions, collapsed panels, onboarding step, last safe-mode marker.
 
-Keys in use: `window` (Host), `layouts` (`{ [prj_ID]: Layout }`, `apps/desktop/src/features/layout/layout-model.ts`: preset, modified flag, and per dock zone its panels, active tab, collapsed flag and size). The Workbench validates what it reads and falls back to the preset; it writes a layout 250 ms after the last change, and at once when the project closes. `editors` (`{ [prj_ID]: { tabs: [{ path, preview }], active, cursors: { [path]: { line, column } } } }`, `apps/desktop/src/features/editor/editor-store.ts`) is written the same way; a tab whose file is gone is not reopened.
+Keys in use: `window` (Host), `layouts` (`{ [prj_ID]: Layout }`, `apps/desktop/src/features/layout/layout-model.ts`: preset, modified flag, and per dock zone its panels, active tab, collapsed flag and size). The Workbench validates what it reads and falls back to the preset; it writes a layout 250 ms after the last change, and at once when the project closes. `editors` (`{ [prj_ID]: { tabs: [{ path, preview }], active, cursors: { [path]: { line, column } } } }`, `apps/desktop/src/features/editor/editor-store.ts`) is written the same way; a tab whose file is gone is not reopened. `onboarding` (`{ step: 0-6, completed }`, `features/onboarding/onboarding-store.ts`) is written after every step, so quitting resumes at the same step (J-01).
 
 ## 6. Migration and recovery
 

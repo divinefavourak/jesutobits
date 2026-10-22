@@ -28,6 +28,8 @@ const notes: Project = {
 
 function renderApp(recent: Project[]) {
   const bridge = new MockHostBridge();
+  // Past first-run onboarding (Onboarding.test.tsx covers it).
+  void bridge.uiState.update({ onboarding: { step: 6, completed: true } });
   let list = recent;
   const removed: string[] = [];
   bridge.handle("projects.list", () => ({ projects: list }));

@@ -11,7 +11,12 @@ export {
   type WatchOptions,
 } from "./file-watcher.js";
 export { IgnoreRules } from "./ignore-rules.js";
-export { createProjectFolder, folderExists, type ProjectTemplate } from "./project-folder.js";
+export {
+  createProjectFolder,
+  folderExists,
+  prepareWorkspaceFolder,
+  type ProjectTemplate,
+} from "./project-folder.js";
 export { PathGuard, type ResolvedPath } from "./path-guard.js";
 export type { LineEndings, TextFormat } from "./text.js";
 export {

@@ -9,15 +9,21 @@ import { E2E_ORIGIN } from "../playwright.config";
 /** The globals `host-bridge/index.ts` reads and sets in development builds. */
 type E2EGlobals = {
   __JESUTOBITS_E2E_RELAY__?: string;
-  __JESUTOBITS_MOCK_HOST__?: { nextPickedFolder: string | null };
+  __JESUTOBITS_MOCK_HOST__?: { nextPickedFolder: string | null; documentsFolder: string | null };
 };
+
+/** Where MockHostBridge keeps UI state in the browser (host-bridge/mock-host-bridge.ts). */
+const UI_STATE_KEY = "jesutobits.mock.ui-state";
 
 export const test = base.extend<{
   /** A real runtime for this test only, with its own database. */
   relay: DevRelay;
   /** A canonical temp folder, removed after the test (Windows short names expanded). */
   tempDir: string;
+  /** Start past first-run onboarding (default); onboarding journeys set it to false. */
+  onboarded: boolean;
 }>({
+  onboarded: [true, { option: true }],
   tempDir: async ({}, use) => {
     const dir = realpathSync.native(mkdtempSync(join(tmpdir(), "jesutobits-e2e-")));
     await use(dir);
@@ -30,10 +36,17 @@ export const test = base.extend<{
     await relay.close();
     rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   },
-  page: async ({ page, relay }, use) => {
-    await page.addInitScript((setting) => {
-      (globalThis as E2EGlobals).__JESUTOBITS_E2E_RELAY__ = setting;
-    }, `${relay.url}#${relay.token}`);
+  page: async ({ page, relay, onboarded }, use) => {
+    await page.addInitScript(
+      ({ setting, onboarded, key }) => {
+        (globalThis as E2EGlobals).__JESUTOBITS_E2E_RELAY__ = setting;
+        // Runs on every load: mark onboarding done only on the first, keep what the app saved.
+        if (onboarded && localStorage.getItem(key) === null) {
+          localStorage.setItem(key, JSON.stringify({ onboarding: { step: 6, completed: true } }));
+        }
+      },
+      { setting: `${relay.url}#${relay.token}`, onboarded, key: UI_STATE_KEY },
+    );
     await use(page);
   },
 });
@@ -75,4 +88,13 @@ export async function openFolder(
   await page.getByRole("button", { name: "Open folder…" }).click();
   await page.getByRole("dialog").getByRole("button", { name: trust }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
+}
+
+/** What the Host reports as the Documents folder (onboarding suggests a folder in it). */
+export async function setDocumentsFolder(page: Page, path: string | null): Promise<void> {
+  await page.evaluate((folder) => {
+    const host = (globalThis as E2EGlobals).__JESUTOBITS_MOCK_HOST__;
+    if (!host) throw new Error("The Workbench is not using MockHostBridge");
+    host.documentsFolder = folder;
+  }, path);
 }

@@ -30,6 +30,12 @@ export function workbenchCommands({
       run: () => ui.getState().show("commands"),
     },
     {
+      id: "workbench.settings",
+      title: "command.settings",
+      keys: "Ctrl+,",
+      run: () => ui.getState().openSettings(),
+    },
+    {
       id: "project.openFolder",
       title: "command.project.openFolder",
       enabled: ready,

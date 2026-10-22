@@ -47,6 +47,8 @@ Shown on first run (FR-001). A step indicator shows 7 steps. Back is always avai
 | 6. Look and companion | Theme cards (Light, Dark, High Contrast, Follow system) with live mini-preview; companion: Ember (subtle), Dot (minimal), Pip (playful), Off; expressiveness slider | Both changeable later |
 | 7. First project | Create from template, Open folder, or Explore a sample project | Ends in the Workbench |
 
+Phase 1 (2026-10-22): steps 4 and 5 say the agent and providers arrive in 0.2 and can be skipped; step 6 has the theme and says companions arrive in 0.6; step 7 offers New project, Open folder and the start screen (no sample project yet). Jesutobits does not open web pages yet, so the toolchain step shows each install address with a Copy button. The Documents folder comes from the Host (`HostBridge.paths.documents`); without one the user must choose a folder.
+
 After onboarding, a dismissible "First steps" checklist appears in the agent panel: ask the agent something, open the preview, try Inspect mode, review a diff.
 
 ## 4. Layout

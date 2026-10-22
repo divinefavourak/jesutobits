@@ -23,6 +23,7 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "projects.list",
     "projects.locate",
     "projects.open",
+    "projects.prepareWorkspaceFolder",
     "projects.remove",
     "projects.setTrust",
     "runtime.ping",

@@ -156,6 +156,13 @@ export class MockHostBridge implements HostBridge {
     pickFolder: async (): Promise<string | null> => this.nextPickedFolder,
   };
 
+  /** What `paths.documents()` returns (test helper). */
+  documentsFolder: string | null = null;
+
+  readonly paths = {
+    documents: async (): Promise<string | null> => this.documentsFolder,
+  };
+
   private closeHandler: (() => Promise<boolean>) | undefined;
 
   onCloseRequested(handler: () => Promise<boolean>): Unsubscribe {

@@ -1,4 +1,5 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
+import { documentDir } from "@tauri-apps/api/path";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   AppSettingsSchema,
@@ -52,6 +53,17 @@ export class TauriHostBridge implements HostBridge {
     await invoke("settings_subscribe", { onChange });
     return bridge;
   }
+
+  readonly paths = {
+    documents: async (): Promise<string | null> => {
+      try {
+        return await documentDir();
+      } catch (error) {
+        this.log("warn", `no Documents folder: ${String(error)}`);
+        return null;
+      }
+    },
+  };
 
   onCloseRequested(handler: () => Promise<boolean>): Unsubscribe {
     let stopped = false;

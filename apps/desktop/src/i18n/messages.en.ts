@@ -31,7 +31,6 @@ export const en = {
   "start.recent.locate.title": "Locate {name}",
   "start.recent.remove": "Remove",
   "start.recent.removeLabel": "Remove {name} from recent projects",
-  "start.diagnostics": "Diagnostics",
 
   "project.trust.trusted": "Trusted",
   "project.trust.restricted": "Restricted",
@@ -157,6 +156,87 @@ export const en = {
   "command.project.openFolder": "File: Open folder…",
   "command.project.close": "File: Close project",
   "command.runtime.restart": "Runtime: Restart the agent runtime",
+  "command.settings": "Preferences: Open settings",
+
+  "onboarding.progress": "Setup progress",
+  "onboarding.stepOf": "Step {step} of {total}",
+  "onboarding.back": "Back",
+  "onboarding.skip": "Skip",
+  "onboarding.continue": "Continue",
+  "onboarding.getStarted": "Get started",
+  "onboarding.toStart": "Finish and go to the start screen",
+  "onboarding.welcome.title": "Welcome to Jesutobits",
+  "onboarding.welcome.body":
+    "Jesutobits builds and changes software with an AI agent you can watch. Your projects stay on your computer; only your messages and the files the agent reads are sent to the model provider you choose.",
+  "onboarding.workspace.title": "Where new projects go",
+  "onboarding.workspace.body": "Choose a folder for the projects you create in Jesutobits.",
+  "onboarding.workspace.folder": "Workspace folder",
+  "onboarding.workspace.note":
+    "New projects go here. You can open folders anywhere. The folder is created when you continue.",
+  "onboarding.workspace.choose": "Choose the workspace folder",
+  "onboarding.workspace.failed": "The folder could not be prepared. {reason}",
+  "onboarding.toolchain.title": "Check your tools",
+  "onboarding.toolchain.body":
+    "Projects run with the Git, Node.js and package manager on this computer. Missing tools do not stop you; the agent and previews need them later.",
+  "onboarding.toolchain.checking": "Looking for Git, Node.js and package managers…",
+  "onboarding.toolchain.failed": "The check did not finish. {reason}",
+  "onboarding.toolchain.git": "Git",
+  "onboarding.toolchain.node": "Node.js",
+  "onboarding.toolchain.packageManager": "Package manager",
+  "onboarding.toolchain.found": "Found ({version})",
+  "onboarding.toolchain.missing": "Not found",
+  "onboarding.toolchain.why": "Why this matters",
+  "onboarding.toolchain.git.why":
+    "Git keeps the history of your changes, so you can see and undo what changed.",
+  "onboarding.toolchain.node.why":
+    "Node.js runs JavaScript projects: their dev servers, tests and builds.",
+  "onboarding.toolchain.packageManager.why":
+    "A package manager (npm, pnpm, Yarn or Bun) installs a project's libraries. npm comes with Node.js.",
+  "onboarding.toolchain.install": "Install it from",
+  "onboarding.toolchain.copy": "Copy link",
+  "onboarding.toolchain.copied": "Copied",
+  "onboarding.provider.title": "Choose a model provider",
+  "onboarding.provider.body":
+    "The agent uses a model provider such as OpenRouter, with your own API key.",
+  "onboarding.provider.later":
+    "The agent and model providers arrive in Jesutobits 0.2. Until then Jesutobits works as an editor.",
+  "onboarding.credentials.title": "Add your API key",
+  "onboarding.credentials.body":
+    "Your key will be kept in the system's credential store, never in files Jesutobits writes.",
+  "onboarding.look.title": "Choose a look",
+  "onboarding.look.companionLater":
+    "Companions arrive in Jesutobits 0.6. You can change the theme any time in Settings.",
+  "onboarding.project.title": "Your first project",
+  "onboarding.project.body":
+    "Create a project in your workspace folder, or open a folder you already have.",
+
+  "appearance.theme": "Theme",
+  "appearance.followOs": "Follow system",
+
+  "settings.title": "Settings",
+  "settings.close": "Close settings",
+  "settings.sections": "Settings sections",
+  "settings.workspace": "Workspace",
+  "settings.appearance": "Appearance",
+  "settings.project": "This project",
+  "settings.advanced": "Advanced",
+  "settings.about": "About",
+  "settings.workspace.folder": "Workspace folder",
+  "settings.workspace.hint": "Only new projects go here; changing it moves nothing.",
+  "settings.appearance.uiScale": "Interface size",
+  "settings.appearance.percent": "{value}%",
+  "settings.appearance.reduceMotion": "Reduce motion",
+  "settings.appearance.editorFontSize": "Editor font size",
+  "settings.appearance.fontFromTheme": "From the theme",
+  "settings.appearance.px": "{value} px",
+  "settings.project.trust": "Trust for {name}",
+  "settings.project.trusted":
+    "The agent may run commands, dev servers and installs here, with your approval.",
+  "settings.project.restricted": "You can browse and edit; nothing in this folder is run.",
+  "settings.advanced.body": "Measurements for diagnosing a slow connection to the agent runtime.",
+  "settings.about.product": "Product",
+  "settings.about.protocol": "Protocol version",
+
   "command.file.save": "File: Save",
   "command.file.saveAll": "File: Save all",
   "command.file.close": "File: Close editor",

@@ -43,6 +43,7 @@ describe("method registry", () => {
       | "projects.remove"
       | "projects.locate"
       | "projects.detect"
+      | "projects.prepareWorkspaceFolder"
       | "toolchain.detect"
       | "fs.listDir"
       | "fs.stat"

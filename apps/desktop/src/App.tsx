@@ -1,10 +1,13 @@
 import { useEffect, useMemo } from "react";
+import { useStore } from "zustand";
 import { PreviewFrameProbe } from "./features/diagnostics/PreviewFrameProbe";
 import { measureRelayLatency } from "./features/diagnostics/relay-benchmark";
 import { editorCommands } from "./features/editor/editor-commands";
 import { CloseDirtyDialog, LeaveDialog } from "./features/editor/EditorPanel";
 import { layoutCommands } from "./features/layout/layout-commands";
+import { Onboarding } from "./features/onboarding/Onboarding";
 import { CommandPalette } from "./features/search/CommandPalette";
+import { SettingsView } from "./features/settings/SettingsView";
 import { QuickOpen } from "./features/search/QuickOpen";
 import type { Command } from "./state/commands";
 import { ProjectView } from "./features/layout/ProjectView";
@@ -69,9 +72,18 @@ function Overlay({ commands }: { commands: readonly Command[] }) {
   return null;
 }
 
-/** The start screen, or the project once one is open (one per window, FR-012). */
+/**
+ * Onboarding on first run (FR-001), else the start screen, or the project once one is open
+ * (one per window, FR-012). Settings cover either until closed.
+ */
 function Screen() {
+  const { onboarding } = useWorkbench();
   const hasProject = useProjects((state) => state.active !== null);
+  const onboardingStatus = useStore(onboarding, (state) => state.status);
+  const settingsOpen = useUi((state) => state.settingsOpen);
+  if (onboardingStatus === "loading") return <main className="flex-1" aria-busy="true" />;
+  if (settingsOpen) return <SettingsView />;
+  if (onboardingStatus === "active" && !hasProject) return <Onboarding />;
   return hasProject ? <ProjectView /> : <StartScreen />;
 }
 

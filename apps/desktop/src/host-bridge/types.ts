@@ -52,6 +52,10 @@ export interface HostBridge {
     /** The OS folder picker; null when the user cancels. One at a time. */
     pickFolder(options?: { title?: string; defaultPath?: string }): Promise<string | null>;
   };
+  paths: {
+    /** The user's Documents folder, for suggesting where new projects go; null if unknown. */
+    documents(): Promise<string | null>;
+  };
   /**
    * Asked when the user closes the window; resolve false to keep it open (for example to
    * offer saving unsaved files first). One handler at a time.

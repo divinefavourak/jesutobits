@@ -33,7 +33,9 @@ export function parseKeys(keys: string): Chord {
         ? "Backquote"
         : key === "."
           ? "Period"
-          : key;
+          : key === ","
+            ? "Comma"
+            : key;
   return {
     ctrl: parts.includes("Ctrl"),
     alt: parts.includes("Alt"),

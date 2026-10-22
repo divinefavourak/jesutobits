@@ -13,6 +13,7 @@ import {
   detectToolchain,
   FileIndex,
   folderExists,
+  prepareWorkspaceFolder,
   WorkspaceService,
   type WatchHandle,
 } from "@jesutobits/services";
@@ -179,6 +180,11 @@ export class Projects {
       project = store.markOpened(project.id, this.now());
       this.setActiveProject(project);
       return { project };
+    });
+
+    server.register("projects.prepareWorkspaceFolder", async (params) => {
+      const created = await prepareWorkspaceFolder(params.path);
+      return { path: await canonical(params.path), created };
     });
 
     server.register("projects.close", () => {

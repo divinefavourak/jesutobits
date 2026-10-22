@@ -65,6 +65,7 @@
     "projects.list",
     "projects.locate",
     "projects.open",
+    "projects.prepareWorkspaceFolder",
     "projects.remove",
     "projects.setTrust",
     "runtime.ping",

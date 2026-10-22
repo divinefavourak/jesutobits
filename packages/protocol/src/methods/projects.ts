@@ -67,6 +67,23 @@ export const projectsCreate = defineMethod({
   result: z.object({ project: ProjectSchema }),
 });
 
+/**
+ * Creates the default workspace folder chosen in onboarding or settings, if it is missing
+ * (FR-002: created only when the user confirms). Never writes inside an existing folder.
+ */
+export const projectsPrepareWorkspaceFolder = defineMethod({
+  name: "projects.prepareWorkspaceFolder",
+  description: "Create the default folder for new projects if it does not exist yet.",
+  callers: ["workbench"],
+  params: z.object({ path: z.string().min(1) }),
+  result: z.object({
+    /** The folder's canonical path, to store in settings. */
+    path: z.string().min(1),
+    /** False when it already existed. */
+    created: z.boolean(),
+  }),
+});
+
 export const projectsClose = defineMethod({
   name: "projects.close",
   description: "Close the active project (back to the start screen).",
