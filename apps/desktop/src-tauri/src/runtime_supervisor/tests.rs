@@ -43,6 +43,8 @@ impl Harness {
             entry_args: args.iter().map(|a| (*a).to_owned()).collect(),
             data_dir: data_dir.clone(),
             use_job_object: true,
+            reverse_handler: None,
+            on_ready: None,
         });
         Self {
             supervisor,

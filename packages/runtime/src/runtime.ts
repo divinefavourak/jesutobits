@@ -7,6 +7,7 @@ import {
   PROTOCOL_VERSION,
 } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
+import { RuntimeConfig } from "./config.js";
 import { EventBus } from "./events/event-bus.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
 import { Projects } from "./projects/projects.js";
@@ -35,6 +36,8 @@ export interface Runtime {
   endOfInput(): void;
   /** Where services emit runtime events. */
   readonly events: EventBus;
+  /** The settings from the Host's latest `runtime.configure`. */
+  readonly config: RuntimeConfig;
 }
 
 type LifecycleState = "awaiting_initialize" | "ready" | "shutting_down";
@@ -110,6 +113,13 @@ export function createRuntime(io: RuntimeIo): Runtime {
     };
   });
 
+  const config = new RuntimeConfig();
+  server.register("runtime.configure", (params) => {
+    config.update(params);
+    log.info("settings received", { appDirs: params.appDirs.length });
+    return {};
+  });
+
   server.register("runtime.ping", (params) => ({
     uptimeMs: io.uptimeMs(),
     ...(params.echo !== undefined && { echo: params.echo }),
@@ -171,6 +181,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
 
   return {
     events,
+    config,
     receive: (chunk) => splitter.push(chunk),
     endOfInput() {
       splitter.end();

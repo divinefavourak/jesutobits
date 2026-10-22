@@ -264,7 +264,7 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 
 | Namespace | Methods |
 |---|---|
-| `runtime` | `initialize` and `shutdown` (Host only); `ping` (Host health checks, and the Workbench for relay latency) |
+| `runtime` | `initialize`, `configure` and `shutdown` (Host only); `ping` (Host health checks, and the Workbench for relay latency). The Host sends `configure` (the `providers`, `agent` and `privacy` settings, and its own config and log folders) after every handshake, before reporting Ready, and after every settings change |
 | `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`, `detect` (package manager, scripts, preview strategy, visual-editing level: VISUAL_EDITING.md section 3), `prepareWorkspaceFolder` (creates the default folder for new projects when the user confirms it, FR-002) |
 | `toolchain` | `detect` (Git, Node.js and package managers with versions, FR-010) |
 | `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`, `trash` (the runtime confines the path, the Host moves it to the OS trash: ADR-0014); `search` arrives with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |

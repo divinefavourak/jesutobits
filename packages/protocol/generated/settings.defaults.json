@@ -14,6 +14,30 @@
   "terminal": {
     "shell": "auto"
   },
+  "providers": {
+    "openrouter": {
+      "enabled": true,
+      "profile": "default",
+      "defaultModel": null,
+      "options": {
+        "provider": {
+          "allow_fallbacks": true,
+          "data_collection": "deny"
+        }
+      }
+    }
+  },
+  "agent": {
+    "defaultPolicyPreset": "balanced",
+    "limits": {
+      "stepsPerTurn": 40,
+      "toolCallsPerTurn": 150,
+      "turnMinutes": 30,
+      "costPerTurnUsd": 1,
+      "costPerSessionUsd": 5,
+      "fixAttempts": 3
+    }
+  },
   "privacy": {
     "logModelTraffic": false,
     "providerAttributionHeaders": false

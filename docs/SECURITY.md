@@ -50,6 +50,7 @@ flowchart TB
 - The runtime fetches a key through `host.secrets.get` only when it needs to call the provider, keeps it in memory, and registers it with the `SecretRegistry` for redaction.
 - Keys never appear in: settings files, SQLite, logs, crash bundles, model context, child-process environments, event payloads, or diagnostic exports. **Canary test:** CI runs a session with a fake key `sk-or-CANARY-...` and fails if the string appears in any file under the app data directory or in any event.
 - On Linux without a Secret Service, the user enters the key per session; it lives only in runtime memory.
+- Implementation (Phase 2): `apps/desktop/src-tauri/src/secret_store.rs` with `keyring` 3.6.3. The service name is the bundle identifier (`dev.jesutobits.app`, `dev.jesutobits.app.dev` for development builds) and the account is the reference (`provider:openrouter:default`). Linux uses the kernel keyring (keyutils), which needs no D-Bus and keeps keys for the login session, matching the per-session fallback above; a Secret Service backend can follow when Linux packages are scheduled. The Host registers every value it stores or reads with its log redactor. The Workbench's commands are `secrets_set`, `secrets_delete` and `secrets_exists`; the runtime reads keys with `host.secrets.get`, which answers `{ value: null }` when none is stored.
 
 ## 4. Permission model
 

@@ -16,6 +16,7 @@ import {
   type MethodResult,
   type RuntimeEventBase,
   type RuntimeStatusUpdate,
+  type SecretRef,
   type SettingsPatch,
   type UiState,
   type WorkbenchMethod,
@@ -139,6 +140,15 @@ export class TauriHostBridge implements HostBridge {
       ),
   };
 
+  readonly secrets = {
+    set: (ref: SecretRef, value: string): Promise<void> =>
+      this.command("secrets_set", { secretRef: ref, value }, nothing),
+    delete: (ref: SecretRef): Promise<void> =>
+      this.command("secrets_delete", { secretRef: ref }, nothing),
+    exists: (ref: SecretRef): Promise<boolean> =>
+      this.command("secrets_exists", { secretRef: ref }, boolean),
+  };
+
   notices(): Promise<HostNotice[]> {
     return this.command("host_notices", {}, HostNoticeSchema.array());
   }
@@ -195,6 +205,16 @@ export class TauriHostBridge implements HostBridge {
     else this.log("warn", "Dropped a runtime status update that failed validation");
   }
 }
+
+const nothing: Parser<void> = {
+  safeParse: (value) =>
+    value === null || value === undefined ? { success: true, data: undefined } : { success: false },
+};
+
+const boolean: Parser<boolean> = {
+  safeParse: (value) =>
+    typeof value === "boolean" ? { success: true, data: value } : { success: false },
+};
 
 const nullableString: Parser<string | null> = {
   safeParse: (value) =>

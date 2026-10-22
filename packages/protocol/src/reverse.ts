@@ -52,9 +52,31 @@ export const hostOsReveal = defineReverseMethod({
   result: z.object({}),
 });
 
+/** `provider:<id>:<profile>` (ARCHITECTURE.md section 5.1); the Host checks the same rule. */
+export const SecretRefSchema = z
+  .string()
+  .regex(
+    /^provider:[a-z0-9-]{1,32}:[a-z0-9-]{1,32}$/,
+    "A secret reference looks like provider:<id>:<profile>",
+  );
+export type SecretRef = z.infer<typeof SecretRefSchema>;
+
+/**
+ * Reads a provider key from the OS credential store (SECURITY.md section 3). Only the
+ * runtime may ask, and only when it is about to call the provider; the Workbench has no way
+ * to read a secret back.
+ */
+export const hostSecretsGet = defineReverseMethod({
+  name: "host.secrets.get",
+  description: "Read a secret from the OS credential store; null when none is stored.",
+  params: z.object({ ref: SecretRefSchema }),
+  result: z.object({ value: z.string().min(1).nullable() }),
+});
+
 export const REVERSE_METHODS = {
   [hostFsTrash.name]: hostFsTrash,
   [hostOsReveal.name]: hostOsReveal,
+  [hostSecretsGet.name]: hostSecretsGet,
 } as const;
 
 export type ReverseMethod = keyof typeof REVERSE_METHODS;

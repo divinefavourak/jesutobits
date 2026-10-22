@@ -120,12 +120,14 @@
     "toolchain.detect"
   ],
   "host": [
+    "runtime.configure",
     "runtime.initialize",
     "runtime.ping",
     "runtime.shutdown"
   ],
   "reverse": [
     "host.fs.trash",
-    "host.os.reveal"
+    "host.os.reveal",
+    "host.secrets.get"
   ]
 }

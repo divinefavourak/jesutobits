@@ -56,6 +56,7 @@ pub const WORKBENCH_METHODS: &[&str] = &[
 
 /// Runtime methods the Host itself sends.
 pub const HOST_METHODS: &[&str] = &[
+    "runtime.configure",
     "runtime.initialize",
     "runtime.ping",
     "runtime.shutdown",
@@ -65,6 +66,7 @@ pub const HOST_METHODS: &[&str] = &[
 pub const REVERSE_METHODS: &[&str] = &[
     "host.fs.trash",
     "host.os.reveal",
+    "host.secrets.get",
 ];
 
 pub fn is_workbench_method(method: &str) -> bool {

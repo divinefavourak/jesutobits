@@ -9,9 +9,12 @@
 //   POST /rpc     {"method", "params"} -> {"result"} or {"error"} (a JSON-RPC error object)
 //   GET  /events  NDJSON stream: {"kind":"status",...} and {"kind":"event","event":{...}}
 //
+//   POST /secrets {"ref", "value"} keeps a secret in memory for the runtime (null deletes it)
+//
 // It also plays the Host's part in reverse calls (ADR-0014) without touching the OS:
-// `host.fs.trash` moves the path into <data-dir>/trash/, and `host.os.reveal` only records
-// the path in `revealed`. Other reverse calls are refused at once.
+// `host.fs.trash` moves the path into <data-dir>/trash/, `host.os.reveal` only records the
+// path in `revealed`, and `host.secrets.get` answers from POST /secrets, never the OS
+// credential store. Other reverse calls are refused at once.
 //
 //   node scripts/dev-relay.mjs [--port 1421] [--data-dir <dir>] [--origin http://127.0.0.1:1420]
 import { spawn } from "node:child_process";
@@ -58,6 +61,8 @@ export async function startRelay({
   const listeners = new Set();
   const revealed = [];
   let trashed = 0;
+  /** The Host's credential store, in memory: refs to values set through POST /secrets. */
+  const secrets = new Map();
   let nextId = 1;
   let status = { status: "starting" };
   let buffer = "";
@@ -128,6 +133,9 @@ export async function startRelay({
       revealed.push(params.path);
       return {};
     }
+    if (method === "host.secrets.get") {
+      return { value: secrets.get(params.ref) ?? null };
+    }
     throw Object.assign(
       new Error(`${method} needs the desktop app; it is not available in dev:web`),
       { code: "rpc.method_not_found" },
@@ -186,6 +194,21 @@ export async function startRelay({
       response.write(`${JSON.stringify({ kind: "status", ...status })}\n`);
       listeners.add(response);
       request.on("close", () => listeners.delete(response));
+      return;
+    }
+    if (request.method === "POST" && request.url === "/secrets") {
+      const chunks = [];
+      request.on("data", (chunk) => chunks.push(chunk));
+      request.on("end", () => {
+        try {
+          const { ref, value } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          if (typeof value === "string") secrets.set(ref, value);
+          else secrets.delete(ref);
+          send(200, { result: {} });
+        } catch {
+          send(400, { error: rpcError(-32700, "rpc.parse_error", "Invalid JSON") });
+        }
+      });
       return;
     }
     if (request.method === "POST" && request.url === "/rpc") {

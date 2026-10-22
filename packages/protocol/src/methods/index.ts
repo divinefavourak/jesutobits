@@ -51,7 +51,7 @@ import {
   projectsSetTrust,
 } from "./projects.js";
 import { toolchainDetect } from "./toolchain.js";
-import { runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
+import { runtimeConfigure, runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
 export { defineMethod } from "./define.js";
 export { eventsReplay } from "./events.js";
@@ -60,13 +60,14 @@ export * from "./fs.js";
 export * from "./projects.js";
 export * from "./toolchain.js";
 export type { Caller, MethodDefinition } from "./define.js";
-export { runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
+export { runtimeConfigure, runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
 /** Every runtime method. Adding one here is step one of ADR-0003's "two changes" rule. */
 export const METHODS = {
   [runtimeInitialize.name]: runtimeInitialize,
   [runtimePing.name]: runtimePing,
   [runtimeShutdown.name]: runtimeShutdown,
+  [runtimeConfigure.name]: runtimeConfigure,
   [eventsReplay.name]: eventsReplay,
   [projectsList.name]: projectsList,
   [projectsOpen.name]: projectsOpen,

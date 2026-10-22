@@ -15,6 +15,9 @@ fn main() {
             "ui_state_update",
             "host_notices",
             "dialog_pick_folder",
+            "secrets_set",
+            "secrets_delete",
+            "secrets_exists",
         ]),
     ))
     .expect("failed to run tauri-build");

@@ -15,6 +15,8 @@ pub struct Settings {
     pub workspace: Workspace,
     pub appearance: Appearance,
     pub terminal: Terminal,
+    pub providers: Providers,
+    pub agent: Agent,
     pub privacy: Privacy,
     pub developer: Developer,
     /// Sections this version does not know (from a newer Jesutobits), kept as they are.
@@ -46,6 +48,76 @@ pub struct Terminal {
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
+pub struct Providers {
+    pub openrouter: OpenRouter,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct OpenRouter {
+    pub enabled: bool,
+    /// Which stored key: `provider:openrouter:<profile>`. Never the key itself.
+    pub profile: String,
+    pub default_model: Option<String>,
+    pub options: OpenRouterOptions,
+}
+
+/// OpenRouter's own request options, in OpenRouter's (snake_case) field names.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct OpenRouterOptions {
+    pub provider: ProviderRouting,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub models: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ProviderRouting {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<Vec<String>>,
+    pub allow_fallbacks: bool,
+    pub data_collection: DataCollection,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DataCollection {
+    Allow,
+    #[default]
+    Deny,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Agent {
+    pub default_policy_preset: PolicyPreset,
+    pub limits: Limits,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PolicyPreset {
+    Cautious,
+    #[default]
+    Balanced,
+    Autonomous,
+}
+
+/// AGENT_HARNESS.md section 3.4.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Limits {
+    pub steps_per_turn: u32,
+    pub tool_calls_per_turn: u32,
+    pub turn_minutes: u32,
+    pub cost_per_turn_usd: f64,
+    pub cost_per_session_usd: f64,
+    pub fix_attempts: u32,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Privacy {
     pub log_model_traffic: bool,
     pub provider_attribution_headers: bool,
@@ -64,6 +136,8 @@ impl Default for Settings {
             workspace: Workspace::default(),
             appearance: Appearance::default(),
             terminal: Terminal::default(),
+            providers: Providers::default(),
+            agent: Agent::default(),
             privacy: Privacy::default(),
             developer: Developer::default(),
             extra: Map::new(),
@@ -79,6 +153,40 @@ impl Default for Appearance {
             reduce_motion: false,
             ui_scale: 1.0,
             editor_font_size: None,
+        }
+    }
+}
+
+impl Default for OpenRouter {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            profile: "default".to_owned(),
+            default_model: None,
+            options: OpenRouterOptions::default(),
+        }
+    }
+}
+
+impl Default for ProviderRouting {
+    fn default() -> Self {
+        Self {
+            order: None,
+            allow_fallbacks: true,
+            data_collection: DataCollection::Deny,
+        }
+    }
+}
+
+impl Default for Limits {
+    fn default() -> Self {
+        Self {
+            steps_per_turn: 40,
+            tool_calls_per_turn: 150,
+            turn_minutes: 30,
+            cost_per_turn_usd: 1.0,
+            cost_per_session_usd: 5.0,
+            fix_attempts: 3,
         }
     }
 }
@@ -125,7 +233,62 @@ impl Settings {
         if self.terminal.shell.is_empty() {
             return Err("the terminal shell cannot be empty".to_owned());
         }
+        self.validate_providers()?;
+        self.validate_limits()
+    }
+
+    fn validate_providers(&self) -> Result<(), String> {
+        let openrouter = &self.providers.openrouter;
+        let profile_ok = (1..=32).contains(&openrouter.profile.len())
+            && openrouter
+                .profile
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+        if !profile_ok {
+            return Err("the key profile may use only a-z, 0-9 and hyphens".to_owned());
+        }
+        if openrouter.default_model.as_deref() == Some("") {
+            return Err("the default model cannot be empty".to_owned());
+        }
+        let options = &openrouter.options;
+        let names_ok = |names: &Option<Vec<String>>, max: usize| {
+            names
+                .as_ref()
+                .is_none_or(|names| names.len() <= max && names.iter().all(|n| !n.is_empty()))
+        };
+        if !names_ok(&options.provider.order, 20) || !names_ok(&options.models, 10) {
+            return Err("the OpenRouter options list empty names or too many".to_owned());
+        }
         Ok(())
+    }
+
+    /// The ranges in AgentSettingsSchema.
+    fn validate_limits(&self) -> Result<(), String> {
+        let limits = &self.agent.limits;
+        let checks = [
+            (
+                "steps per turn",
+                (1..=1000).contains(&limits.steps_per_turn),
+            ),
+            (
+                "tool calls per turn",
+                (1..=5000).contains(&limits.tool_calls_per_turn),
+            ),
+            ("minutes per turn", (1..=600).contains(&limits.turn_minutes)),
+            (
+                "cost per turn",
+                (0.01..=1000.0).contains(&limits.cost_per_turn_usd),
+            ),
+            (
+                "cost per session",
+                (0.01..=10_000.0).contains(&limits.cost_per_session_usd),
+            ),
+            ("fix attempts", (1..=10).contains(&limits.fix_attempts)),
+        ];
+        match checks.iter().find(|(_, ok)| !ok) {
+            Some((name, _)) => Err(format!("the agent limit for {name} is out of range")),
+            None => Ok(()),
+        }
     }
 
     pub fn to_value(&self) -> Value {

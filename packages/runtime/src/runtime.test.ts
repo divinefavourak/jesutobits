@@ -47,6 +47,43 @@ function setup() {
   return { io, runtime, call, initialize, sent, logLines };
 }
 
+describe("runtime.configure", () => {
+  it("uses defaults until the Host sends settings, then the Host's", async () => {
+    const { runtime, initialize, call } = setup();
+    await initialize();
+    expect(runtime.config.settings.agent.limits.stepsPerTurn).toBe(40);
+    expect(runtime.config.settings.providers.openrouter.options.provider.data_collection).toBe(
+      "deny",
+    );
+    const reply = await call({
+      jsonrpc: "2.0",
+      id: "h-2",
+      method: "runtime.configure",
+      params: {
+        settings: { agent: { limits: { stepsPerTurn: 12 } }, providers: {}, privacy: {} },
+        appDirs: ["/home/ada/.config/jesutobits"],
+      },
+    });
+    expect(reply).toEqual({ jsonrpc: "2.0", id: "h-2", result: {} });
+    expect(runtime.config.settings.agent.limits.stepsPerTurn).toBe(12);
+    expect(runtime.config.settings.agent.limits.toolCallsPerTurn).toBe(150);
+    expect(runtime.config.appDirs).toEqual(["/home/ada/.config/jesutobits"]);
+  });
+
+  it("rejects settings out of range and keeps the previous ones", async () => {
+    const { runtime, initialize, call } = setup();
+    await initialize();
+    const reply = await call({
+      jsonrpc: "2.0",
+      id: "h-2",
+      method: "runtime.configure",
+      params: { settings: { agent: { limits: { stepsPerTurn: 0 } } } },
+    });
+    expect(reply).toMatchObject({ error: { code: RpcErrorCode.InvalidParams } });
+    expect(runtime.config.settings.agent.limits.stepsPerTurn).toBe(40);
+  });
+});
+
 describe("runtime lifecycle", () => {
   it("completes the handshake", async () => {
     const { initialize } = setup();
