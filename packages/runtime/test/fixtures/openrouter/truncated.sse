@@ -1,0 +1,4 @@
+data: {"id":"gen-cut","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"gen-cut","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"content":"A partial answer"},"finish_reason":null}]}
+

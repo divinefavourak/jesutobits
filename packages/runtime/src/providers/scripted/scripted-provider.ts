@@ -123,7 +123,9 @@ export class ScriptedProvider implements ModelProvider {
           yield event;
           return;
         default:
-          if (event.type !== "usage" && event.type !== "finish") afterContent = true;
+          if (event.type !== "usage" && event.type !== "finish" && event.type !== "keepalive") {
+            afterContent = true;
+          }
           yield event;
       }
     }

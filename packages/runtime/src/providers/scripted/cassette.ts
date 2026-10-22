@@ -60,6 +60,8 @@ export const CassetteEventSchema = z.discriminatedUnion("type", [
   z
     .object({ type: z.literal("error"), error: ProviderErrorSchema, afterContent: z.boolean() })
     .strict(),
+  /** Bytes without content (an SSE comment); resets the idle timer. */
+  z.object({ type: z.literal("keepalive") }).strict(),
   /** No bytes for `ms` (on the injected clock): first-byte and idle timeouts. */
   z.object({ type: z.literal("stall"), ms: NonNegative }).strict(),
   /** The request fails with this status before any content. */

@@ -1,0 +1,16 @@
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-text","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"gen-text","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"content":"Hello"},"finish_reason":null}]}
+
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-text","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}
+
+data: {"id":"gen-text","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"content":"!"},"finish_reason":"stop"}]}
+
+data: {"id":"gen-text","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"content":""},"finish_reason":"stop"}],"usage":{"prompt_tokens":12,"completion_tokens":5,"prompt_tokens_details":{"cached_tokens":4},"cost":0.000123}}
+
+data: [DONE]
+

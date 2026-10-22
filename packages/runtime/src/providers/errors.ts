@@ -121,6 +121,13 @@ const GUIDANCE: Record<ProviderErrorCategory, { message: string; userAction?: Us
 
 /** The turn-ending form of a provider failure (ARCHITECTURE.md section 9). */
 export function providerFailure(error: ProviderError): JesutobitsError {
+  if (error.category === "auth" && error.providerErrorType === "no_credentials") {
+    return new JesutobitsError(
+      ErrorCodes.providerNoCredentials,
+      "No OpenRouter API key is stored. Add one in Settings > Models & providers.",
+      { userAction: "open_settings", details: { category: "auth" } },
+    );
+  }
   const guidance = GUIDANCE[error.category];
   return new JesutobitsError(CODES[error.category], guidance.message, {
     retryable: error.retryable,

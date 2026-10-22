@@ -68,6 +68,11 @@ export type ModelStreamEvent =
       costUsd?: number | undefined;
     }
   | { type: "finish"; reason: FinishReason }
+  /**
+   * The provider sent bytes without content (an SSE comment such as OpenRouter's
+   * `: OPENROUTER PROCESSING`). Resets the idle timer (AGENT_HARNESS.md section 2.5).
+   */
+  | { type: "keepalive" }
   /** `afterContent`: some delta was already emitted (RN-27). */
   | { type: "error"; error: ProviderError; afterContent: boolean };
 

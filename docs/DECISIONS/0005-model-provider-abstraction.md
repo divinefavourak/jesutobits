@@ -36,6 +36,10 @@ Jesutobits starts with OpenRouter as the only provider, but must support direct 
 - Cancellation calls `AbortController.abort()`. For providers where aborting does not stop billing (RN-28), the UI shows "Stopped. The provider may still bill for the full response." when the model's provider is on the known list. That list is data, not code.
 - A `ScriptedProvider` implementing the same interface powers deterministic tests (TESTING_STRATEGY.md).
 
+## Implementation notes
+
+- Phase 2 (2026-10-22): the SSE parser is our own (`providers/openrouter/sse.ts`, about 80 lines) instead of `eventsource-parser`, because the npm registry was unreachable; it follows the WHATWG event-stream rules and has its own tests. SSE comments become a `keepalive` stream event, so the ProviderCaller's idle timer sees them. Requests send `usage: { include: true }` so the final chunk carries tokens and cost. A missing key is reported as `auth` with `providerErrorType: "no_credentials"` (turn error `provider.no_credentials`). The model list comes from one `GET /models`; `capabilities.tools` is read from each model's `supported_parameters`.
+
 ## Revisit when
 
 A second provider needs a concept the contract cannot express without breaking changes (for example server-side tool execution or persistent server-side conversation state).

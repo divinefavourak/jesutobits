@@ -1,0 +1,8 @@
+data: {"id":"gen-mid","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}
+
+data: {"id":"gen-mid","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{"content":"Starting to answer"},"finish_reason":null}]}
+
+data: {"id":"gen-mid","model":"anthropic/claude-sonnet-x","choices":[{"index":0,"delta":{},"finish_reason":"error"}],"error":{"code":502,"message":"Provider returned an error","metadata":{"error_type":"provider_error"}}}
+
+data: [DONE]
+
