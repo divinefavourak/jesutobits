@@ -96,7 +96,12 @@ export const boundaryRules = [
   },
   {
     files: ["packages/runtime/src/"],
-    except: ["packages/runtime/src/storage/", "packages/runtime/src/log/"],
+    // cassette-file.ts reads only the development cassette named by JESUTOBITS_CASSETTE.
+    except: [
+      "packages/runtime/src/storage/",
+      "packages/runtime/src/log/",
+      "packages/runtime/src/providers/scripted/cassette-file.ts",
+    ],
     tests: false,
     imports: [FS],
     message:

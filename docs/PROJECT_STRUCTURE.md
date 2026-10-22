@@ -145,6 +145,7 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 | Components use theme tokens only; raw colour literals banned in `features/` and `ui/` | Theming (EXTENSION_SYSTEM.md section 4) |
 | In `services`, only `workspace/` imports `node:fs` for project paths (plus `process/environment.ts`, which only checks PATH folders for executables); only `process/` imports `node:child_process` | Single enforcement points |
 | In `runtime`, only `storage/` imports `node:sqlite`; only `providers/` performs model HTTP | Swappability and audit |
+| In `runtime`, only `storage/` and `log/` import `node:fs` (plus `providers/scripted/cassette-file.ts`, which reads the development cassette named by `JESUTOBITS_CASSETTE`) | Project files go through WorkspaceService |
 | `console.*` banned in `runtime` and `services` | Stdout carries the protocol (ADR-0003) |
 | Native addons banned in `runtime` and `services` | ADR-0002 |
 | Tools never import other tools; shared logic goes to `services` or `tools/common` | Avoid hidden coupling |
