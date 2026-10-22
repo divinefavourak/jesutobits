@@ -268,14 +268,14 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`, `detect` (package manager, scripts, preview strategy, visual-editing level: VISUAL_EDITING.md section 3), `prepareWorkspaceFolder` (creates the default folder for new projects when the user confirms it, FR-002) |
 | `toolchain` | `detect` (Git, Node.js and package managers with versions, FR-010) |
 | `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`, `trash` (the runtime confines the path, the Host moves it to the OS trash: ADR-0014); `search` arrives with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |
-| `sessions` | `list`, `create`, `get`, `rename`, `archive`, `delete`, `export` |
+| `sessions` | `list`, `create`, `get`, `history` (pages of the session's stored events), `rename`, `archive`, `delete`, `export` (later, FR-170) |
 | `agent` | `sendMessage`, `cancelTurn`, `pauseTurn`, `resumeTurn`, `retryTurn`, `answerQuestion`, `setModel` |
-| `permissions` | `respond`, `listRules`, `addRule`, `removeRule`, `getPolicy`, `setPolicy` |
-| `checkpoints` | `listForSession`, `revertTurn`, `revertFile` |
+| `permissions` | `respond`, `listRules`, `addRule` (Phase 3, project rules for checks and dev servers), `removeRule`, `getPolicy`, `setPolicy` |
+| `checkpoints` | `listForTurn`, `revertTurn`, `revertFile` |
 | `preview` | `start`, `stop`, `restart`, `status`, `logs`, `setViewport` |
 | `visual` | `inspect` (source analysis for a selection), `applyEdit`, `undoEdit` |
 | `git` | `status`, `diff`, `commit`, `log` |
-| `models` | `list`, `testConnection`, `refresh` |
+| `models` | `list` (with `refresh: true` to fetch again), `testConnection` |
 | `events` | `replay` |
 | `extensions` | `validate` (called by the Host during install, and by the Workbench for developer-mode reloads) |
 
@@ -301,10 +301,11 @@ Event catalogue (full payloads in AGENT_HARNESS.md section 8):
 
 | Family | Types |
 |---|---|
-| Turn | `turn.started`, `turn.state_changed`, `turn.completed`, `turn.failed`, `turn.cancelled`, `turn.interrupted` |
-| Model | `model.request_started`, `model.text_delta`, `model.reasoning_delta`, `model.tool_call_proposed`, `model.usage`, `model.error` |
+| Session | `session.updated` |
+| Turn | `turn.started`, `turn.state_changed`, `turn.completed`, `turn.failed`, `turn.cancelled`, `turn.interrupted` (stored at startup, never sent live) |
+| Model | `model.request_started`, `model.text_delta`, `model.reasoning_delta`, `model.step_completed` (a step's full text and the tools it called), `model.usage`, `model.error` |
 | Plan | `plan.updated` |
-| Tool | `tool.started`, `tool.output_delta`, `tool.completed`, `tool.failed` |
+| Tool | `tool.started`, `tool.output_delta` (Phase 3), `tool.completed` (`ok: false` for failures, denials and blocked actions) |
 | Permission | `permission.requested`, `permission.resolved` |
 | Question | `question.asked`, `question.answered` |
 | Process | `process.started`, `process.output`, `process.exited` |
@@ -314,6 +315,8 @@ Event catalogue (full payloads in AGENT_HARNESS.md section 8):
 | Runtime | `runtime.warning`, `runtime.error` |
 
 Each event type is declared with `defineEvent` in `packages/protocol/src/events.ts` (its own fields sit next to the base fields, and unknown fields are rejected) and registered in `EVENTS`; `pnpm gen` writes a JSON Schema per event. The runtime's `EventBus` (`packages/runtime/src/events/`) assigns `seq`, checks every event against its schema before sending it, and keeps the last 2,000 events for `events.replay`, which reports `complete: false` when a gap is older than the buffer (the Workbench then reloads that state from its owning methods).
+
+Agent events are also stored with their session, except text and reasoning deltas (`TRANSIENT_EVENT_TYPES`); `sessions.history` returns them, and the Workbench folds stored and live events through the same reducer.
 
 The Workbench derives **everything** it shows about agent activity (timeline rows, status bar, companion state) from these events. No component invents activity.
 

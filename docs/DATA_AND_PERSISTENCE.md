@@ -198,6 +198,8 @@ CREATE TABLE model_cache (
 );
 ```
 
+Phase 2 (migration `0002_agent.sql`) created the agent tables as above, with these differences: `turns` also has `mode` (`agent` or `ask`), `model_id`, `retry_of` (the failed or interrupted turn a retry continues) and `error_json`; `events.session_id` is required and cascades with its session; `permission_rules` has a `description` (the rule in words, as the approval card showed it); `checkpoints` has one row per turn and path (`UNIQUE (owner_id, path)`), with `after_hash` null for a removed file. `evidence` and `managed_processes` arrive with Phase 3. `messages` hold what the model sees; `events` hold what the Workbench shows.
+
 Write patterns: text deltas are streamed to the UI but persisted only as the final assistant message per step. Tool, permission, check and state-change events are persisted as they happen, in short transactions. Bursts (for example many `tool.output_delta` events) are grouped into one transaction per flush rather than one per event: Spike S1 measured about 0.2 ms per single-row commit with WAL and `synchronous=NORMAL`, so 10,000 autocommitted rows took 2.1 to 2.5 s, against 0.2 to 0.9 s in transactions (`docs/spikes/S1.md`).
 
 ## 5. Settings files
