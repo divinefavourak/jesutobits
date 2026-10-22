@@ -154,9 +154,9 @@ export class Projects {
             createdByJesutobits: false,
           });
       }
-      await this.activate(project);
+      // Recorded first: a read-only database refuses it, and the current project stays open.
       project = store.markOpened(project.id, this.now());
-      this.setActiveProject(project);
+      await this.activate(project);
       return { project, needsTrustDecision: project.trust === "unknown" };
     });
 
@@ -176,9 +176,8 @@ export class Projects {
           createdByJesutobits: true,
         });
       if (existing) project = store.setTrust(existing.id, "trusted");
-      await this.activate(project);
       project = store.markOpened(project.id, this.now());
-      this.setActiveProject(project);
+      await this.activate(project);
       return { project };
     });
 
