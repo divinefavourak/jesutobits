@@ -20,6 +20,8 @@
     "test": "tsc -b && pnpm build:runtime && vitest run",
     "test:watch": "vitest",
     "test:e2e": "pnpm --filter @jesutobits/desktop test:e2e",
+    "build:desktop-test": "pnpm build:packages && pnpm --filter @jesutobits/desktop tauri build --debug --no-bundle",
+    "test:desktop": "node scripts/test-desktop.mjs",
     "test:rust": "cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
     "gen": "tsc -b packages/protocol && node scripts/gen-protocol.mjs && node scripts/gen-allowlist.mjs",
     "gen:check": "pnpm gen && git diff --exit-code -- packages/protocol/generated apps/desktop/src-tauri/src/rpc_relay/allowlist.rs"

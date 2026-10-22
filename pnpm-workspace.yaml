@@ -16,3 +16,7 @@ minimumReleaseAgeStrict: true
 allowBuilds:
   # The postinstall only verifies the binary that the @esbuild/<platform> optional dependency provides.
   esbuild: false
+  # webdriverio's driver downloaders. The desktop tests use tauri-driver with the WebView2-
+  # matched msedgedriver from scripts/fetch-webdriver.mjs (Linux: WebKitWebDriver), never these.
+  edgedriver: false
+  geckodriver: false

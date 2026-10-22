@@ -51,7 +51,7 @@ pnpm test:e2e       # when you touch UI flows or visual editing
 cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml  # when you touch Rust
 ```
 
-`pnpm test:e2e` needs `pnpm build:packages` and a Playwright Chromium (`pnpm --filter @jesutobits/desktop exec playwright install chromium`). `pnpm lint` includes `cargo fmt --check` and `cargo clippy`, so it needs `pnpm build:packages` and `pnpm fetch:sidecars` first (the Host build embeds the runtime bundle and the Node sidecar). `pnpm test:rust` runs `cargo test`.
+`pnpm test:e2e` needs `pnpm build:packages` and a Playwright Chromium (`pnpm --filter @jesutobits/desktop exec playwright install chromium`). `pnpm lint` includes `cargo fmt --check` and `cargo clippy`, so it needs `pnpm build:packages` and `pnpm fetch:sidecars` first (the Host build embeds the runtime bundle and the Node sidecar). `pnpm test:rust` runs `cargo test`. `pnpm test:desktop` (nightly) drives the real app; it needs `cargo install tauri-driver --locked` and `pnpm build:desktop-test`.
 
 Use `JESUTOBITS_PROVIDER=scripted JESUTOBITS_CASSETTE=<file>` to run without an API key. Never add real keys anywhere in the repo.
 

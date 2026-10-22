@@ -34,6 +34,7 @@ jesutobits/
 │       │   │   └── extensions/  settings/  diagnostics/
 │       │   └── i18n/              # externalised strings (NFR-020)
 │       ├── e2e/                   # Playwright: journeys/, visual-editing/, a11y/
+│       ├── desktop-tests/         # the real app through tauri-driver (pnpm test:desktop, nightly)
 │       └── src-tauri/             # HOST (Rust)
 │           ├── Cargo.toml
 │           ├── tauri.conf.json    # bundle.externalBin: jesutobits-node, jesutobits-rg; resources

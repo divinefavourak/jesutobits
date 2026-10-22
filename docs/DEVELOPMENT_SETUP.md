@@ -1,6 +1,6 @@
 # Development Setup
 
-> Status: **Partly live.** Phase 0 is in progress (ROADMAP.md). Working today: `pnpm install`, `fetch:sidecars` (Node only; ripgrep arrives in Phase 2), `build:packages`, `build:runtime`, `dev` (Workbench placeholder in the Tauri Host), `dev:web` (with `MockHostBridge`), `lint` (now including `lint:rust`), `typecheck`, `test`, `test:rust`, `test:e2e`, `gen`, `gen:check`. Not yet: `test:desktop`, `build`, `eval`, `kill:dev`, which arrive in Phase 1 and later. Phase 0 is done only when a clean Windows machine can follow this file without help.
+> Status: **Partly live.** Phase 0 is in progress (ROADMAP.md). Working today: `pnpm install`, `fetch:sidecars` (Node only; ripgrep arrives in Phase 2), `build:packages`, `build:runtime`, `dev` (Workbench placeholder in the Tauri Host), `dev:web` (with `MockHostBridge`), `lint` (now including `lint:rust`), `typecheck`, `test`, `test:rust`, `test:e2e`, `build:desktop-test`, `test:desktop`, `gen`, `gen:check`. Not yet: `build`, `eval`, `kill:dev`, which arrive in Phase 1 and later. Phase 0 is done only when a clean Windows machine can follow this file without help.
 
 ## 1. Prerequisites
 
@@ -61,7 +61,7 @@ Fixture projects (`fixtures/projects/*`) are separate pnpm roots with their own 
 | `pnpm typecheck` | `tsc -b` across packages |
 | `pnpm test` | Vitest across packages; Workbench component tests (`*.test.tsx`) run in jsdom with Testing Library |
 | `pnpm test:e2e` | Playwright browser E2E (`apps/desktop/e2e/`): the Workbench in Chromium on `127.0.0.1:1440` against `MockHostBridge`, each test with its own real runtime through `scripts/dev-relay.mjs` and its own database. Needs `pnpm build:packages` and, once, `pnpm --filter @jesutobits/desktop exec playwright install chromium`. Mock settings and UI state live in the page's `localStorage`, so a reload keeps them like a restart keeps the Host's files. Axe checks use `expectAccessible` from `e2e/fixtures.ts` |
-| `pnpm test:desktop` | WebdriverIO + tauri-driver desktop tests (Windows, Linux) |
+| `pnpm test:desktop` | The real app through tauri-driver and WebdriverIO (`apps/desktop/desktop-tests/`, Node's test runner), with fresh data, config and log folders: startup, IPC allowlist, crash restart, nothing left running after close. Needs `cargo install tauri-driver --locked` once, `pnpm build:desktop-test` (a debug Host with the Workbench built in) after changes, and on Linux `webkit2gtk-driver` and a display (`xvfb-run`). On Windows `scripts/fetch-webdriver.mjs` downloads the msedgedriver matching the installed WebView2 into `node_modules/.cache/jesutobits-webdriver`. Nightly CI also runs the S1 and S3 spike checks (`.github/workflows/nightly.yml`) |
 | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml` | Host unit tests |
 | `pnpm gen` | Regenerate protocol JSON Schemas and the Host method allowlist |
 | `pnpm build` | Production build and installer for the current platform |

@@ -78,9 +78,9 @@ export default defineConfig([
     files: ["apps/desktop/e2e/**"],
     rules: { "no-empty-pattern": "off" },
   },
-  // Spike scripts run in Node but pass functions to page.evaluate() that run in a browser.
+  // Spike scripts and desktop tests run in Node but pass functions to the webview to run.
   {
-    files: ["scripts/spikes/**"],
+    files: ["scripts/spikes/**", "apps/desktop/desktop-tests/**"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
