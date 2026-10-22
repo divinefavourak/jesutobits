@@ -187,6 +187,8 @@ test("open tabs and the cursor come back after a restart (FR-008)", async ({ pag
   await page.keyboard.press("Control+End");
   await expect(page.getByRole("contentinfo")).toContainText("Ln 3, Col 1");
   await page.getByRole("button", { name: "Close project" }).click();
+  // Closing saves the open tabs; reload only once it is done.
+  await expect(page.getByRole("button", { name: /^jesutobits-e2e-/ })).toBeVisible();
 
   await page.reload();
   await page.getByRole("button", { name: /^jesutobits-e2e-/ }).click();
