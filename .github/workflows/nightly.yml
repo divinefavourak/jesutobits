@@ -71,11 +71,24 @@ jobs:
           VITE_JESUTOBITS_PREVIEW_PROBE=http://127.0.0.1:5899/ pnpm --filter @jesutobits/desktop tauri build --debug --no-bundle
           node scripts/spikes/s3-run.mjs --label nightly
 
-      # 100,000 files open without freezing (NFR-019).
-      - name: Large project
+      # 100,000 files open without freezing (NFR-019, NFR-003): the index, then the Workbench.
+      - name: Large project (index)
         run: pnpm vitest run packages/services/test/large-tree.perf.test.ts
         env:
           JESUTOBITS_PERF: "1"
+      - name: Playwright browser
+        run: pnpm --filter @jesutobits/desktop exec playwright install --with-deps chromium
+      - name: Large project (Workbench)
+        run: pnpm --filter @jesutobits/desktop exec playwright test perf/
+        env:
+          JESUTOBITS_PERF: "1"
+
+      # Cold start of a release build (NFR-001, NFR-002).
+      - name: Startup benchmark
+        if: runner.os == 'Windows'
+        run: |
+          pnpm --filter @jesutobits/desktop tauri build --no-bundle
+          node scripts/bench-startup.mjs --runs 5
 
       - name: Keep the logs when something fails
         if: failure()

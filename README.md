@@ -6,7 +6,7 @@ Jesutobits is a desktop app where an AI agent plans, edits, runs, tests and veri
 
 It combines a capable coding-agent harness, an IDE-like workbench, live previews with source-connected visual editing, and a permissioned customisation ecosystem. That combination is the product's identity.
 
-> **Status:** **Phase 0** in progress (see [ROADMAP](docs/ROADMAP.md#5-next-implementation-milestone)). The monorepo, CI, `packages/protocol` and a stub runtime that completes the stdio handshake exist. No user-facing features yet.
+> **Status:** **0.1.0, Phase 1 (desktop shell) complete**; Phase 2 (the agent) is next (see [ROADMAP](docs/ROADMAP.md#5-next-implementation-milestone)). Jesutobits opens and creates projects, has a file explorer, a Monaco editor, a dock layout, quick open, a command palette, onboarding and settings. The agent, terminal and previews are not there yet.
 
 ## How to read these docs
 

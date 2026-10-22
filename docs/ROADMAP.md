@@ -115,6 +115,23 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 - Settings in Phase 1 (step 18): Workspace, Appearance (theme, follow OS, interface size, reduce motion, editor font size), This project (trust, J-05), Advanced (the relay latency panel moved here from the start screen) and About. The other FR-011 sections arrive with their features: providers and agent limits in Phase 2, permissions in Phase 3, previews in Phase 4, companion and extensions in Phase 6, privacy with the provider. Settings open from the start screen, the title bar and `Ctrl+,`.
 - After a runtime restart, the Workbench reopens its project (decided 2026-10-21, was Q13). A restarted runtime has no active project, so `fs.*` fails with `fs.no_project`. When the status returns to Ready after Restarting or Failed, the Workbench calls `projects.open` with the project ID it shows, then reloads the explorer and checks open editors against disk. Built in step 13.
 
+**Acceptance (2026-10-22, 0.1.0).** Checked on the development machine (Windows 11, WebView2 155):
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| Cold start < 3 s (NFR-001) | Met: median 1.44 s over 6 launches of a release build, first launch after the build 2.24 s; runtime `initialize` answered 0.38 s after spawn (NFR-002) | `scripts/bench-startup.mjs` (nightly) |
+| 100k-file project without UI freeze (NFR-019) | Met: index in the runtime; in the Workbench the longest main-thread task while opening, listing and searching was 96 ms (NFR-003 limit 100 ms, development build) | `packages/services/test/large-tree.perf.test.ts`, `apps/desktop/e2e/perf/large-project.spec.ts` (nightly) |
+| Save round-trips atomically; external change shows the bar | Met | `e2e/journeys/editor.spec.ts`, editor store tests, WorkspaceService tests |
+| Theme switch recolours UI and editor < 200 ms | Met: CSS variables about 5 ms, Monaco theme logged and asserted under 200 ms | `e2e/journeys/editor.spec.ts`, `settings.spec.ts` |
+| Layout persists per project across restarts | Met | `e2e/journeys/layout.spec.ts`, layout store tests |
+| axe: no serious violations on start screen, Workbench, settings | Met (also onboarding, dialogs, palettes, explorer menus) | every journey calls `expectAccessible` |
+| Tests: unit, E2E J-01 partial, J-03, J-05, desktop smoke | Met | `pnpm test`, `pnpm test:e2e` (CI), `pnpm test:desktop` (nightly) |
+| Deliverables: Windows build, Playwright E2E, desktop smoke | Met: `pnpm --filter @jesutobits/desktop tauri build` produces an unsigned NSIS installer (signing: Q7) | |
+
+Found and fixed during acceptance: quick open kept saying the index was still being built after it was done (it now asks again while indexing).
+
+Still open from Phase 0: a clean-machine run of DEVELOPMENT_SETUP.md and WebKit runs of S3. The nightly workflow has not run on GitHub yet.
+
 ### Phase 2: Minimal agent harness (3 to 4 weeks) → 0.2
 
 **Objectives:** a real agent loop with streaming, file tools and honest events.
@@ -314,6 +331,8 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 | Q11 | Extension signing scheme for a future repository | Decide with the repository design | Post-1.0 |
 | Q12 | Default for "Install without running scripts" | Off (most projects need scripts), visible on every install card | Phase 3 user testing |
 ## 5. Next implementation milestone
+
+**Phase 2** (section 3): the minimal agent harness. Phase 1 is complete (0.1.0, acceptance above). Phase 0's record follows.
 
 **Phase 0**, in this order:
 

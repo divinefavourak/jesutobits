@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createLogger } from "./log/logger.js";
 import { SecretRegistry } from "./log/secret-registry.js";
 import { createRuntime } from "./runtime.js";
+import { RUNTIME_VERSION } from "./version.js";
 
 function setup() {
   const sent: unknown[] = [];
@@ -54,7 +55,7 @@ describe("runtime lifecycle", () => {
       id: "h-1",
       result: {
         protocolVersion: PROTOCOL_VERSION,
-        runtimeVersion: "0.0.0",
+        runtimeVersion: RUNTIME_VERSION,
         nodeVersion: process.version,
         startup: { nodeBootstrapMs: 40, mainStartMs: 55, initializeReceivedMs: 1234 },
       },

@@ -9,6 +9,8 @@ type Match = QuickOpenResult["results"][number];
 
 /** Waits this long after a keystroke before asking the runtime, so typing stays smooth. */
 const QUERY_DELAY_MS = 40;
+/** While the index is still being built, asks again this often for fuller results. */
+const INDEXING_POLL_MS = 1000;
 
 /**
  * Quick open (`Ctrl+P`, UX_AND_INTERFACE.md section 5.3): fuzzy file names from the runtime's
@@ -19,6 +21,8 @@ export function QuickOpen() {
   const [query, setQuery] = useState("");
   const [answer, setAnswer] = useState<QuickOpenResult | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
+  /** Bumped to ask again with the same query (the index was still building). */
+  const [attempt, setAttempt] = useState(0);
   const latest = useRef(0);
 
   useEffect(() => {
@@ -37,10 +41,19 @@ export function QuickOpen() {
           },
         );
       },
-      query === "" ? 0 : QUERY_DELAY_MS,
+      query === "" || attempt > 0 ? 0 : QUERY_DELAY_MS,
     );
     return () => clearTimeout(timer);
-  }, [query, bridge, editor]);
+  }, [query, attempt, bridge, editor]);
+
+  // The index answers while it is still being built; until it is done, ask again, so the
+  // results fill in and the "still listing" note goes away when it is true.
+  const indexing = answer?.indexing === true;
+  useEffect(() => {
+    if (!indexing) return;
+    const timer = setTimeout(() => setAttempt((count) => count + 1), INDEXING_POLL_MS);
+    return () => clearTimeout(timer);
+  }, [indexing, answer]);
 
   const status = failure
     ? t("quickOpen.failed", { reason: failure })
@@ -55,7 +68,10 @@ export function QuickOpen() {
       label={t("quickOpen.label")}
       placeholder={t("quickOpen.placeholder")}
       query={query}
-      onQuery={setQuery}
+      onQuery={(next) => {
+        setQuery(next);
+        setAttempt(0);
+      }}
       items={answer?.results ?? NONE}
       itemKey={(match) => match.path}
       renderItem={(match) => <FileMatch match={match} />}
