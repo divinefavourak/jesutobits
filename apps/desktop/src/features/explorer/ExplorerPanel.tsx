@@ -273,7 +273,13 @@ function Tree({
         break;
       case "ArrowRight":
         if (folder && !active.expanded) explorer.getState().expand(active.entry.path);
-        else if (folder) selectIndex(entryIndexes[position + 1]);
+        else if (folder) {
+          // To the first child; nothing while the folder is still listing or is empty.
+          const next = rows[activeIndex + 1];
+          if (next?.type === "entry" && parentOf(next.entry.path) === active.entry.path) {
+            selectIndex(activeIndex + 1);
+          }
+        }
         break;
       case "ArrowLeft":
         if (folder && active.expanded) explorer.getState().collapse(active.entry.path);

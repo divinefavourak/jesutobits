@@ -204,6 +204,8 @@ function ProjectSection() {
   const project = useProjects((state) => state.active);
   const busy = useProjects((state) => state.busy);
   const name = useId();
+  // The choice being saved, shown at once instead of after the runtime's reply.
+  const [choice, setChoice] = useState<"trusted" | "restricted" | null>(null);
   if (!project) return null;
   return (
     <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
@@ -217,8 +219,14 @@ function ProjectSection() {
             name={name}
             className="mt-1"
             disabled={busy}
-            checked={project.trust === trust}
-            onChange={() => void projects.getState().setTrust(trust)}
+            checked={(choice ?? project.trust) === trust}
+            onChange={() => {
+              setChoice(trust);
+              void projects
+                .getState()
+                .setTrust(trust)
+                .finally(() => setChoice(null));
+            }}
           />
           <span>
             <span className="block">{t(`project.trust.${trust}`)}</span>
