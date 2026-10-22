@@ -15,6 +15,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { MethodResult } from "@jesutobits/protocol";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NodeSqliteDatabase } from "../src/storage/node-sqlite.js";
+import { DATABASE_FILE } from "../src/storage/storage.js";
 import { RuntimeHarness, type RpcReply } from "./harness/runtime-harness.js";
 
 let base: string;
@@ -112,6 +114,24 @@ describe("projects.*", () => {
     const reopened = result<"projects.open">(await h.call("projects.open", { id: project.id }));
     expect(reopened.needsTrustDecision).toBe(false);
     expect(reopened.project.lastOpenedAt).not.toBeNull();
+  });
+
+  it("opens nothing when the database is read-only and cannot record the open", async () => {
+    let h = await start();
+    const { project } = result<"projects.open">(
+      await h.call("projects.open", { path: projectDir }),
+    );
+    await h.call("runtime.shutdown", {});
+    await h.exited;
+    // A database from a newer version opens read-only (DATA_AND_PERSISTENCE.md 6.1).
+    const db = new NodeSqliteDatabase(path.join(dataDir, DATABASE_FILE));
+    db.exec("PRAGMA user_version = 9999");
+    db.close();
+
+    h = await start();
+    expect((await h.call("projects.open", { id: project.id })).error).toBeDefined();
+    // The Workbench still shows no project, so no file call may reach this one.
+    expect((await h.call("fs.listDir", { path: "" })).error?.data?.code).toBe("fs.no_project");
   });
 
   it("marks a moved folder missing, and Locate points the project at its new place", async () => {
