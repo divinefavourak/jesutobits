@@ -227,7 +227,11 @@ Write patterns: text deltas are streamed to the UI but persisted only as the fin
 
 No field in either file may contain a secret. A unit test scans the settings schema for field names like `key`, `token`, `secret` and fails unless the field is on an explicit allowlist (for example `profile`).
 
+Implementation (Phase 1): the Host's `settings_store/` and the Zod schema `packages/protocol/src/settings.ts` define the sections in use so far (`workspace`, `appearance`, `terminal`, `privacy`, `developer`); later phases add theirs with defaults, which needs no version bump. `workspace.defaultFolder` is `null` until onboarding asks. Sections the Host does not know (from a newer version) are kept when it writes. Both sides run `fixtures/settings/cases.json`, and a Rust test compares the serde defaults with `packages/protocol/generated/settings.defaults.json`, generated from the Zod schema. Nothing is written until the first change. A settings file with a higher `schemaVersion` is read leniently and never written (`storage.settings_newer` notice), so a downgrade cannot destroy it.
+
 `ui-state.json` holds window bounds, per-project layout (keyed by `prj_` ID), open tabs and cursor positions, collapsed panels, onboarding step, last safe-mode marker.
+
+Keys in use: `window` (Host), `layouts` (`{ [prj_ID]: Layout }`, `apps/desktop/src/features/layout/layout-model.ts`: preset, modified flag, and per dock zone its panels, active tab, collapsed flag and size). The Workbench validates what it reads and falls back to the preset; it writes a layout 250 ms after the last change, and at once when the project closes. `editors` (`{ [prj_ID]: { tabs: [{ path, preview }], active, cursors: { [path]: { line, column } } } }`, `apps/desktop/src/features/editor/editor-store.ts`) is written the same way; a tab whose file is gone is not reopened. `onboarding` (`{ step: 0-6, completed }`, `features/onboarding/onboarding-store.ts`) is written after every step, so quitting resumes at the same step (J-01).
 
 ## 6. Migration and recovery
 
@@ -239,10 +243,18 @@ No field in either file may contain a secret. A unit test scans the settings sch
 - **Newer database than the app** (downgrade): open read-only and offer to restore the latest compatible backup.
 - **Unclean shutdown** (marker file present at start): run `PRAGMA quick_check`. On failure, move `jesutobits.db` aside as `jesutobits.corrupt-<timestamp>.db`, start with a new database, and tell the user that sessions from the old file can be exported with a recovery tool later.
 
+Implementation (`packages/runtime/src/storage/storage.ts`, Phase 1):
+
+- The unclean-shutdown marker is `jesutobits.db.open`, written when the database opens and removed by a clean `runtime.shutdown` or stdin EOF. A file that cannot be opened at all (for example plain text) is moved aside the same way, even after a clean shutdown.
+- The runtime opens the database right **after** the `runtime.initialize` reply is flushed, so a backup or migration never delays the handshake (NFR-002). Problems are sent as `runtime.warning` events with the codes `storage.corrupt_recovered`, `storage.migration_failed` and `storage.newer_database`; a database that cannot be opened at all is a `runtime.error` with `storage.unavailable`.
+- Migrations are `.sql` files inlined into the bundle as text, each with a `.d.sql.ts` that types the import. A test pins every merged file's SHA-256, so an edited migration fails CI. `schema_migrations` is created by the runner, not by a migration.
+- Without `--data-dir` (some tests) the database lives in memory.
+
 ### 6.2 Settings
 
 - `schemaVersion` is migrated by the Host on load; the previous file is kept as `settings.json.bak-v<old>`.
-- Invalid JSON: rename to `settings.json.corrupt-<timestamp>`, load defaults, show a notice. Same for `ui-state.json` (without a notice).
+- Invalid JSON: rename to `settings.json.corrupt-<timestamp>`, load defaults, show a notice. Same for `ui-state.json` (without a notice). Valid JSON that fails validation counts as invalid. An unusable `window` entry in `ui-state.json` is dropped on its own, keeping the rest.
+- Window bounds are saved 500 ms after the window stops moving or resizing, and on close. A saved position that no longer shows at least 100 px on any screen (an unplugged monitor) is ignored. The window starts hidden and is shown after restoring, so it never visibly jumps.
 - Writes are atomic (temp file, then rename).
 
 ### 6.3 Checkpoint store

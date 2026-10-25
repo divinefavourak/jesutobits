@@ -4,6 +4,10 @@ dist/
 coverage/
 .vite/
 
+# Playwright outputs (apps/desktop/e2e)
+playwright-report/
+test-results/
+
 # Tauri build outputs and fetched sidecars (PROJECT_STRUCTURE.md section 1)
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/binaries/

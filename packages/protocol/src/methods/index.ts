@@ -1,8 +1,37 @@
 import type { z } from "zod";
 import type { Caller, MethodDefinition } from "./define.js";
+import { eventsReplay } from "./events.js";
+import {
+  fsCreateDirectory,
+  fsCreateFile,
+  fsListDir,
+  fsQuickOpen,
+  fsReadFile,
+  fsRename,
+  fsReveal,
+  fsStat,
+  fsTrash,
+  fsWriteFile,
+} from "./fs.js";
+import {
+  projectsClose,
+  projectsCreate,
+  projectsDetect,
+  projectsList,
+  projectsLocate,
+  projectsOpen,
+  projectsPrepareWorkspaceFolder,
+  projectsRemove,
+  projectsSetTrust,
+} from "./projects.js";
+import { toolchainDetect } from "./toolchain.js";
 import { runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
 export { defineMethod } from "./define.js";
+export { eventsReplay } from "./events.js";
+export * from "./fs.js";
+export * from "./projects.js";
+export * from "./toolchain.js";
 export type { Caller, MethodDefinition } from "./define.js";
 export { runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
@@ -11,6 +40,27 @@ export const METHODS = {
   [runtimeInitialize.name]: runtimeInitialize,
   [runtimePing.name]: runtimePing,
   [runtimeShutdown.name]: runtimeShutdown,
+  [eventsReplay.name]: eventsReplay,
+  [projectsList.name]: projectsList,
+  [projectsOpen.name]: projectsOpen,
+  [projectsCreate.name]: projectsCreate,
+  [projectsClose.name]: projectsClose,
+  [projectsSetTrust.name]: projectsSetTrust,
+  [projectsRemove.name]: projectsRemove,
+  [projectsLocate.name]: projectsLocate,
+  [projectsDetect.name]: projectsDetect,
+  [projectsPrepareWorkspaceFolder.name]: projectsPrepareWorkspaceFolder,
+  [toolchainDetect.name]: toolchainDetect,
+  [fsListDir.name]: fsListDir,
+  [fsStat.name]: fsStat,
+  [fsReadFile.name]: fsReadFile,
+  [fsWriteFile.name]: fsWriteFile,
+  [fsCreateFile.name]: fsCreateFile,
+  [fsCreateDirectory.name]: fsCreateDirectory,
+  [fsRename.name]: fsRename,
+  [fsQuickOpen.name]: fsQuickOpen,
+  [fsTrash.name]: fsTrash,
+  [fsReveal.name]: fsReveal,
 } as const;
 
 export type MethodName = keyof typeof METHODS;

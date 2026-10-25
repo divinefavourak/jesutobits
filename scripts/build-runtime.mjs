@@ -17,5 +17,7 @@ await build({
   sourcemap: "linked",
   minify: true,
   legalComments: "linked",
+  // Migrations are .sql files inlined as strings (runtime/src/storage/migrations).
+  loader: { ".sql": "text" },
   logLevel: "warning",
 });

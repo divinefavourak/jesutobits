@@ -30,8 +30,17 @@ pub const HOST_METHODS: &[&str] = &[
 ${list(methods.host)}
 ];
 
+/// Methods the runtime may call on the Host (reverse calls, ADR-0014).
+pub const REVERSE_METHODS: &[&str] = &[
+${list(methods.reverse)}
+];
+
 pub fn is_workbench_method(method: &str) -> bool {
     WORKBENCH_METHODS.contains(&method)
+}
+
+pub fn is_reverse_method(method: &str) -> bool {
+    REVERSE_METHODS.contains(&method)
 }
 `;
 

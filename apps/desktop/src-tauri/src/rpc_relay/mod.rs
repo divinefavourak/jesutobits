@@ -13,13 +13,20 @@ mod latency;
 pub mod lines;
 
 use std::collections::HashMap;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
 
 use serde_json::{json, Value};
 use tokio::io::{AsyncWrite, AsyncWriteExt};
-use tokio::sync::{oneshot, Mutex as AsyncMutex};
+use tokio::sync::{oneshot, watch, Mutex as AsyncMutex};
+
+use crate::logging;
+
+const MODULE: &str = "rpc_relay";
 
 /// Largest message either side may send (ADR-0003, decision 7).
 pub const MAX_MESSAGE_BYTES: usize = 4 * 1024 * 1024;
@@ -52,6 +59,9 @@ pub fn unavailable(message: &str) -> Value {
 type Reply = Result<Value, Value>;
 type Writer = Box<dyn AsyncWrite + Send + Unpin>;
 type EventSink = Box<dyn Fn(Value) + Send + Sync>;
+/// Answers a reverse call (runtime to Host, ADR-0014) with a result or a JSON-RPC error.
+pub type ReverseHandler =
+    Arc<dyn Fn(String, Value) -> Pin<Box<dyn Future<Output = Reply> + Send>> + Send + Sync>;
 
 /// One live stdio connection to a runtime process.
 pub struct Connection {
@@ -59,6 +69,9 @@ pub struct Connection {
     pending: Mutex<HashMap<String, oneshot::Sender<Reply>>>,
     next_id: AtomicU64,
     on_event: EventSink,
+    /// True once the runtime's stdout has ended.
+    closed: watch::Sender<bool>,
+    on_reverse: Option<ReverseHandler>,
 }
 
 impl Connection {
@@ -68,7 +81,15 @@ impl Connection {
             pending: Mutex::new(HashMap::new()),
             next_id: AtomicU64::new(1),
             on_event,
+            closed: watch::channel(false).0,
+            on_reverse: None,
         }
+    }
+
+    /// Answers the reverse calls in the generated allowlist with `handler`; others are refused.
+    pub fn with_reverse_handler(mut self, handler: ReverseHandler) -> Self {
+        self.on_reverse = Some(handler);
+        self
     }
 
     /// Sends a request and waits for its reply. `Err` holds a JSON-RPC error object.
@@ -95,9 +116,9 @@ impl Connection {
     }
 
     /// Routes one line from the runtime's stdout.
-    pub async fn handle_line(&self, line: &[u8]) {
+    pub async fn handle_line(self: &Arc<Self>, line: &[u8]) {
         let Ok(Value::Object(message)) = serde_json::from_slice::<Value>(line) else {
-            eprintln!("[host] dropping a runtime line that is not a JSON object");
+            logging::warn(MODULE, "dropping a runtime line that is not a JSON object");
             return;
         };
         let method = message.get("method").and_then(Value::as_str);
@@ -106,8 +127,29 @@ impl Connection {
                 (self.on_event)(message.get("params").cloned().unwrap_or(Value::Null));
             }
             (Some(method), Some(id)) => {
-                // Reverse calls: host.secrets.get, host.log and host.notify arrive with the
-                // features that need them. Until then, and for any other name, refuse.
+                // Reverse calls the protocol declares are answered on their own task, so a slow
+                // one (moving a large folder to the trash) never blocks reading the runtime.
+                if let (true, Some(handler)) = (
+                    allowlist::is_reverse_method(method),
+                    self.on_reverse.clone(),
+                ) {
+                    let connection = self.clone();
+                    let (method, id) = (method.to_owned(), id.clone());
+                    let params = message.get("params").cloned().unwrap_or_else(|| json!({}));
+                    tokio::spawn(async move {
+                        let reply = match handler(method.clone(), params).await {
+                            Ok(result) => json!({ "jsonrpc": "2.0", "id": id, "result": result }),
+                            Err(error) => json!({ "jsonrpc": "2.0", "id": id, "error": error }),
+                        };
+                        if let Err(error) = connection.send(&reply).await {
+                            logging::warn(
+                                MODULE,
+                                format!("could not answer reverse call {method}: {error}"),
+                            );
+                        }
+                    });
+                    return;
+                }
                 let error = rpc_error(
                     METHOD_NOT_FOUND,
                     CODE_METHOD_NOT_FOUND,
@@ -116,13 +158,18 @@ impl Connection {
                 );
                 let reply = json!({ "jsonrpc": "2.0", "id": id, "error": error });
                 if let Err(error) = self.send(&reply).await {
-                    eprintln!("[host] could not answer reverse call {method}: {error}");
+                    logging::warn(
+                        MODULE,
+                        format!("could not answer reverse call {method}: {error}"),
+                    );
                 }
             }
-            (Some(method), None) => eprintln!("[host] ignoring runtime notification {method}"),
+            (Some(method), None) => {
+                logging::warn(MODULE, format!("ignoring runtime notification {method}"))
+            }
             (None, Some(id)) => {
                 let Some(id) = id.as_str() else {
-                    eprintln!("[host] dropping a reply with a non-string id");
+                    logging::warn(MODULE, "dropping a reply with a non-string id");
                     return;
                 };
                 let Some(tx) = self.pending.lock().unwrap().remove(id) else {
@@ -136,13 +183,27 @@ impl Connection {
                 };
                 let _ = tx.send(reply);
             }
-            (None, None) => eprintln!("[host] dropping a runtime message without method or id"),
+            (None, None) => {
+                logging::warn(MODULE, "dropping a runtime message without method or id")
+            }
         }
     }
 
     /// Fails every pending call; used when the runtime's stdout closes.
     pub fn close(&self) {
         self.pending.lock().unwrap().clear();
+        self.closed.send_replace(true);
+    }
+
+    /// Whether the runtime's stdout has ended.
+    pub fn is_closed(&self) -> bool {
+        *self.closed.borrow()
+    }
+
+    /// Resolves once the runtime's stdout has ended: the earliest sign that it is gone.
+    pub async fn closed(&self) {
+        let mut closed = self.closed.subscribe();
+        let _ = closed.wait_for(|closed| *closed).await;
     }
 
     async fn send(&self, message: &Value) -> Result<(), Value> {
@@ -171,7 +232,6 @@ impl Connection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
     use tokio::io::{duplex, AsyncBufReadExt, BufReader};
 
     /// A connection whose "runtime" end is returned as a line reader plus writer.
@@ -255,6 +315,37 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn answers_declared_reverse_calls_with_the_handler() {
+        let (host_end, runtime_end) = duplex(64 * 1024);
+        let connection = Arc::new(
+            Connection::new(Box::new(host_end), Box::new(|_| {})).with_reverse_handler(Arc::new(
+                |method, params| {
+                    Box::pin(async move { Ok(json!({ "method": method, "params": params })) })
+                },
+            )),
+        );
+        let mut runtime = BufReader::new(runtime_end);
+        let call = json!({ "jsonrpc": "2.0", "id": "r-7", "method": "host.fs.trash", "params": { "path": "x" } });
+        connection.handle_line(call.to_string().as_bytes()).await;
+
+        let reply = next_message(&mut runtime).await;
+        assert_eq!(reply["id"], "r-7");
+        assert_eq!(
+            reply["result"],
+            json!({ "method": "host.fs.trash", "params": { "path": "x" } })
+        );
+
+        // Not declared in packages/protocol: refused even with a handler.
+        let other =
+            json!({ "jsonrpc": "2.0", "id": "r-8", "method": "host.shell.run", "params": {} });
+        connection.handle_line(other.to_string().as_bytes()).await;
+        assert_eq!(
+            next_message(&mut runtime).await["error"]["code"],
+            METHOD_NOT_FOUND
+        );
+    }
+
+    #[tokio::test]
     async fn refuses_reverse_calls_it_does_not_implement() {
         let (connection, mut runtime, _) = connect();
         let call =
@@ -264,6 +355,20 @@ mod tests {
         let reply = next_message(&mut runtime).await;
         assert_eq!(reply["id"], "r-1");
         assert_eq!(reply["error"]["code"], METHOD_NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn closed_resolves_after_close() {
+        let (connection, _runtime, _) = connect();
+        let waiter = connection.clone();
+        let closed = tokio::spawn(async move { waiter.closed().await });
+        tokio::time::sleep(Duration::from_millis(20)).await;
+        assert!(!closed.is_finished());
+        connection.close();
+        tokio::time::timeout(Duration::from_secs(1), closed)
+            .await
+            .expect("closed() resolves")
+            .unwrap();
     }
 
     #[tokio::test]
@@ -311,6 +416,15 @@ mod tests {
             CODE_MESSAGE_TOO_LARGE,
             CODE_TIMEOUT,
             CODE_UNAVAILABLE,
+            crate::settings_store::CODE_INVALID_SETTINGS,
+            crate::settings_store::CODE_READ_ONLY,
+            crate::settings_store::CODE_WRITE_FAILED,
+            crate::settings_store::CODE_SETTINGS_NEWER,
+            crate::settings_store::CODE_SETTINGS_CORRUPT,
+            crate::dialogs::CODE_DIALOG_OPEN,
+            crate::host_methods::CODE_TRASH_FAILED,
+            crate::host_methods::CODE_INVALID_PATH,
+            crate::host_methods::CODE_NOT_FOUND,
         ] {
             assert!(
                 codes.iter().any(|c| c == code),

@@ -47,6 +47,58 @@ export const ErrorCodes = {
   runtimeNotInitialized: "runtime.not_initialized",
   runtimeAlreadyInitialized: "runtime.already_initialized",
   runtimeShuttingDown: "runtime.shutting_down",
+  /** The Host refused a second folder dialog while one is open. */
+  runtimeDialogOpen: "runtime.dialog_open",
+  /** The path resolves outside every workspace root, including through a link (SECURITY.md 5.2). */
+  fsOutsideWorkspace: "fs.outside_workspace",
+  /** The path is malformed or unsafe: NUL, reserved device name, stream, trailing dot. */
+  fsInvalidPath: "fs.invalid_path",
+  fsNotFound: "fs.not_found",
+  fsNotAFile: "fs.not_a_file",
+  fsNotADirectory: "fs.not_a_directory",
+  fsAlreadyExists: "fs.already_exists",
+  /** The file changed since it was read; the write was refused (HARNESS 6, FR-052). */
+  fsConflict: "fs.conflict",
+  fsTooLarge: "fs.too_large",
+  /** The file is not text, so it cannot be read or written as text. */
+  fsBinary: "fs.binary",
+  fsPermissionDenied: "fs.permission_denied",
+  /** The OS refused to move the path to the trash (ADR-0014); it was left in place. */
+  fsTrashFailed: "fs.trash_failed",
+  /** The OS file manager could not be opened at the path (`fs.reveal`). */
+  fsRevealFailed: "fs.reveal_failed",
+  /** No project is open, so there are no files to work on. */
+  fsNoProject: "fs.no_project",
+  /** Any other file-system failure; details carry the OS error code. */
+  fsIo: "fs.io",
+  /** The program is not installed or not on PATH. */
+  processNotFound: "process.not_found",
+  /** The program could not be started (permissions, a broken shim). */
+  processSpawnFailed: "process.spawn_failed",
+  /** The command ran longer than its timeout and was stopped. */
+  processTimeout: "process.timeout",
+  /** The command was cancelled and stopped. */
+  processCancelled: "process.cancelled",
+  /** The command line is malformed (empty argv, NUL, a working folder outside the project). */
+  processInvalidCommand: "process.invalid_command",
+  /** A database upgrade failed and was rolled back; the database is open read-only. */
+  storageMigrationFailed: "storage.migration_failed",
+  /** The database was written by a newer Jesutobits; it is open read-only. */
+  storageNewerDatabase: "storage.newer_database",
+  /** The database was unreadable after an unclean shutdown; it was moved aside. */
+  storageCorruptRecovered: "storage.corrupt_recovered",
+  /** The database could not be opened at all. */
+  storageUnavailable: "storage.unavailable",
+  /** A settings or UI-state update failed validation (the Host's settings store). */
+  storageInvalidSettings: "storage.invalid_settings",
+  /** A settings file could not be written. */
+  storageWriteFailed: "storage.write_failed",
+  /** Startup notice: settings.json is from a newer version and is read-only. */
+  storageSettingsNewer: "storage.settings_newer",
+  /** Startup notice: settings.json could not be read and was moved aside. */
+  storageSettingsCorrupt: "storage.settings_corrupt",
+  /** A write was refused because the database is open read-only. */
+  storageReadOnly: "storage.read_only",
   /** No JSX element starts at the requested location (the file changed, or a bad loc). */
   visualElementNotFound: "visual.element_not_found",
   /** The property cannot be edited statically, for example a computed className. */

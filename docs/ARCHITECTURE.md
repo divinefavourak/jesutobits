@@ -205,7 +205,7 @@ flowchart TB
 
 | From → To | Mechanism | Content |
 |---|---|---|
-| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `workbench_log`, `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
+| Workbench → Host | Tauri `invoke` | `rpc_call`, `runtime_subscribe`, `runtime_restart`, `workbench_log`, `workbench_ready` (startup timing), `settings_get/update/subscribe`, `ui_state_get/update`, `host_notices`, `pty_*`, `settings_*`, `secrets_set/delete` (write-only), `extensions_*`, `dialog_*` |
 | Host → Workbench | Tauri `Channel` | Runtime events, runtime status (`RuntimeStatusUpdate` in `packages/protocol`), PTY output, settings changes |
 | Host ↔ Runtime | NDJSON JSON-RPC 2.0 over stdio (ADR-0003) | Runtime methods, events, `host.*` reverse calls |
 | Workbench ↔ Preview iframe | `window.postMessage` with origin + nonce + Zod | Bridge protocol (VISUAL_EDITING.md section 9) |
@@ -222,7 +222,9 @@ export interface HostBridge {
   rpc<M extends WorkbenchMethod>(method: M, params: MethodParams<M>): Promise<MethodResult<M>>;
   onRuntimeEvent(handler: (e: RuntimeEvent) => void): Unsubscribe;
   onRuntimeStatus(handler: (s: RuntimeStatusUpdate) => void): Unsubscribe; // starting | ready | degraded | restarting | failed, plus detail
+  restartRuntime(): Promise<void>; // from failed only (ADR-0002)
   log(level: LogLevel, message: string): void; // Workbench log, written by the Host (section 10)
+  reportReady(): void; // first screen rendered; the Host logs the cold-start time (NFR-001)
 
   secrets: {
     set(ref: SecretRef, value: string): Promise<void>;
@@ -241,6 +243,8 @@ export interface HostBridge {
     update(patch: DeepPartial<AppSettings>): Promise<AppSettings>;
     onChange(handler: (s: AppSettings) => void): Unsubscribe;
   };
+  uiState: { get(): Promise<UiState>; update(patch: Record<string, unknown>): Promise<UiState> }; // `window` is the Host's
+  notices(): Promise<HostNotice[]>; // startup notices about the settings files
   dialogs: { pickFolder(opts?: { title?: string; defaultPath?: string }): Promise<string | null> };
   extensions: {
     list(): Promise<InstalledExtension[]>;
@@ -261,8 +265,9 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | Namespace | Methods |
 |---|---|
 | `runtime` | `initialize` and `shutdown` (Host only); `ping` (Host health checks, and the Workbench for relay latency) |
-| `projects` | `list`, `open`, `close`, `create`, `setTrust`, `detect` (toolchain, preview strategy, checks) |
-| `fs` | `listDir`, `readFile`, `writeFile`, `createFile`, `rename`, `trash`, `stat`, `search`, `quickOpen` |
+| `projects` | `list`, `open` (by path or ID), `create`, `close`, `setTrust`, `remove`, `locate`, `detect` (package manager, scripts, preview strategy, visual-editing level: VISUAL_EDITING.md section 3), `prepareWorkspaceFolder` (creates the default folder for new projects when the user confirms it, FR-002) |
+| `toolchain` | `detect` (Git, Node.js and package managers with versions, FR-010) |
+| `fs` | `listDir`, `readFile`, `writeFile` (requires `expectedHash`), `createFile`, `createDirectory`, `rename`, `stat`, `quickOpen`, `trash` (the runtime confines the path, the Host moves it to the OS trash: ADR-0014); `search` arrives with ripgrep (Phase 2). All act on the active project and fail with `fs.no_project` without one |
 | `sessions` | `list`, `create`, `get`, `rename`, `archive`, `delete`, `export` |
 | `agent` | `sendMessage`, `cancelTurn`, `pauseTurn`, `resumeTurn`, `retryTurn`, `answerQuestion`, `setModel` |
 | `permissions` | `respond`, `listRules`, `addRule`, `removeRule`, `getPolicy`, `setPolicy` |
@@ -274,7 +279,7 @@ All methods are defined with Zod in `packages/protocol/src/methods/`. Names are 
 | `events` | `replay` |
 | `extensions` | `validate` (called by the Host during install, and by the Workbench for developer-mode reloads) |
 
-Reverse methods the runtime may call: `host.secrets.get`, `host.log`, `host.notify` (OS notification when the window is unfocused and approval is needed).
+Reverse methods the runtime may call: `host.fs.trash` and `host.os.reveal` (ADR-0014), `host.secrets.get`, `host.log`, `host.notify` (OS notification when the window is unfocused and approval is needed). They are declared in `packages/protocol/src/reverse.ts` (`REVERSE_METHODS`); the Host answers only those, on their own task, and refuses anything else.
 
 ### 6.4 Runtime event envelope
 
@@ -307,6 +312,8 @@ Event catalogue (full payloads in AGENT_HARNESS.md section 8):
 | Workspace | `fs.changed` (debounced batches), `checkpoint.recorded` |
 | Verification | `check.started`, `check.completed` |
 | Runtime | `runtime.warning`, `runtime.error` |
+
+Each event type is declared with `defineEvent` in `packages/protocol/src/events.ts` (its own fields sit next to the base fields, and unknown fields are rejected) and registered in `EVENTS`; `pnpm gen` writes a JSON Schema per event. The runtime's `EventBus` (`packages/runtime/src/events/`) assigns `seq`, checks every event against its schema before sending it, and keeps the last 2,000 events for `events.replay`, which reports `complete: false` when a gap is older than the buffer (the Workbench then reloads that state from its owning methods).
 
 The Workbench derives **everything** it shows about agent activity (timeline rows, status bar, companion state) from these events. No component invents activity.
 
@@ -487,10 +494,12 @@ Code families: `rpc.*`, `runtime.*`, `provider.*`, `tool.*`, `fs.*`, `process.*`
 ## 10. Logging and observability
 
 - **Format:** JSON lines. Fields: `ts`, `level`, `component` (`host`, `runtime`, `workbench`), `module`, `msg`, plus correlation IDs (`projectId`, `sessionId`, `turnId`, `callId`, `processId`) and `err` (a `JesutobitsError`).
-- **Files:** `logs/host.jsonl`, `logs/runtime.jsonl`, `logs/workbench.jsonl` (the Workbench logs via the Host), rotated at 10 MB, 10 files each (NFR-014).
-- **Redaction:** all log calls pass through the `SecretRegistry` masker. Model prompts and completions are **not** logged by default; a "Debug: log model traffic" setting enables it with redaction and a warning.
-- **Levels:** `error`, `warn`, `info` (default), `debug` (setting), `trace` (env var only).
+- **Files:** `logs/host.jsonl`, `logs/runtime.jsonl`, `logs/workbench.jsonl`, rotated at 10 MB, 10 files each (NFR-014). The Host is the single writer of all three (`apps/desktop/src-tauri/src/logging/`): the Workbench logs through `workbench_log`, and the runtime writes JSON lines to **stderr**, which the Host copies into `runtime.jsonl`. Stderr lines that are not a JSON object with `level` and `msg` (for example Node's own crash output) are kept as `warn` lines from module `stderr`, so a crash is never lost. The Host stamps `ts` and `component` itself.
+- **Runtime side:** `packages/runtime/src/log/` writes one JSON object per line to stderr (`level`, `msg`, `module` and any fields; `JESUTOBITS_RUNTIME_LOG` sets the level). `services` code receives the same `Logger` interface (`@jesutobits/shared`) by injection, since it may not depend on the runtime or use `console`.
+- **Redaction:** all log calls pass through the `SecretRegistry` masker. The Host masks every string value of every line again before writing (registered secret values, then the token patterns of SECURITY.md section 6.1); `fixtures/redaction/cases.json` holds the pattern cases both implementations must pass. Model prompts and completions are **not** logged by default; a "Debug: log model traffic" setting enables it with redaction and a warning.
+- **Levels:** `error`, `warn`, `info` (default), `debug` (setting), `trace` (env var only: `JESUTOBITS_HOST_LOG`, `JESUTOBITS_RUNTIME_LOG`). Each process filters its own lines; the Workbench cannot log at `trace`.
 - **In-app diagnostics:** Help > Diagnostics shows runtime status, versions, last 200 log lines with filters, process table (managed processes with PIDs), and "Copy diagnostic bundle" (zips redacted logs and environment summary for bug reports, saved locally; nothing uploaded).
+- **Startup:** every launch logs its stages in `host.jsonl` (`spawnMs`, the runtime's `nodeBootstrapMs`, `mainStartMs`, `initializeReceivedMs`, and `sinceHostStartMs` when the Workbench first renders), so a slow start can be explained after the fact (docs/spikes/S1.md section 1.1).
 - **Metrics:** local counters only (turn durations, tool durations, relay latency, crash counts) stored in SQLite for the diagnostics page. No telemetry (NFR-015).
 
 ## 11. Cross-platform considerations

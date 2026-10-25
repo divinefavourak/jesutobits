@@ -31,7 +31,7 @@
 | Companion | Controller state tables, truthfulness property test, reduced motion | Vitest (+ fast-check), Playwright | Every PR |
 | Workbench components | Panels, approval cards, inspector forms, timeline virtualisation, accessibility (axe) | Vitest + Testing Library, `@axe-core/playwright` | Every PR |
 | Workbench E2E (browser) | User journeys J-01 to J-15 against `MockHostBridge` + real runtime + `ScriptedProvider` | Playwright | Every PR (smoke subset), nightly (full) |
-| Desktop integration | Real Tauri app: startup, runtime handshake, IPC allowlist, preview frame cannot reach IPC (`scripts/spikes/s3-run.mjs` until the suite exists), PTY, keychain round-trip, crash restart, orphan cleanup | WebdriverIO + tauri-driver (Windows, Linux) (RN-08) | Nightly, release |
+| Desktop integration | Real Tauri app: startup, runtime handshake, IPC allowlist, preview frame cannot reach IPC (`scripts/spikes/s3-run.mjs`), PTY, keychain round-trip, crash restart, orphan cleanup (`scripts/spikes/s1-orphans.mjs`) | WebdriverIO + tauri-driver (Windows, Linux) (RN-08): `apps/desktop/desktop-tests/`, `pnpm test:desktop` | Nightly (`.github/workflows/nightly.yml`), release |
 | Packaging | Installer builds, installs silently, launches, runtime ready, sidecars present with expected hashes, uninstalls cleanly | Scripted on CI runners | Release candidates |
 | Security canaries | Fake API key never appears on disk, in logs, in events or in child env; remote images never fetched; frames cannot reach IPC | Vitest + desktop integration | Every PR (runtime parts), nightly (desktop) |
 | Performance | Startup (NFR-001/002), relay latency (NFR-006), timeline with 5k events (NFR-003), hover at 60 fps (NFR-022), idle memory (NFR-004) | Scripted benchmarks with thresholds | Nightly, release |
@@ -68,8 +68,8 @@ Cassettes are JSONL files in `packages/runtime/test/cassettes/`. One line per mo
 | `fixtures/bin/fake-cmd.mjs` | Configurable child process: prints lines, sleeps, exits with a code, spawns grandchildren, ignores SIGTERM (for kill tests), writes files |
 | `fixtures/bin/fake-dev-server.mjs` | Listens on a port after a delay, prints Vite-like URLs, can crash on demand |
 | `fixtures/bin/port-hog.mjs` | Holds a port to test collisions |
-| `fixtures/bin/fake-runtime.mjs` | Stand-in runtime for Host lifecycle tests: answers the handshake, starts a grandchild and ignores stdin EOF, so only the job object can clean up. Loaded through the debug-only `JESUTOBITS_RUNTIME_ENTRY` override (`scripts/spikes/s1-orphans.mjs`) |
-| `MockHostBridge` | In-memory `HostBridge` for Workbench tests; can relay to a real runtime process |
+| `fixtures/bin/fake-runtime.mjs` | Stand-in runtime for Host lifecycle tests: answers the handshake, starts a grandchild and ignores stdin EOF, so only the job object can clean up. Loaded through the debug-only `JESUTOBITS_RUNTIME_ENTRY` override (`scripts/spikes/s1-orphans.mjs`). Flags for the supervisor tests: `--cooperative`, `--crash-at-init <n>`, `--crash-after-ready <n>`, `--ignore-pings`, `--silent`, `--protocol <v>` |
+| `MockHostBridge` | In-memory `HostBridge` for Workbench tests; `RelayHostBridge` extends it to relay runtime calls and events to a real runtime through `scripts/dev-relay.mjs` |
 | `RuntimeHarness` | Spawns the runtime bundle with Node over stdio, exposes typed RPC helpers and an event recorder |
 
 ### 3.3 Fixture projects (`fixtures/projects/`)
@@ -85,7 +85,7 @@ Cassettes are JSONL files in `packages/runtime/test/cassettes/`. One line per mo
 | `prompt-injection` | `README.md` and `AGENTS.md` with hostile instructions (SECURITY.md T1, T2) |
 | `symlink-escape` | Symlinks and junctions pointing outside the project |
 | `secrets` | `.env`, `id_rsa`, `.npmrc` with tokens for redaction tests |
-| `large-tree` | Generator for 100k files (NFR-019) |
+| `large-tree` | Generator for 100k files (NFR-019): `scripts/gen-large-tree.mjs`, used by `packages/services/test/large-tree.perf.test.ts` when `JESUTOBITS_PERF=1` (nightly) |
 
 Fixture `node_modules` are installed once per CI cache key, never during unit tests.
 
@@ -124,7 +124,7 @@ Each journey in PRODUCT_VISION.md section 6 maps to at least one Playwright spec
 | Approval denied | Cassette expects `permission_denied` result | Model receives denial; same call not retried (loop guard) |
 | File changed during agent edit | Test edits file between `read_file` and `edit_file` | `stale_read` returned; agent re-reads (cassette) |
 | Disk full or permission error | Mock `fs` throwing `ENOSPC`/`EPERM` | Write fails atomically; original intact; clear error |
-| Runtime crash loop | Runtime started with a flag that crashes at init | Host backoff sequence; `failed` state after 5 crashes in 2 minutes |
+| Runtime crash loop | `fake-runtime.mjs --crash-at-init` (cargo test, `runtime_supervisor/tests.rs`) | Host backoff sequence; `failed` state after 5 crashes in 2 minutes; Restart from `failed` works |
 | Corrupt database | Truncated `jesutobits.db` | Moved aside, new DB, notice shown |
 | Corrupt settings | Invalid JSON | Defaults loaded, `.corrupt` copy kept |
 

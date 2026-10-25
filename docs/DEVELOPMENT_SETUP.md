@@ -1,6 +1,6 @@
 # Development Setup
 
-> Status: **Partly live.** Phase 0 is in progress (ROADMAP.md). Working today: `pnpm install`, `fetch:sidecars` (Node only; ripgrep arrives in Phase 2), `build:packages`, `build:runtime`, `dev` (Workbench placeholder in the Tauri Host), `dev:web` (with `MockHostBridge`), `lint` (now including `lint:rust`), `typecheck`, `test`, `test:rust`, `gen`, `gen:check`. Not yet: `test:e2e`, `test:desktop`, `build`, `eval`, `kill:dev`, which arrive in Phase 1 and later. Phase 0 is done only when a clean Windows machine can follow this file without help.
+> Status: **Partly live.** Phase 0 is in progress (ROADMAP.md). Working today: `pnpm install`, `fetch:sidecars` (Node only; ripgrep arrives in Phase 2), `build:packages`, `build:runtime`, `dev` (Workbench placeholder in the Tauri Host), `dev:web` (with `MockHostBridge`), `lint` (now including `lint:rust`), `typecheck`, `test`, `test:rust`, `test:e2e`, `build:desktop-test`, `test:desktop`, `gen`, `gen:check`. Not yet: `build`, `eval`, `kill:dev`, which arrive in Phase 1 and later. Phase 0 is done only when a clean Windows machine can follow this file without help.
 
 ## 1. Prerequisites
 
@@ -56,12 +56,12 @@ Fixture projects (`fixtures/projects/*`) are separate pnpm roots with their own 
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Full desktop app with hot reload of the Workbench; runtime rebuilt and restarted on change |
-| `pnpm dev:web` | Workbench in a normal browser with `MockHostBridge`; optional `--runtime` flag relays to a real runtime through a dev-only relay bound to `127.0.0.1` with a random token |
+| `pnpm dev:web` | Workbench in a normal browser with `MockHostBridge`; optional `--runtime` flag relays to a real runtime through a dev-only relay bound to `127.0.0.1` with a random token (`scripts/dev-relay.mjs`: only Workbench-callable methods, token in the `x-jesutobits-token` header, events as an NDJSON stream; its database lives in `node_modules/.cache/jesutobits-dev-web`). Host features (settings, dialogs) stay mocked; the relay answers the runtime's reverse calls with stand-ins: trashed files move to `<data dir>/trash/`, reveals are only recorded |
 | `pnpm lint` | ESLint (including boundary rules) and `cargo clippy` |
 | `pnpm typecheck` | `tsc -b` across packages |
-| `pnpm test` | Vitest across packages |
-| `pnpm test:e2e` | Playwright browser E2E (journeys, visual editing) |
-| `pnpm test:desktop` | WebdriverIO + tauri-driver desktop tests (Windows, Linux) |
+| `pnpm test` | Vitest across packages; Workbench component tests (`*.test.tsx`) run in jsdom with Testing Library |
+| `pnpm test:e2e` | Playwright browser E2E (`apps/desktop/e2e/`): the Workbench in Chromium on `127.0.0.1:1440` against `MockHostBridge`, each test with its own real runtime through `scripts/dev-relay.mjs` and its own database. Needs `pnpm build:packages` and, once, `pnpm --filter @jesutobits/desktop exec playwright install chromium`. Mock settings and UI state live in the page's `localStorage`, so a reload keeps them like a restart keeps the Host's files. Axe checks use `expectAccessible` from `e2e/fixtures.ts` |
+| `pnpm test:desktop` | The real app through tauri-driver and WebdriverIO (`apps/desktop/desktop-tests/`, Node's test runner), with fresh data, config and log folders: startup, IPC allowlist, crash restart, nothing left running after close. Needs `cargo install tauri-driver --locked` once, `pnpm build:desktop-test` (a debug Host with the Workbench built in) after changes, and on Linux `webkit2gtk-driver` and a display (`xvfb-run`). On Windows `scripts/fetch-webdriver.mjs` downloads the msedgedriver matching the installed WebView2 into `node_modules/.cache/jesutobits-webdriver`. Nightly CI also runs the S1 and S3 spike checks (`.github/workflows/nightly.yml`) |
 | `cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml` | Host unit tests |
 | `pnpm gen` | Regenerate protocol JSON Schemas and the Host method allowlist |
 | `pnpm build` | Production build and installer for the current platform |
@@ -74,6 +74,9 @@ Fixture projects (`fixtures/projects/*`) are separate pnpm roots with their own 
 | `JESUTOBITS_PROVIDER=scripted` and `JESUTOBITS_CASSETTE=<path>` | Run the app with `ScriptedProvider`, no API key needed |
 | `JESUTOBITS_RUNTIME_LOG=debug` | Runtime log level (`trace` allowed only here) |
 | `JESUTOBITS_DATA_DIR=<path>` | Override app data location (useful for clean-state testing) |
+| `JESUTOBITS_CONFIG_DIR=<path>` | Override the config folder (`settings.json`, `ui-state.json`) |
+| `JESUTOBITS_LOG_DIR=<path>` | Override the log folder (`host.jsonl`, `workbench.jsonl`, `runtime.jsonl`) |
+| `JESUTOBITS_HOST_LOG=debug` | Host log level (`trace` allowed only here and in `JESUTOBITS_RUNTIME_LOG`). Debug builds also echo every log line to stderr |
 | `JESUTOBITS_SAFE_MODE=1` | Start with extensions disabled (same as `--safe-mode`) |
 
 Development builds use a different app identifier (`dev.jesutobits.app.dev`) so they never share data or credentials with an installed Jesutobits.

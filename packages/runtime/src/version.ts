@@ -1,2 +1,2 @@
-/** Runtime build version. The sidecar build (Spike S1) will inject the release version here. */
-export const RUNTIME_VERSION = "0.0.0";
+/** Runtime build version; matches the app version (apps/desktop/src-tauri/tauri.conf.json). */
+export const RUNTIME_VERSION = "0.1.0";

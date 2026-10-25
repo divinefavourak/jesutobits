@@ -5,7 +5,16 @@ fn main() {
         tauri_build::AppManifest::new().commands(&[
             "rpc_call",
             "runtime_subscribe",
+            "runtime_restart",
             "workbench_log",
+            "workbench_ready",
+            "settings_get",
+            "settings_update",
+            "settings_subscribe",
+            "ui_state_get",
+            "ui_state_update",
+            "host_notices",
+            "dialog_pick_folder",
         ]),
     ))
     .expect("failed to run tauri-build");

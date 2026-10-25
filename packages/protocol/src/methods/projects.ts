@@ -1,0 +1,151 @@
+import { z } from "zod";
+import { defineMethod } from "./define.js";
+
+const ProjectIdSchema = z.string().regex(/^prj_[0-9A-HJKMNP-TV-Z]{26}$/, "Expected a prj_ ID");
+
+export const ProjectKindSchema = z.enum(["project", "general"]);
+/** `unknown` until the user decides; Restricted mode is enforced from Phase 3 (FR-006). */
+export const ProjectTrustSchema = z.enum(["trusted", "restricted", "unknown"]);
+
+/** A recent project (FR-004, DATA_AND_PERSISTENCE.md section 3). */
+export const ProjectSchema = z.object({
+  id: ProjectIdSchema,
+  /** Canonical path: links resolved, lower-case drive letter on Windows (FR-009). */
+  path: z.string().min(1),
+  name: z.string().min(1),
+  kind: ProjectKindSchema,
+  trust: ProjectTrustSchema,
+  createdByJesutobits: z.boolean(),
+  lastOpenedAt: z.iso.datetime().nullable(),
+  /** The folder was not found the last time Jesutobits looked (Locate, Remove). */
+  missing: z.boolean(),
+});
+export type Project = z.infer<typeof ProjectSchema>;
+
+export const projectsList = defineMethod({
+  name: "projects.list",
+  description: "Recent projects, most recently opened first, with missing folders marked.",
+  callers: ["workbench"],
+  params: z.object({}),
+  result: z.object({ projects: z.array(ProjectSchema) }),
+});
+
+/**
+ * Makes a folder the active project (FR-003, J-05). Opening writes nothing into the folder.
+ * A folder Jesutobits has not seen before gets trust `unknown`, and the Workbench asks.
+ */
+export const projectsOpen = defineMethod({
+  name: "projects.open",
+  description: "Open a folder, or a recent project by ID, as the active project.",
+  callers: ["workbench"],
+  params: z.union([
+    z.object({ path: z.string().min(1) }).strict(),
+    z.object({ id: ProjectIdSchema }).strict(),
+  ]),
+  result: z.object({
+    project: ProjectSchema,
+    /** The trust prompt is needed (FR-006). */
+    needsTrustDecision: z.boolean(),
+  }),
+});
+
+/** Creates a project from a built-in template; Phase 1 has Empty and General workspace. */
+export const projectsCreate = defineMethod({
+  name: "projects.create",
+  description: "Create a new project folder from a template and open it.",
+  callers: ["workbench"],
+  params: z.object({
+    /** Usually the default workspace folder from settings (FR-002). */
+    parentDir: z.string().min(1),
+    name: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[^<>:"/\\|?*]+$/, 'A folder name cannot contain < > : " / \\ | ? *'),
+    template: z.enum(["empty", "general"]),
+  }),
+  result: z.object({ project: ProjectSchema }),
+});
+
+/**
+ * Creates the default workspace folder chosen in onboarding or settings, if it is missing
+ * (FR-002: created only when the user confirms). Never writes inside an existing folder.
+ */
+export const projectsPrepareWorkspaceFolder = defineMethod({
+  name: "projects.prepareWorkspaceFolder",
+  description: "Create the default folder for new projects if it does not exist yet.",
+  callers: ["workbench"],
+  params: z.object({ path: z.string().min(1) }),
+  result: z.object({
+    /** The folder's canonical path, to store in settings. */
+    path: z.string().min(1),
+    /** False when it already existed. */
+    created: z.boolean(),
+  }),
+});
+
+export const projectsClose = defineMethod({
+  name: "projects.close",
+  description: "Close the active project (back to the start screen).",
+  callers: ["workbench"],
+  params: z.object({}),
+  result: z.object({}),
+});
+
+export const projectsSetTrust = defineMethod({
+  name: "projects.setTrust",
+  description: "Record the user's trust decision for a project (FR-006).",
+  callers: ["workbench"],
+  params: z.object({ id: ProjectIdSchema, trust: z.enum(["trusted", "restricted"]) }),
+  result: z.object({ project: ProjectSchema }),
+});
+
+/** Forgets a recent project. Never touches the folder. */
+export const projectsRemove = defineMethod({
+  name: "projects.remove",
+  description: "Remove a project from the recent list; the folder is left alone.",
+  callers: ["workbench"],
+  params: z.object({ id: ProjectIdSchema }),
+  result: z.object({}),
+});
+
+/** Points a missing project at its new folder (FR-004 Locate), keeping its ID and settings. */
+export const projectsLocate = defineMethod({
+  name: "projects.locate",
+  description: "Point a recent project at the folder it moved to.",
+  callers: ["workbench"],
+  params: z.object({ id: ProjectIdSchema, path: z.string().min(1) }),
+  result: z.object({ project: ProjectSchema }),
+});
+
+/** What kind of project the active one is (J-05, VISUAL_EDITING.md section 3). */
+export const projectsDetect = defineMethod({
+  name: "projects.detect",
+  description: "Package manager, scripts, preview strategy and visual-editing support.",
+  callers: ["workbench"],
+  params: z.object({}),
+  result: z.object({
+    packageManager: z
+      .object({
+        name: z.enum(["npm", "pnpm", "yarn", "bun"]),
+        source: z.enum(["packageManager field", "lockfile"]),
+      })
+      .nullable(),
+    scripts: z.object({
+      dev: z.string().optional(),
+      start: z.string().optional(),
+      build: z.string().optional(),
+      test: z.string().optional(),
+      lint: z.string().optional(),
+      typecheck: z.string().optional(),
+    }),
+    previewStrategy: z.enum(["vite-react", "generic", "none"]),
+    framework: z.string().nullable(),
+    styling: z.enum(["tailwind-4", "tailwind-3", "inline", "css-modules", "css-in-js"]).nullable(),
+    visualEditing: z.object({
+      level: z.enum(["full", "inspect-only", "unavailable"]),
+      /** Plain language, shown in the project header and preview panel (FR-120). */
+      reason: z.string(),
+    }),
+  }),
+});

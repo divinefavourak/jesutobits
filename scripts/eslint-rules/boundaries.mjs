@@ -36,9 +36,12 @@ export const boundaryRules = [
   },
   {
     files: ["apps/desktop/src/"],
-    imports: [jesutobitsExcept("protocol", "shared", "extension-schema"), NODE_BUILTINS],
+    imports: [
+      jesutobitsExcept("protocol", "shared", "extension-schema", "builtin-themes"),
+      NODE_BUILTINS,
+    ],
     message:
-      "The Workbench may depend only on protocol, shared and extension-schema, and never on Node APIs",
+      "The Workbench may depend only on protocol, shared, extension-schema and the built-in themes' data, and never on Node APIs",
   },
   {
     files: ["packages/extension-schema/"],
@@ -84,7 +87,8 @@ export const boundaryRules = [
   },
   {
     files: ["packages/services/src/"],
-    except: ["packages/services/src/workspace/"],
+    // environment.ts only checks PATH folders for executables, never project files.
+    except: ["packages/services/src/workspace/", "packages/services/src/process/environment.ts"],
     tests: false,
     imports: [FS],
     message:

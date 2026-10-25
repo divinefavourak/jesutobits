@@ -34,6 +34,7 @@ jesutobits/
 │       │   │   └── extensions/  settings/  diagnostics/
 │       │   └── i18n/              # externalised strings (NFR-020)
 │       ├── e2e/                   # Playwright: journeys/, visual-editing/, a11y/
+│       ├── desktop-tests/         # the real app through tauri-driver (pnpm test:desktop, nightly)
 │       └── src-tauri/             # HOST (Rust)
 │           ├── Cargo.toml
 │           ├── tauri.conf.json    # bundle.externalBin: jesutobits-node, jesutobits-rg; resources
@@ -48,6 +49,7 @@ jesutobits/
 │               ├── main.rs, lib.rs
 │               ├── runtime_supervisor/   # spawn, health, restart; job_object_windows.rs; process_group_unix.rs
 │               ├── rpc_relay/            # relay + allowlist (allowlist.rs is generated)
+│               ├── logging/              # host/workbench/runtime .jsonl files: rotation, redaction
 │               ├── secret_store.rs
 │               ├── pty_manager.rs
 │               ├── extension_store/      # archive checks, staging, registry, jesutobits-ext protocol
@@ -58,7 +60,7 @@ jesutobits/
 ├── packages/
 │   ├── protocol/                  # Zod schemas: RPC methods, events, JesutobitsError, bridge messages,
 │   │                              # VisualChange, settings; generates JSON Schemas and the Host allowlist
-│   ├── shared/                    # pure utilities: ids (ULID + prefix), Result, semver helpers; no Node or DOM APIs
+│   ├── shared/                    # pure utilities: ids (ULID + prefix), Result, semver helpers, the Logger interface; no Node or DOM APIs
 │   ├── runtime/                   # RUNTIME entry + AGENT HARNESS (boundary B)
 │   │   ├── src/main.ts            # stdio wiring, dependency injection of services
 │   │   ├── src/rpc/
@@ -116,7 +118,7 @@ Responsibilities per module are specified in ARCHITECTURE.md section 5. Ownershi
 
 ## 3. Dependency rules (enforced by lint, NFR-017)
 
-The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforced by the `jesutobits/import-boundaries` rule, plus `no-console`, `no-restricted-globals` (`fetch`), `no-restricted-syntax` (`dangerouslySetInnerHTML`) and `jesutobits/no-raw-colors` in `eslint.config.js`. Change the table and this section together; `scripts/eslint-rules/eslint-rules.test.mjs` tests the real table. pnpm's strict `node_modules` adds a second layer: a package cannot import a dependency it has not declared. Rules about node built-ins (`fs`, `child_process`, network) do not apply to test files, which need temp directories and process harnesses. Native addons are caught only when imported as `.node` files; a dependency audit for native packages arrives with the sidecar build (Spike S1).
+The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforced by the `jesutobits/import-boundaries` rule, plus `no-console`, `no-restricted-globals` (`fetch`), `no-restricted-syntax` (`dangerouslySetInnerHTML`) and `jesutobits/no-raw-colors` in `eslint.config.js`. Change the table and this section together; `scripts/eslint-rules/eslint-rules.test.mjs` tests the real table. pnpm's strict `node_modules` adds a second layer: a package cannot import a dependency it has not declared. Rules about node built-ins (`fs`, `child_process`, network) do not apply to test files, which need temp directories and process harnesses. Relative imports may not leave their own package, except that test code (`*.test.*`, `test/` and `e2e/` folders) may import the development scripts in `scripts/`, for example the E2E fixtures starting `scripts/dev-relay.mjs`. Native addons are caught only when imported as `.node` files; a dependency audit for native packages arrives with the sidecar build (Spike S1).
 
 ### 3.1 Between packages
 
@@ -126,7 +128,8 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 | `shared` | nothing | Any Jesutobits package |
 | `services` | `protocol`, `shared` | `runtime`, `apps/*` |
 | `runtime` | `protocol`, `shared`, `services`, `extension-schema` | `apps/*` |
-| `apps/desktop` (Workbench) | `protocol`, `shared`, `extension-schema` (types and token compiler) | `runtime`, `services`, Node built-ins |
+| `apps/desktop` (Workbench) | `protocol`, `shared`, `extension-schema` (types and token compiler), `builtin-themes` (token files, imported at build time until the Host serves extensions in Phase 6) | `runtime`, `services`, Node built-ins |
+| `extensions/builtin/*` | nothing (data: a manifest and token or asset files) | Everything |
 | `extension-schema` | `zod`, `shared` | `runtime`, `services`, `apps/*` |
 | `extension-cli` | `extension-schema` | `runtime`, `services`, `apps/*` |
 | `vite-plugin`, `visual-bridge`, `preview-launcher` | `protocol` as **type-only** imports; their own bundled dependencies | Everything else at runtime (ADR-0013) |
@@ -140,7 +143,7 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 | Only `features/companion/renderers/` imports animation libraries | Renderer isolation (ADR-0006) |
 | Only `ui/markdown/` may produce HTML from strings; `dangerouslySetInnerHTML` banned elsewhere | XSS defence (SECURITY.md section 8) |
 | Components use theme tokens only; raw colour literals banned in `features/` and `ui/` | Theming (EXTENSION_SYSTEM.md section 4) |
-| In `services`, only `workspace/` imports `node:fs` for project paths; only `process/` imports `node:child_process` | Single enforcement points |
+| In `services`, only `workspace/` imports `node:fs` for project paths (plus `process/environment.ts`, which only checks PATH folders for executables); only `process/` imports `node:child_process` | Single enforcement points |
 | In `runtime`, only `storage/` imports `node:sqlite`; only `providers/` performs model HTTP | Swappability and audit |
 | `console.*` banned in `runtime` and `services` | Stdout carries the protocol (ADR-0003) |
 | Native addons banned in `runtime` and `services` | ADR-0002 |

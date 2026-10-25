@@ -47,6 +47,8 @@ Shown on first run (FR-001). A step indicator shows 7 steps. Back is always avai
 | 6. Look and companion | Theme cards (Light, Dark, High Contrast, Follow system) with live mini-preview; companion: Ember (subtle), Dot (minimal), Pip (playful), Off; expressiveness slider | Both changeable later |
 | 7. First project | Create from template, Open folder, or Explore a sample project | Ends in the Workbench |
 
+Phase 1 (2026-10-22): steps 4 and 5 say the agent and providers arrive in 0.2 and can be skipped; step 6 has the theme and says companions arrive in 0.6; step 7 offers New project, Open folder and the start screen (no sample project yet). Jesutobits does not open web pages yet, so the toolchain step shows each install address with a Copy button. The Documents folder comes from the Host (`HostBridge.paths.documents`); without one the user must choose a folder.
+
 After onboarding, a dismissible "First steps" checklist appears in the agent panel: ask the agent something, open the preview, try Inspect mode, review a diff.
 
 ## 4. Layout
@@ -85,7 +87,7 @@ After onboarding, a dismissible "First steps" checklist appears in the agent pan
 | **Design** | Agent (left, narrow) · Preview (center, large) · Inspector (right) | Activated automatically when entering Inspect mode, if the user allows |
 | **Focus** | Center only (editor or preview), Agent as a slide-over (`Ctrl+L`) | Manual |
 
-Presets are switched from the title bar or with `Alt+1` to `Alt+4`. User modifications are saved as "Custom (based on Code)" and can be saved as a named preset (FR-071). Layout presets can also be contributed by Stage 1 extensions.
+Presets are switched from the title bar or with `Alt+1` to `Alt+4`. (Phase 1 opens every project with Code and has no named presets yet; see ROADMAP.md Phase 1 notes.) User modifications are saved as "Custom (based on Code)" and can be saved as a named preset (FR-071). Layout presets can also be contributed by Stage 1 extensions.
 
 ### 4.4 Persistence and project switching
 
@@ -102,7 +104,7 @@ Default: agent panel header, small. Other placements: status bar, or floating wi
 ### 5.1 Explorer
 
 - Lazy tree (NFR-019), ignored files dimmed, `node_modules` collapsed and not expanded by search unless asked.
-- Context menu: New file, New folder, Rename, Delete (to OS trash), Copy path, Reveal in OS, Open in terminal, **Attach to agent message**.
+- Context menu: New file, New folder, Rename, Delete (to OS trash), Copy path, Reveal in OS, Open in terminal, **Attach to agent message**. (Phase 1 has all but Open in terminal and Attach to agent message, which arrive with the terminal and the agent; it adds Copy relative path. Keys: arrows, Home, End, Enter opens, F2 renames, Delete asks before trashing, Shift+F10 or the Menu key opens the menu.)
 - Agent-changed files show a small dot until viewed; files changed by commands show a different marker.
 
 ### 5.2 Editor (Monaco) responsibilities and limits
@@ -111,9 +113,11 @@ Monaco provides editing, highlighting, find/replace, multi-cursor, folding and d
 
 - **Tabs** with dirty state; Save (`Ctrl+S`), Save all; preview tabs (single-click opens a temporary tab).
 - **External changes:** when the agent or a command changes an open file, an unmodified tab updates in place and highlights changed lines for 5 seconds; a modified tab shows a bar "This file changed on disk" with Compare and Keep mine / Take theirs.
+- **Deleted files:** a file moved to the trash from the explorer updates its tab at once; a file deleted elsewhere does once the runtime confirms it is gone (a delete followed by a new file, as atomic saves do, changes nothing). A tab without unsaved changes closes; a tab with them stays with the bar "This file was deleted on disk. Saving creates it again."
+- **Unsaved changes on close:** closing a tab, the project or the window with unsaved changes asks Save (all) / Don't save / Cancel.
 - **Agent diffs:** "Review changes" opens a multi-file diff view for a turn with per-file Revert.
 - **Limitations stated in UI:** in-editor TypeScript hints are approximate in large projects; the Problems panel (from real checks) is authoritative.
-- Large files over 5 MB open read-only with a warning; binary files show a metadata view.
+- Large files over 5 MB open read-only with a warning; binary files show a metadata view. Until `fs.readFile` can page, files over 2 MB (`MAX_EDITOR_FILE_BYTES`) are not opened at all and the editor says so (`fs.too_large`): one message must stay under the 4 MiB relay limit after JSON escaping (ADR-0003).
 
 ### 5.3 Search and quick open
 
@@ -267,6 +271,8 @@ Windows/Linux shown; macOS uses `Cmd` for `Ctrl`.
 
 All shortcuts are listed in the palette next to their commands and can be rebound (keybindings live in `settings.json`).
 
+Phase 1 has the palette (commands that cannot run right now are not listed), quick open, the dock and preset shortcuts, Save and Save all; rebinding arrives with the settings UI. Workbench shortcuts are handled before the editor sees them, so `Ctrl+K` opens the palette even inside Monaco, which gives up its own `Ctrl+K` chords. While a dialog is open, only the dialog handles keys.
+
 ## 10. Accessibility (NFR-011)
 
 - **Keyboard:** logical focus order per dock; `F6` cycles docks; tree view uses `role="tree"` with arrow navigation; tabs use `role="tablist"`; splitters are focusable.
@@ -276,6 +282,8 @@ All shortcuts are listed in the palette next to their commands and can be reboun
 - **Inspect mode:** fully keyboard operable (VISUAL_EDITING.md section 5.2).
 
 ## 11. UI copy guidelines
+
+Every visible string lives in `apps/desktop/src/i18n/messages.en.ts` and is read with `t(key, params)` (NFR-020); plurals use `Intl.PluralRules` categories and numbers are formatted for the locale.
 
 - Short, plain sentences. Say what happened, then what the user can do.
 - Name real things: "npm install failed (exit 1)", not "Something went wrong".

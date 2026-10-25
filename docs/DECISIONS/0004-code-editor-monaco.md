@@ -46,6 +46,14 @@ What Monaco is **not** responsible for, and is designed separately:
 - The `CodeEditor` wrapper exposes a small API (`open(uri, content, version)`, `applyExternalChange`, `getValue`, `revealRange`, `setDecorations`, `showDiff`) so swapping to CodeMirror later touches one folder.
 - Agent edits arrive as file-changed events. The editor applies them as external edits, keeping the user's cursor, and shows a gutter marker for agent-changed lines.
 
+## Implementation notes (Phase 1, 2026-10-21)
+
+- `features/editor/`: `editor-store.ts` (tabs, saving with `expectedHash`, external changes; no Monaco import), `text-buffers.ts` (the store's view of the text), `monaco-buffers.ts` (models; dirty means "not at the saved alternative version", so undoing back to the saved text is clean), `monaco-setup.ts` (workers, diagnostics, theme), `CodeEditor.tsx` and `EditorPanel.tsx`.
+- Monaco is not part of the cold start (NFR-001): it is imported on the first file open.
+- Semantic diagnostics are off for TypeScript and JavaScript; syntax errors stay.
+- Development: Monaco's ESM build imports about 100 stylesheets, and the dev server inlines each pre-bundled dependency's source map. `vite.config.ts` replaces the stylesheets with the package's single prebuilt one and drops source maps of dependency chunks over 1 MB; the first open in `pnpm dev` still takes about 10 s once per server start.
+- CSP: `worker-src 'self' blob:` and `font-src 'self' data:` (the codicon font is inlined).
+
 ## Revisit when
 
 Workbench cold start exceeds NFR-001 and profiling shows Monaco as a top contributor, or we need editor features Monaco makes hard (for example deep customisation of the gutter for visual-editing links).

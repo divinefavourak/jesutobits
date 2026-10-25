@@ -1,9 +1,10 @@
 import { useState } from "react";
 import type { HostBridge } from "../../host-bridge";
+import { t } from "../../i18n";
 import { measureRelayLatency, type LatencySummary } from "./relay-benchmark";
 
-const BUDGET_P95_MS = 5; // NFR-006
-
+// No pass/fail verdict: NFR-006's 5 ms budget is for the relay alone, and this full round
+// trip is mostly WebView2 IPC (5 to 9 ms p95 even in release, Spike S1).
 const format = (ms: number) => `${ms.toFixed(2)} ms`;
 
 /** Spike S1 relay probe; later part of Help > Diagnostics (ARCHITECTURE.md section 10). */
@@ -28,9 +29,10 @@ export function RelayBenchmark({ bridge, disabled }: { bridge: HostBridge; disab
 
   return (
     <section aria-labelledby="relay-benchmark-title">
-      <h2 id="relay-benchmark-title">Relay latency</h2>
+      <h2 id="relay-benchmark-title">{t("diagnostics.roundTrip.title")}</h2>
+      <p>{t("diagnostics.roundTrip.scope")}</p>
       <button type="button" onClick={() => void run()} disabled={disabled || running}>
-        {running ? "Measuring…" : "Measure 1,000 round trips (1 KB)"}
+        {t(running ? "diagnostics.roundTrip.running" : "diagnostics.roundTrip.run")}
       </button>
       {error && <p role="alert">{error}</p>}
       {summary && (
@@ -38,10 +40,7 @@ export function RelayBenchmark({ bridge, disabled }: { bridge: HostBridge; disab
           <dt>p50</dt>
           <dd>{format(summary.p50)}</dd>
           <dt>p95</dt>
-          <dd>
-            {format(summary.p95)} ({summary.p95 < BUDGET_P95_MS ? "within" : "over"} the{" "}
-            {BUDGET_P95_MS} ms budget)
-          </dd>
+          <dd>{format(summary.p95)}</dd>
           <dt>p99</dt>
           <dd>{format(summary.p99)}</dd>
           <dt>max</dt>

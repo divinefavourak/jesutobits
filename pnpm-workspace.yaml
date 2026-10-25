@@ -1,6 +1,9 @@
 packages:
   - apps/*
   - packages/*
+  # Built-in extensions are real packages (EXTENSION_SYSTEM.md section 4.3); the Workbench
+  # imports their data at build time until the Host serves them (Phase 6).
+  - extensions/builtin/*
 
 # Fail on undeclared or mismatched engines instead of warning.
 engineStrict: true
@@ -13,3 +16,7 @@ minimumReleaseAgeStrict: true
 allowBuilds:
   # The postinstall only verifies the binary that the @esbuild/<platform> optional dependency provides.
   esbuild: false
+  # webdriverio's driver downloaders. The desktop tests use tauri-driver with the WebView2-
+  # matched msedgedriver from scripts/fetch-webdriver.mjs (Linux: WebKitWebDriver), never these.
+  edgedriver: false
+  geckodriver: false

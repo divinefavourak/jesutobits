@@ -4,6 +4,7 @@
   "private": true,
   "description": "Preview and execution services (boundary D): workspace, processes, previews, Git, visual edits.",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -17,6 +18,7 @@
     "@babel/parser": "^7.29.9",
     "@jesutobits/protocol": "workspace:*",
     "@jesutobits/shared": "workspace:*",
+    "ignore": "^7.0.12",
     "magic-string": "^1.4.3"
   }
 }

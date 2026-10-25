@@ -6,7 +6,28 @@ pub const PROTOCOL_VERSION: &str = "0.1.0";
 
 /// Runtime methods the Workbench may call through the relay. Anything else is rejected.
 pub const WORKBENCH_METHODS: &[&str] = &[
+    "events.replay",
+    "fs.createDirectory",
+    "fs.createFile",
+    "fs.listDir",
+    "fs.quickOpen",
+    "fs.readFile",
+    "fs.rename",
+    "fs.reveal",
+    "fs.stat",
+    "fs.trash",
+    "fs.writeFile",
+    "projects.close",
+    "projects.create",
+    "projects.detect",
+    "projects.list",
+    "projects.locate",
+    "projects.open",
+    "projects.prepareWorkspaceFolder",
+    "projects.remove",
+    "projects.setTrust",
     "runtime.ping",
+    "toolchain.detect",
 ];
 
 /// Runtime methods the Host itself sends.
@@ -16,6 +37,16 @@ pub const HOST_METHODS: &[&str] = &[
     "runtime.shutdown",
 ];
 
+/// Methods the runtime may call on the Host (reverse calls, ADR-0014).
+pub const REVERSE_METHODS: &[&str] = &[
+    "host.fs.trash",
+    "host.os.reveal",
+];
+
 pub fn is_workbench_method(method: &str) -> bool {
     WORKBENCH_METHODS.contains(&method)
+}
+
+pub fn is_reverse_method(method: &str) -> bool {
+    REVERSE_METHODS.contains(&method)
 }

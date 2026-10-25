@@ -73,9 +73,14 @@ export default defineConfig([
     files: ["apps/desktop/src/**", "packages/visual-bridge/src/**"],
     languageOptions: { globals: { ...globals.browser } },
   },
-  // Spike scripts run in Node but pass functions to page.evaluate() that run in a browser.
+  // Playwright reads a fixture's dependencies from its destructuring pattern; `{}` means none.
   {
-    files: ["scripts/spikes/**"],
+    files: ["apps/desktop/e2e/**"],
+    rules: { "no-empty-pattern": "off" },
+  },
+  // Spike scripts and desktop tests run in Node but pass functions to the webview to run.
+  {
+    files: ["scripts/spikes/**", "apps/desktop/desktop-tests/**"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {

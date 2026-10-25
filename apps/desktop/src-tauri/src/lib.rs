@@ -1,10 +1,16 @@
 //! Jesutobits Host (ARCHITECTURE.md section 5.1).
 
+mod dialogs;
+mod host_methods;
+mod logging;
 mod rpc_relay;
 mod runtime_supervisor;
+mod settings_store;
 
 use std::path::PathBuf;
-use std::time::Duration;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use tauri::ipc::Channel;
@@ -12,10 +18,13 @@ use tauri::{Manager, RunEvent, State};
 
 use rpc_relay::{allowlist, rpc_error, CODE_METHOD_NOT_ALLOWED, METHOD_NOT_FOUND};
 use runtime_supervisor::{LaunchSpec, StatusUpdate, Supervisor};
+use settings_store::{commands as settings, SettingsStore};
+
+/// When the Host started, for startup timing (NFR-001).
+static HOST_STARTED: OnceLock<Instant> = OnceLock::new();
 
 /// How long a Workbench call may wait for the runtime. Long work streams events instead.
 const WORKBENCH_CALL_TIMEOUT: Duration = Duration::from_secs(60);
-const MAX_LOG_MESSAGE_BYTES: usize = 16 * 1024;
 
 /// Relays a Workbench call to the runtime if the method is on the allowlist (ADR-0003).
 /// `Err` is a JSON-RPC error object whose `data` is a JesutobitsError.
@@ -56,19 +65,56 @@ fn runtime_subscribe(
     supervisor.subscribe(on_event, on_status);
 }
 
-/// The Workbench logs through the Host (ARCHITECTURE.md section 10). Log files and
-/// redaction arrive in Phase 1; until then lines go to the Host's stderr.
+/// The user's "Restart runtime" from the Failed state (ADR-0002). Ignored in other states.
+#[tauri::command]
+fn runtime_restart(supervisor: State<'_, Supervisor>) {
+    supervisor.restart();
+}
+
+/// The Workbench logs through the Host into `workbench.jsonl` (ARCHITECTURE.md section 10).
 #[tauri::command]
 fn workbench_log(level: String, message: String) {
-    let level = match level.as_str() {
-        "error" | "warn" | "info" | "debug" => level,
-        _ => "info".to_owned(),
+    logging::workbench(&level, &message);
+}
+
+/// The Workbench rendered its first screen. Logs the time since the Host started, which is
+/// NFR-001's cold start, and the webview's own share (`sinceNavigationMs`).
+#[tauri::command]
+fn workbench_ready(since_navigation_ms: f64) {
+    static LOADS: AtomicU32 = AtomicU32::new(0);
+    let load = LOADS.fetch_add(1, Ordering::Relaxed) + 1;
+    let since_start = HOST_STARTED
+        .get()
+        .map_or(0, |started| started.elapsed().as_millis() as u64);
+    let since_navigation = since_navigation_ms.max(0.0).round() as u64;
+    let mut fields = serde_json::Map::new();
+    fields.insert("load".into(), load.into());
+    fields.insert("sinceHostStartMs".into(), since_start.into());
+    fields.insert("sinceNavigationMs".into(), since_navigation.into());
+    let msg = if load == 1 {
+        format!(
+            "workbench interactive {since_start} ms after Host start ({since_navigation} ms in the webview)"
+        )
+    } else {
+        format!("workbench reloaded and interactive after {since_navigation} ms (load {load})")
     };
-    let mut end = message.len().min(MAX_LOG_MESSAGE_BYTES);
-    while !message.is_char_boundary(end) {
-        end -= 1;
+    logging::with_fields(logging::Level::Info, "startup", msg, fields);
+}
+
+/// `JESUTOBITS_CONFIG_DIR` overrides the app config dir (settings.json, ui-state.json).
+fn config_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
+    match std::env::var_os("JESUTOBITS_CONFIG_DIR") {
+        Some(dir) => Ok(PathBuf::from(dir)),
+        None => app.path().app_config_dir(),
     }
-    eprintln!("[workbench:{level}] {}", &message[..end]);
+}
+
+/// `JESUTOBITS_LOG_DIR` overrides the app log dir, like `JESUTOBITS_DATA_DIR` for data.
+fn log_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
+    match std::env::var_os("JESUTOBITS_LOG_DIR") {
+        Some(dir) => Ok(PathBuf::from(dir)),
+        None => app.path().app_log_dir(),
+    }
 }
 
 fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error::Error>> {
@@ -93,32 +139,50 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
         use_job_object = std::env::var("JESUTOBITS_DISABLE_JOB_OBJECT").as_deref() != Ok("1");
     }
 
+    // The database and checkpoints are large and machine-specific, so they go in the local
+    // (not roaming) data dir: %LOCALAPPDATA%\<identifier> (DATA_AND_PERSISTENCE.md section 2).
     let data_dir = match std::env::var_os("JESUTOBITS_DATA_DIR") {
         Some(dir) => PathBuf::from(dir),
-        None => app.path().app_data_dir()?,
+        None => app.path().app_local_data_dir()?,
     };
     std::fs::create_dir_all(&data_dir)?;
 
     Ok(LaunchSpec {
         node,
         entry,
+        entry_args: Vec::new(),
         data_dir,
         use_job_object,
     })
 }
 
 pub fn run() {
+    HOST_STARTED.get_or_init(Instant::now);
     let app = tauri::Builder::default()
         .setup(|app| {
+            logging::init(&log_dir(app.handle())?);
+            app.manage(SettingsStore::load(&config_dir(app.handle())?));
             let supervisor = Supervisor::new();
             supervisor.start(launch_spec(app.handle())?);
             app.manage(supervisor);
+            if let Some(window) = app.get_webview_window("main") {
+                settings_store::window::restore_and_track(&window);
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             rpc_call,
             runtime_subscribe,
-            workbench_log
+            runtime_restart,
+            workbench_log,
+            workbench_ready,
+            settings::settings_get,
+            settings::settings_update,
+            settings::settings_subscribe,
+            settings::ui_state_get,
+            settings::ui_state_update,
+            settings::host_notices,
+            dialogs::dialog_pick_folder
         ])
         .build(tauri::generate_context!())
         .expect("failed to build the Jesutobits Host");

@@ -1,0 +1,101 @@
+# Nightly gate (TESTING_STRATEGY.md section 7): what is too slow or too OS-bound for every
+# pull request. Uses the same scripts as developers.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Tauri system dependencies and the WebKit WebDriver
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev webkit2gtk-driver xvfb
+
+      - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - run: pnpm install --frozen-lockfile
+      - name: Cache sidecar archives
+        uses: actions/cache@v4
+        with:
+          path: node_modules/.cache/jesutobits-sidecars
+          key: sidecars-${{ runner.os }}-${{ hashFiles('scripts/sidecars.json') }}
+      - run: pnpm fetch:sidecars
+      - run: cargo install tauri-driver --locked
+
+      # Desktop integration: startup, IPC allowlist, crash restart, no runtime left behind.
+      - run: pnpm build:desktop-test
+      - name: Desktop tests
+        if: runner.os == 'Windows'
+        run: pnpm test:desktop
+      - name: Desktop tests
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm test:desktop
+
+      # Spike S1: no orphans after the Host is force-killed (NFR-010, Windows job object).
+      - name: Orphan check (S1)
+        if: runner.os == 'Windows'
+        run: node scripts/spikes/s1-orphans.mjs --trials 10
+
+      # Spike S3: preview frames cannot reach IPC or the Workbench (ADR-0010).
+      - name: Preview frame isolation (S3)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          VITE_JESUTOBITS_PREVIEW_PROBE=http://127.0.0.1:5899/ pnpm --filter @jesutobits/desktop tauri build --debug --no-bundle
+          node scripts/spikes/s3-run.mjs --label nightly
+
+      # 100,000 files open without freezing (NFR-019, NFR-003): the index, then the Workbench.
+      - name: Large project (index)
+        run: pnpm vitest run packages/services/test/large-tree.perf.test.ts
+        env:
+          JESUTOBITS_PERF: "1"
+      - name: Playwright browser
+        run: pnpm --filter @jesutobits/desktop exec playwright install --with-deps chromium
+      - name: Large project (Workbench)
+        run: pnpm --filter @jesutobits/desktop exec playwright test perf/
+        env:
+          JESUTOBITS_PERF: "1"
+
+      # Cold start of a release build (NFR-001, NFR-002).
+      - name: Startup benchmark
+        if: runner.os == 'Windows'
+        run: |
+          pnpm --filter @jesutobits/desktop tauri build --no-bundle
+          node scripts/bench-startup.mjs --runs 5
+
+      - name: Keep the logs when something fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/jesutobits-*/logs/
+          retention-days: 7
+          if-no-files-found: ignore

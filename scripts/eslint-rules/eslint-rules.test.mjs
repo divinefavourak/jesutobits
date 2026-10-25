@@ -47,6 +47,10 @@ tester.run("import-boundaries", importBoundaries, {
     ok("packages/runtime/src/tools/fs/read.ts", 'import { x } from "../common/paths.js";'),
     ok("packages/runtime/src/tools/registry.ts", 'import { x } from "./fs/read.js";'),
     ok("apps/desktop/vite.config.ts", 'import { join } from "node:path";'),
+    ok(
+      "apps/desktop/e2e/fixtures.ts",
+      'import { startRelay } from "../../../scripts/dev-relay.mjs";',
+    ),
   ],
   invalid: [
     bad("packages/protocol/src/a.ts", 'import { x } from "@jesutobits/shared";'),
@@ -79,6 +83,16 @@ tester.run("import-boundaries", importBoundaries, {
     bad(
       "packages/runtime/src/agent/a.ts",
       'import { x } from "../../../services/src/index.js";',
+      "escapesPackage",
+    ),
+    bad(
+      "apps/desktop/src/features/start/a.ts",
+      'import { startRelay } from "../../../../../scripts/dev-relay.mjs";',
+      "escapesPackage",
+    ),
+    bad(
+      "apps/desktop/e2e/fixtures.ts",
+      'import { x } from "../../../packages/runtime/src/index.js";',
       "escapesPackage",
     ),
     bad(

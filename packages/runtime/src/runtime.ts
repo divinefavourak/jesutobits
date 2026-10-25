@@ -1,22 +1,31 @@
 import {
   ErrorCodes,
+  EVENT_NOTIFICATION_METHOD,
   isProtocolCompatible,
   JesutobitsError,
   MAX_MESSAGE_BYTES,
   PROTOCOL_VERSION,
 } from "@jesutobits/protocol";
+import type { Logger } from "@jesutobits/shared";
+import { EventBus } from "./events/event-bus.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
+import { Projects } from "./projects/projects.js";
 import { RpcServer } from "./rpc/server.js";
+import { openStorage, type Storage } from "./storage/storage.js";
 import { RUNTIME_VERSION } from "./version.js";
 
 export interface RuntimeIo {
   /** Writes one NDJSON line to the Host (stdout). Resolves once flushed. */
   write(line: string): Promise<void>;
-  /** Diagnostic text for the Host's runtime log (stderr). */
-  diagnostic(message: string): void;
+  /** Structured lines for the Host's runtime log (stderr). */
+  log: Logger;
   exit(code: number): void;
   /** Milliseconds since the runtime started. */
   uptimeMs(): number;
+  /** Startup marks in milliseconds since the process started (reported by `initialize`). */
+  startupMarks(): { nodeBootstrapMs: number; mainStartMs: number };
+  /** The app data dir from `--data-dir`; without it the database lives in memory. */
+  dataDir: string | undefined;
 }
 
 export interface Runtime {
@@ -24,21 +33,39 @@ export interface Runtime {
   receive(chunk: Buffer): void;
   /** stdin reached EOF: the Host is gone (ADR-0002, parent-death detection). */
   endOfInput(): void;
+  /** Where services emit runtime events. */
+  readonly events: EventBus;
 }
 
 type LifecycleState = "awaiting_initialize" | "ready" | "shutting_down";
 
 export function createRuntime(io: RuntimeIo): Runtime {
   let state: LifecycleState = "awaiting_initialize";
+  let storage: Storage | undefined;
+  // Settles once the database is open (just after the handshake); handlers that need it wait.
+  let storageOpened: (storage: Storage) => void = () => undefined;
+  let storageFailed: (error: unknown) => void = () => undefined;
+  const storageReady = new Promise<Storage>((resolve, reject) => {
+    storageOpened = resolve;
+    storageFailed = reject;
+  });
+  storageReady.catch(() => undefined); // Callers see the rejection; nothing else must.
+  const log = io.log.child({ module: "runtime" });
 
   const shutdown = (): void => {
-    // Later phases cancel the active turn, stop managed processes and flush SQLite here.
+    // Later phases also cancel the active turn and stop managed processes here.
+    try {
+      projects.closeActive();
+      storage?.close();
+    } catch (error) {
+      log.error("could not close the database", { err: error });
+    }
     io.exit(0);
   };
 
   const server = new RpcServer({
     send: (line) => io.write(`${line}\n`),
-    diagnostic: io.diagnostic,
+    log: io.log.child({ module: "rpc" }),
     gate(method) {
       if (state === "shutting_down") {
         throw new JesutobitsError(ErrorCodes.runtimeShuttingDown, "The runtime is shutting down");
@@ -50,8 +77,10 @@ export function createRuntime(io: RuntimeIo): Runtime {
         );
       }
     },
-    onResponded(method) {
+    onResponded(method, ok) {
       if (method === "runtime.shutdown" && state === "shutting_down") shutdown();
+      // After the reply is flushed, so migrations never delay the handshake (NFR-002).
+      if (method === "runtime.initialize" && ok) startStorage();
     },
   });
 
@@ -77,6 +106,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
       protocolVersion: PROTOCOL_VERSION,
       runtimeVersion: RUNTIME_VERSION,
       nodeVersion: process.version,
+      startup: { ...io.startupMarks(), initializeReceivedMs: io.uptimeMs() },
     };
   });
 
@@ -85,15 +115,53 @@ export function createRuntime(io: RuntimeIo): Runtime {
     ...(params.echo !== undefined && { echo: params.echo }),
   }));
 
+  const events = new EventBus({
+    send: (event) => server.notify(EVENT_NOTIFICATION_METHOD, event),
+    log: io.log.child({ module: "events" }),
+  });
+  server.register("events.replay", (params) => events.replay(params.afterSeq));
+
+  const projects = new Projects({
+    trash: async (path) => {
+      await server.request("host.fs.trash", { path });
+    },
+    reveal: async (path) => {
+      await server.request("host.os.reveal", { path });
+    },
+    events,
+    log: io.log.child({ module: "projects" }),
+    storage: () => storageReady,
+  });
+  projects.register(server);
+
+  /** Opens the database; problems become events the Workbench shows (DATA_AND_PERSISTENCE.md 6.1). */
+  function startStorage(): void {
+    try {
+      storage = openStorage({ dir: io.dataDir, log: io.log.child({ module: "storage" }) });
+    } catch (error) {
+      log.error("could not open the database", { err: error });
+      const unavailable = new JesutobitsError(
+        ErrorCodes.storageUnavailable,
+        "Jesutobits could not open its database. Projects and sessions cannot be saved.",
+        { userAction: "report" },
+      );
+      storageFailed(unavailable);
+      events.emit("runtime.error", { error: unavailable.toData() });
+      return;
+    }
+    storageOpened(storage);
+    for (const notice of storage.notices) {
+      events.emit("runtime.warning", { message: notice.message, code: notice.code });
+    }
+  }
+
   server.register("runtime.shutdown", () => {
     state = "shutting_down";
     return {};
   });
 
   const report = (error: unknown): void => {
-    io.diagnostic(
-      `Failed to handle message: ${error instanceof Error ? error.stack : String(error)}`,
-    );
+    log.error("failed to handle a message", { err: error });
   };
   const splitter = new LineSplitter(
     MAX_MESSAGE_BYTES,
@@ -102,9 +170,11 @@ export function createRuntime(io: RuntimeIo): Runtime {
   );
 
   return {
+    events,
     receive: (chunk) => splitter.push(chunk),
     endOfInput() {
       splitter.end();
+      server.failPending("the Host is gone");
       state = "shutting_down";
       shutdown();
     },

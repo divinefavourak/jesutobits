@@ -1,6 +1,8 @@
 // Generates protocol artefacts from packages/protocol (PROJECT_STRUCTURE.md section 4):
 //   packages/protocol/generated/methods.json  checked in; the Host allowlist and its Rust
 //                                             contract test read it (ADR-0003)
+//   packages/protocol/generated/settings.defaults.json  checked in; the Host's settings
+//                                             contract test reads it
 //   packages/protocol/dist/json-schema/*.json JSON Schemas for every method and the envelope
 // Run through `pnpm gen`, which builds the protocol package first.
 import { mkdir, writeFile } from "node:fs/promises";
@@ -24,6 +26,14 @@ await writeJson(join(protocolDir, "generated", "methods.json"), {
   errorCodes: Object.values(protocol.ErrorCodes).sort(),
   workbench: protocol.methodsCallableBy("workbench"),
   host: protocol.methodsCallableBy("host"),
+  // Runtime-to-Host methods the Host answers (ADR-0014).
+  reverse: Object.keys(protocol.REVERSE_METHODS).sort(),
+});
+
+// The Host's serde defaults must equal these (settings_store/settings.rs contract test).
+await writeJson(join(protocolDir, "generated", "settings.defaults.json"), {
+  $comment: HEADER,
+  ...protocol.AppSettingsSchema.parse({}),
 });
 
 const schemaDir = join(protocolDir, "dist", "json-schema");
@@ -44,3 +54,10 @@ await writeJson(
   join(schemaDir, "runtime-event-base.json"),
   toSchema(protocol.RuntimeEventBaseSchema),
 );
+for (const method of Object.values(protocol.REVERSE_METHODS)) {
+  await writeJson(join(schemaDir, `${method.name}.params.json`), toSchema(method.params));
+  await writeJson(join(schemaDir, `${method.name}.result.json`), toSchema(method.result));
+}
+for (const event of Object.values(protocol.EVENTS)) {
+  await writeJson(join(schemaDir, `event.${event.type}.json`), toSchema(event.schema));
+}
