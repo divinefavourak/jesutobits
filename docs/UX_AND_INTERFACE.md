@@ -150,6 +150,8 @@ Branch name and ahead/behind; changed files grouped staged/unstaged/untracked; c
 - Messages render sanitised Markdown with code blocks (copy, insert into file via agent). Remote images are blocked with a load prompt (SECURITY.md section 8).
 - Sessions list (dropdown): new, rename, archive, export.
 
+Phase 2 (2026-10-26): the agent panel has the session picker with New session, the Agent/Ask switch, the session's model and cost, a Chat tab (user messages, the agent's Markdown, tool rows, approval and question cards inline, the plan, the turn summary) and a Timeline tab with All, Changes and Errors filters. Pause and Resume sit with the live turn's state. The model picker and the API key form are in onboarding step 5 and Settings > Models & providers; agent limits and the default policy are in Settings > Agent & limits, the project's preset in Settings > This project. `Ctrl+.` stops, `Ctrl+L` focuses the composer. File attachments, image attachments, renaming and exporting sessions from the panel, and the dismissible "First steps" checklist arrive later.
+
 ### 6.2 Plan checklist
 
 Shown at the top of the active turn when the agent calls `update_plan`. Items show pending, in progress, done, skipped. A caption says "Plan written by the agent".

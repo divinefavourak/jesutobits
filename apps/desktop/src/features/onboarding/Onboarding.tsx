@@ -4,14 +4,14 @@ import { useStore } from "zustand";
 import { t, type MessageKey } from "../../i18n";
 import { useProjects, useWorkbench } from "../../state/workbench-context";
 import { Button } from "../../ui/Button";
+import { KeyForm, ModelPicker } from "../agent/ProviderSetup";
 import { ThemePicker } from "../appearance/ThemePicker";
 import { CreateProjectDialog } from "../projects/CreateProjectDialog";
 import { ONBOARDING_STEPS, SKIPPABLE, type OnboardingStep } from "./onboarding-store";
 
 /**
  * First-run onboarding (FR-001, J-01, UX_AND_INTERFACE.md section 3): seven steps with a step
- * indicator, Back, and Skip where allowed. The provider steps are placeholders until the
- * agent arrives (Phase 2); companions arrive in Phase 6.
+ * indicator, Back, and Skip where allowed. Companions arrive in Phase 6.
  */
 export function Onboarding() {
   const { onboarding } = useWorkbench();
@@ -63,12 +63,9 @@ function StepContent({ step }: { step: OnboardingStep }) {
     case "toolchain":
       return <Toolchain />;
     case "provider":
+      return <Provider />;
     case "credentials":
-      return (
-        <Later text="onboarding.provider.later" step={step}>
-          <p className="m-0">{t(`onboarding.${step}.body`)}</p>
-        </Later>
-      );
+      return <Credentials />;
     case "look":
       return (
         <Later text="onboarding.look.companionLater" step={step}>
@@ -329,6 +326,35 @@ function Later({
       {children}
       <p className="m-0 text-text-muted">{t(text)}</p>
       <Footer step={step} onContinue={() => onboarding.getState().next()} />
+    </>
+  );
+}
+
+/** OpenRouter is the only provider in the MVP (ADR-0005); the step says so plainly. */
+function Provider() {
+  const { onboarding } = useWorkbench();
+  return (
+    <>
+      <p className="m-0">{t("onboarding.provider.body")}</p>
+      <div className="rounded-md border border-accent bg-accent-subtle p-3">
+        <p className="m-0 font-medium">{t("onboarding.provider.openrouter")}</p>
+        <p className="m-0 mt-1">{t("onboarding.provider.openrouterBody")}</p>
+      </div>
+      <p className="m-0 text-text-muted">{t("onboarding.provider.others")}</p>
+      <Footer step="provider" onContinue={() => onboarding.getState().next()} />
+    </>
+  );
+}
+
+/** The key goes to the system's credential store (FR-021); then a default model (FR-022). */
+function Credentials() {
+  const { onboarding } = useWorkbench();
+  return (
+    <>
+      <p className="m-0">{t("onboarding.credentials.body")}</p>
+      <KeyForm />
+      <ModelPicker />
+      <Footer step="credentials" onContinue={() => onboarding.getState().next()} />
     </>
   );
 }

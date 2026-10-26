@@ -24,6 +24,7 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "fs.readFile",
     "fs.rename",
     "fs.reveal",
+    "fs.search",
     "fs.stat",
     "fs.trash",
     "fs.writeFile",

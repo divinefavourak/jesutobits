@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import { useStore, type StoreApi } from "zustand";
+import { createAgentStore, type AgentState, type AgentStore } from "../features/agent/agent-store";
 import {
   createEditorStore,
   type EditorState,
@@ -35,6 +36,7 @@ export interface Workbench {
   appearance: AppearanceStore;
   ui: UiStore;
   onboarding: OnboardingStore;
+  agent: AgentStore;
 }
 
 /**
@@ -63,6 +65,7 @@ export function createWorkbench(
     appearance: createAppearanceStore(),
     ui: createUiStore(),
     onboarding: createOnboardingStore(bridge),
+    agent: createAgentStore(bridge, projects),
   };
 }
 
@@ -95,6 +98,10 @@ export function useEditor<T>(select: (state: EditorState) => T): T {
 
 export function useUi<T>(select: (state: UiState) => T): T {
   return useStore(useWorkbench().ui, select);
+}
+
+export function useAgent<T>(select: (state: AgentState) => T): T {
+  return useStore(useWorkbench().agent, select);
 }
 
 export function useAppearance<T>(select: (state: AppearanceState) => T): T {

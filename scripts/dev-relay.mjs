@@ -60,6 +60,7 @@ export async function startRelay({
   origin = "http://127.0.0.1:1420",
   token = randomBytes(24).toString("hex"),
   quiet = false,
+  env = {},
 } = {}) {
   const { workbench, protocolVersion } = readAllowlist();
   mkdirSync(dataDir, { recursive: true });
@@ -75,6 +76,9 @@ export async function startRelay({
     ],
     {
       stdio: ["pipe", "pipe", "pipe"],
+      // For tests: the scripted provider (JESUTOBITS_PROVIDER, JESUTOBITS_CASSETTE) or a mock
+      // OpenRouter (JESUTOBITS_OPENROUTER_URL).
+      env: { ...process.env, ...env },
     },
   );
   const pending = new Map();

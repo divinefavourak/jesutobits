@@ -13,6 +13,7 @@ import {
   detectToolchain,
   FileIndex,
   folderExists,
+  searchText,
   prepareWorkspaceFolder,
   WorkspaceService,
   type WatchHandle,
@@ -24,6 +25,8 @@ import type { Storage } from "../storage/storage.js";
 import { ProjectStore } from "./project-store.js";
 
 export interface ProjectsOptions {
+  /** The bundled ripgrep (`--ripgrep`), for `fs.search`. */
+  ripgrep?: string | undefined;
   /** Moves a confined absolute path to the OS trash through the Host (ADR-0014). */
   trash: (absolutePath: string) => Promise<void>;
   /** Shows a confined absolute path in the OS file manager through the Host. */
@@ -292,6 +295,24 @@ export class Projects {
     server.register("fs.trash", async (params) => {
       await this.workspace().trash(params.path);
       return {};
+    });
+
+    server.register("fs.search", async (params) => {
+      const active = this.requireActive();
+      return searchText(
+        {
+          query: params.query,
+          isRegex: params.isRegex,
+          caseSensitive: params.caseSensitive,
+          limit: params.limit,
+          ...(params.glob !== undefined && { glob: params.glob }),
+        },
+        {
+          workspace: active.workspace,
+          ripgrep: this.options.ripgrep,
+          files: () => active.index.list(),
+        },
+      );
     });
 
     server.register("fs.quickOpen", (params) => {

@@ -1,3 +1,5 @@
+import { liveTurn } from "../features/agent/timeline-reducer";
+import { showPanel } from "../features/layout/layout-model";
 import { t } from "../i18n";
 import type { Command } from "./commands";
 import type { Workbench } from "./workbench-context";
@@ -8,7 +10,9 @@ export function workbenchCommands({
   projects,
   editor,
   ui,
-}: Pick<Workbench, "bridge" | "projects" | "editor" | "ui">): Command[] {
+  agent,
+  layout,
+}: Pick<Workbench, "bridge" | "projects" | "editor" | "ui" | "agent" | "layout">): Command[] {
   const ready = () => projects.getState().runtime.status === "ready";
   const hasProject = () => projects.getState().active !== null;
   /** Closing or replacing the project asks about unsaved files first. */
@@ -22,6 +26,13 @@ export function workbenchCommands({
       keys: "Ctrl+P",
       enabled: () => ready() && hasProject(),
       run: () => ui.getState().show("files"),
+    },
+    {
+      id: "workbench.searchText",
+      title: "command.searchText",
+      keys: "Ctrl+Shift+F",
+      enabled: () => ready() && hasProject(),
+      run: () => ui.getState().show("search"),
     },
     {
       id: "workbench.commandPalette",
@@ -53,6 +64,30 @@ export function workbenchCommands({
       run: async () => {
         if (await leaveProject()) await projects.getState().close();
       },
+    },
+    {
+      // The global Stop (FR-061): cancels the running turn.
+      id: "agent.stop",
+      title: "command.agent.stop",
+      keys: "Ctrl+.",
+      enabled: () => liveTurn(agent.getState().timeline) !== undefined,
+      run: () => agent.getState().stop(),
+    },
+    {
+      id: "agent.focusComposer",
+      title: "command.agent.focusComposer",
+      keys: "Ctrl+L",
+      enabled: () => hasProject() && layout.getState().layout !== null,
+      run: () => {
+        layout.getState().update((current) => showPanel(current, "agent"));
+        requestAnimationFrame(() => ui.getState().focusComposer());
+      },
+    },
+    {
+      id: "agent.newSession",
+      title: "command.agent.newSession",
+      enabled: () => ready() && hasProject(),
+      run: () => agent.getState().newSession(),
     },
     {
       id: "runtime.restart",

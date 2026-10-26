@@ -53,6 +53,7 @@ describe("method registry", () => {
       | "fs.createDirectory"
       | "fs.rename"
       | "fs.quickOpen"
+      | "fs.search"
       | "fs.trash"
       | "fs.reveal"
       | "sessions.list"

@@ -150,6 +150,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
     events,
     log: io.log.child({ module: "projects" }),
     storage: () => storageReady,
+    ripgrep: io.agent?.ripgrep,
   });
   projects.register(server);
 

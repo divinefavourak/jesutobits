@@ -48,6 +48,8 @@ export interface EditorState {
   error: string | null;
   /** A tab with unsaved changes the user asked to close: the dialog asks Save or Discard. */
   pendingClose: string | null;
+  /** Counts requests to show a position (search results); the editor moves its cursor there. */
+  revealRequest: { path: string; cursor: Cursor; count: number } | null;
   /** Leaving (closing the project or the window) with unsaved changes waits on the dialog. */
   leaving: { reason: "project" | "window"; decide: (leave: boolean) => void } | null;
 
@@ -77,6 +79,8 @@ export interface EditorState {
   takeTheirs(path: string): Promise<void>;
   setComparing(path: string, comparing: boolean): void;
   setCursor(path: string, cursor: Cursor): void;
+  /** Opens a file with the cursor at `cursor`, even when it is already open. */
+  reveal(path: string, cursor: Cursor): Promise<void>;
   /**
    * Reads the file again and reconciles: update a clean tab, flag a dirty one. A file gone
    * from disk goes through `removed`.
@@ -116,6 +120,7 @@ const EMPTY = {
   active: null,
   files: {},
   cursors: {},
+  revealRequest: null,
   recent: [],
   error: null,
   pendingClose: null,
@@ -321,6 +326,14 @@ export function createEditorStore(
 
       setCursor: (path, cursor) =>
         set((state) => ({ cursors: { ...state.cursors, [path]: cursor } })),
+
+      reveal: async (path, cursor) => {
+        get().setCursor(path, cursor);
+        await get().open(path);
+        set((state) => ({
+          revealRequest: { path, cursor, count: (state.revealRequest?.count ?? 0) + 1 },
+        }));
+      },
 
       checkAgainstDisk: async (path) => {
         const file = get().files[path];
