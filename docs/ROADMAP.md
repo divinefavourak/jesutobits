@@ -164,6 +164,30 @@ Still open from Phase 0: a clean-machine run of DEVELOPMENT_SETUP.md and WebKit 
 
 **Definition of done:** acceptance criteria met; J-02 and a file-only J-06 pass in E2E.
 
+**Acceptance (2026-10-26, 0.2.0).** Checked on the development machine (Windows 11):
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| First timeline activity within 2 s of sending (J-06) | Met | `e2e/journeys/agent-file-edit.spec.ts`, `packages/runtime/test/agent-turn.test.ts` |
+| Cancel reaches idle in < 2 s in 99 of 100 scripted runs (NFR-025) | Met: 100 of 100, p50 1.6 ms, p99 7.9 ms (half cancelled while streaming, half while waiting for approval) | `scripts/bench-cancel.mjs`; `agent-interaction.test.ts` cancels 5 times per run |
+| Fake API key canary absent from all files and events (NFR-007) | Met: the key travels only in the provider request's header; no event, log line or file under the data dir holds it, even when pasted into a message. The desktop app was also checked by hand: no file under its data, config or log folders held the test key | `packages/runtime/test/agent-canary.test.ts` |
+| Provider failure scenarios (TESTING_STRATEGY.md section 5) | Met: first-byte and idle timeouts, mid-stream errors, 429, 402, a tool that throws or ignores cancellation, an interrupted session, a denied approval, a file changed during an edit, disk full or permission errors | `provider-caller.test.ts`, `agent-failures.test.ts`, `runner.test.ts`, `agent-recovery.test.ts`, `agent-approvals.test.ts`, `write-tools.test.ts`, `write-failures.test.ts` |
+| Revert turn restores all tool-modified files byte for byte | Met, including CRLF files with a BOM, created and deleted files | `checkpoints.test.ts`, `agent-recovery.test.ts`, J-06 E2E |
+| DoD: J-02 and a file-only J-06 pass in E2E | Met, with J-14 (approvals) too | `e2e/journeys/provider-setup.spec.ts`, `agent-file-edit.spec.ts`, `agent-approvals.spec.ts` |
+| Deliverable: create and edit files end to end with a real OpenRouter key | Desktop app checked by hand with the scripted provider (the Host's secrets commands, `runtime.configure`, a full turn, ripgrep search); a run with a real key waits for the owner's key | live check, 2026-10-26 |
+
+Found and fixed during the phase: user messages and session titles were stored without masking (the canary test caught it); the session picker collapsed and tool rows wrapped in the agent panel (found in the desktop app).
+
+**Decisions made while building Phase 2 (2026-10-22 to 2026-10-26):**
+- Phase 2 is on its own branch, `phase-2/agent-harness`, made from `phase-1/desktop-shell`, so PR #1 stays Phase 1 only.
+- Session history is the session's stored events (`sessions.history`); the Workbench folds stored and live events through one reducer. Text deltas are not stored; `model.step_completed` carries each step's full text.
+- The runtime gets the settings it acts on from the Host (`runtime.configure`, after every handshake and change), because the Host owns `settings.json`.
+- The SSE parser is our own (ADR-0005 notes): `eventsource-parser` could not be installed with the npm registry unreachable. The Markdown renderer is our own too (`apps/desktop/src/ui/markdown/`), producing React elements only, for the same reason and because it avoids HTML strings entirely.
+- Text search uses ripgrep 15.2.0 as a second sidecar (`jesutobits-rg`, `scripts/fetch-sidecars.mjs`), with a JS fallback. `fs.search` serves the Workbench's project search (FR-074).
+- On Linux the credential store is the kernel keyring for now (ADR-0008 notes).
+- Phase 2 session rules: per tool, and per path for `delete_path`; secret-file reads always ask. "Always allow in this project" arrives with commands (Phase 3).
+- Tests and small self-contained modules were drafted with opencode (GLM and DeepSeek models) from written briefs and reviewed before commit; the reviews found and fixed a stored-secret leak (user messages and session titles were saved unmasked) and several wrong expectations.
+
 ### Phase 3: Coding workspace and verification (4 to 6 weeks) → 0.3
 
 **Objectives:** the agent can run commands safely, the user has a real IDE toolset, and completion claims are backed by evidence.
@@ -332,7 +356,7 @@ Still open from Phase 0: a clean-machine run of DEVELOPMENT_SETUP.md and WebKit 
 | Q12 | Default for "Install without running scripts" | Off (most projects need scripts), visible on every install card | Phase 3 user testing |
 ## 5. Next implementation milestone
 
-**Phase 2** (section 3): the minimal agent harness. Phase 1 is complete (0.1.0, acceptance above). Phase 0's record follows.
+**Phase 3** (section 3): the coding workspace and verification. Phase 2 is complete (0.2.0, acceptance above) except a run with a real OpenRouter key. Phase 0's record follows.
 
 **Phase 0**, in this order:
 

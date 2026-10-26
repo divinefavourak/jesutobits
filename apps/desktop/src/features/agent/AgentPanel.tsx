@@ -87,7 +87,7 @@ function AgentHeader() {
         id={selectId}
         value={activeId ?? ""}
         onChange={(event) => void agent.getState().selectSession(event.target.value || null)}
-        className="min-w-0 max-w-56 flex-1 rounded-md border border-border bg-surface px-1.5 py-1"
+        className="w-40 min-w-32 max-w-56 flex-1 truncate rounded-md border border-border bg-surface px-1.5 py-1"
       >
         {!activeId && <option value="">{t("agent.session.none")}</option>}
         {(sessions ?? []).map((session) => (

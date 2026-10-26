@@ -148,7 +148,10 @@ export function ToolRow({ item, expandable = true }: { item: ToolItem; expandabl
   if (!expandable) return <div className="py-0.5">{summary}</div>;
   return (
     <details className="py-0.5">
-      <summary className="cursor-pointer">{summary}</summary>
+      {/* The marker is drawn with CSS, so it stays on the row's line and out of its text. */}
+      <summary className="flex cursor-pointer list-none items-center gap-1 before:text-text-muted before:content-['›'] [&::-webkit-details-marker]:hidden">
+        {summary}
+      </summary>
       <div className="mt-1 flex flex-col gap-1 pl-4 text-xs">
         <p className="m-0 font-medium">{t("tool.input")}</p>
         <pre className="m-0 overflow-auto rounded-sm bg-surface-sunken p-1.5 font-mono">
