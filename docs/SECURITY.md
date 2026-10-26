@@ -129,6 +129,8 @@ Rule constraints:
 - `permissions.respond` accepts only a pending `permissionId` (random, single use, expires when the turn ends).
 - The Workbench is the only caller of `permissions.respond`. Its integrity therefore depends on Workbench hardening (section 8). This is a residual risk (section 16).
 
+Implementation (Phase 2): `packages/runtime/src/permissions/` holds the broker and the matrix (`policy.ts`, tested cell for cell against the table above), `prohibited.ts` (section 4.3's never-allowed places, checked on the real path) and `secret-patterns.ts` (section 6.2, including "Share with values hidden", `allow_redacted`). Each approval request lists the answers it accepts; `permissions.respond` refuses any other. Session rules match a tool (and, for `delete_path`, an exact path); "Always allow in this project" arrives with commands in Phase 3.
+
 ## 5. File system and command execution
 
 ### 5.1 Overview
