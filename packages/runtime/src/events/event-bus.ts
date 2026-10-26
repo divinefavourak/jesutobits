@@ -18,6 +18,11 @@ export interface EventBusOptions {
   log: Logger;
   now?: () => Date;
   capacity?: number;
+  /**
+   * Masks secrets in every event before it is checked, sent, buffered or stored
+   * (SECURITY.md section 6.1): the SecretRegistry's `maskValue`.
+   */
+  mask?: (value: unknown) => unknown;
 }
 
 /**
@@ -30,6 +35,7 @@ export class EventBus {
   private readonly buffer: RuntimeEventBase[] = [];
   private readonly capacity: number;
   private readonly now: () => Date;
+  private readonly listeners = new Set<(event: RuntimeEventBase) => void>();
 
   constructor(private readonly options: EventBusOptions) {
     this.capacity = options.capacity ?? DEFAULT_CAPACITY;
@@ -45,13 +51,14 @@ export class EventBus {
     payload: EventPayload<T>,
     correlation: EventCorrelation = {},
   ): RuntimeEventBase {
-    const candidate = {
+    const unmasked = {
       seq: this.nextSeq,
       ts: this.now().toISOString(),
       type,
       ...correlation,
       ...payload,
     };
+    const candidate = this.options.mask ? this.options.mask(unmasked) : unmasked;
     const parsed = EVENTS[type].schema.safeParse(candidate);
     if (!parsed.success) {
       throw new Error(`Invalid ${type} event: ${z.prettifyError(parsed.error)}`);
@@ -66,7 +73,20 @@ export class EventBus {
       // The event stays replayable; a failed write must not fail the emitter.
       this.options.log.error("could not send an event", { type, seq: event.seq, err: error });
     }
+    for (const listener of this.listeners) {
+      try {
+        listener(event);
+      } catch (error) {
+        this.options.log.error("an event listener failed", { type, seq: event.seq, err: error });
+      }
+    }
     return event;
+  }
+
+  /** Called with every event after it is sent (the session store persists agent events). */
+  onEmit(listener: (event: RuntimeEventBase) => void): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
   }
 
   /** Events after `afterSeq` still in the buffer (`events.replay`). */

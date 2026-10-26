@@ -12,7 +12,11 @@ const mainStartMs = performance.now();
 
 // The Host passes `--stdio --data-dir <dir>` (ADR-0002); unknown arguments are ignored.
 const { values: args } = parseArgs({
-  options: { stdio: { type: "boolean" }, "data-dir": { type: "string" } },
+  options: {
+    stdio: { type: "boolean" },
+    "data-dir": { type: "string" },
+    ripgrep: { type: "string" },
+  },
   strict: false,
 });
 
@@ -30,6 +34,13 @@ const runtime = createRuntime({
     }),
   log,
   dataDir: typeof args["data-dir"] === "string" ? args["data-dir"] : undefined,
+  secrets,
+  agent: {
+    provider: process.env.JESUTOBITS_PROVIDER,
+    cassette: process.env.JESUTOBITS_CASSETTE,
+    openRouterUrl: process.env.JESUTOBITS_OPENROUTER_URL,
+    ripgrep: typeof args.ripgrep === "string" ? args.ripgrep : undefined,
+  },
   exit: (code) => process.exit(code),
   uptimeMs: () => performance.now(),
   startupMarks: () => ({

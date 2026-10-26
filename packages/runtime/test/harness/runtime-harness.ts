@@ -17,6 +17,12 @@ export interface RpcReply {
 export interface HarnessOptions {
   /** Passed as `--data-dir`, as the Host does. */
   dataDir?: string;
+  /** Added to the runtime's environment, e.g. JESUTOBITS_PROVIDER and JESUTOBITS_CASSETTE. */
+  env?: Record<string, string>;
+  /** What `host.secrets.get` answers, by reference; others are null (no key stored). */
+  secrets?: Record<string, string>;
+  /** Extra runtime arguments, e.g. `--ripgrep <path>`. */
+  args?: string[];
 }
 
 export class RuntimeHarness {
@@ -33,9 +39,15 @@ export class RuntimeHarness {
   private nextId = 1;
   readonly exited: Promise<number | null>;
 
+  private readonly secrets: Record<string, string>;
+
   private constructor(options: HarnessOptions) {
     const args = options.dataDir === undefined ? [] : ["--data-dir", options.dataDir];
-    this.child = spawn(process.execPath, [ENTRY, "--stdio", ...args], { stdio: "pipe" });
+    this.secrets = options.secrets ?? {};
+    this.child = spawn(process.execPath, [ENTRY, "--stdio", ...args, ...(options.args ?? [])], {
+      stdio: "pipe",
+      env: { ...process.env, ...options.env },
+    });
     this.child.stdout.setEncoding("utf8");
     this.child.stdout.on("data", (chunk: string) => this.onStdout(chunk));
     this.child.stderr.setEncoding("utf8");
@@ -46,6 +58,20 @@ export class RuntimeHarness {
   /** Without `dataDir` the runtime keeps its database in memory. */
   static start(options: HarnessOptions = {}): RuntimeHarness {
     return new RuntimeHarness(options);
+  }
+
+  /** Resolves when an event matching `match` has arrived (checks those already received too). */
+  async waitForEvent(
+    match: (event: Record<string, unknown>) => boolean,
+    timeoutMs = 10_000,
+  ): Promise<Record<string, unknown>> {
+    const started = Date.now();
+    for (;;) {
+      const found = this.events.find(match);
+      if (found) return found;
+      if (Date.now() - started > timeoutMs) throw new Error("timed out waiting for an event");
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
   }
 
   call<M extends MethodName>(method: M, params: MethodParams<M>): Promise<RpcReply> {
@@ -110,6 +136,8 @@ export class RuntimeHarness {
       reply({ result: {} });
     } else if (method === "host.os.reveal") {
       reply({ result: {} });
+    } else if (method === "host.secrets.get") {
+      reply({ result: { value: this.secrets[String(params.ref)] ?? null } });
     } else {
       reply({
         error: {
