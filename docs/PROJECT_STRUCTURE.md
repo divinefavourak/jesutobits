@@ -94,7 +94,7 @@ jesutobits/
 │   └── jesutobits-companions/           # Ember, Dot, Pip
 ├── templates/                     # react-vite-ts-tailwind, react-vite-ts, empty, general
 ├── fixtures/                      # projects/, extensions/, bin/ (TESTING_STRATEGY.md section 3)
-├── scripts/                       # fetch-node.mjs (+ sidecars.json pins), fetch-ripgrep.mjs, build-runtime.mjs, build-guest.mjs,
+├── scripts/                       # fetch-sidecars.mjs (Node and ripgrep, pinned in sidecars.json), build-runtime.mjs, build-guest.mjs,
 │   │                              # gen-protocol.mjs, gen-allowlist.mjs, gen-logo.mjs, package-builtins.mjs
 │   ├── eslint-rules/              # local ESLint plugin: boundaries.mjs is the section 3 rule table
 │   └── spikes/                    # Phase 0 spike measurements, kept runnable (docs/spikes/)

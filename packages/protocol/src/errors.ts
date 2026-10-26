@@ -60,6 +60,10 @@ export const ErrorCodes = {
   /** The file changed since it was read; the write was refused (HARNESS 6, FR-052). */
   fsConflict: "fs.conflict",
   fsTooLarge: "fs.too_large",
+  /** A search pattern is not a valid regular expression. */
+  fsInvalidQuery: "fs.invalid_query",
+  /** A folder that is not empty cannot be removed without `recursive`. */
+  fsNotEmpty: "fs.not_empty",
   /** The file is not text, so it cannot be read or written as text. */
   fsBinary: "fs.binary",
   fsPermissionDenied: "fs.permission_denied",
@@ -117,6 +121,8 @@ export const ErrorCodes = {
   permissionNotPending: "permission.not_pending",
   /** The answer is not one the request offered. */
   permissionInvalidDecision: "permission.invalid_decision",
+  /** No rule with that ID in the active project. */
+  permissionRuleNotFound: "permission.rule_not_found",
   /** The provider rejected the key (HTTP 401), also after fetching it again. */
   providerAuth: "provider.auth",
   /** No key is stored for the provider. */

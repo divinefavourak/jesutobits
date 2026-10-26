@@ -10,7 +10,7 @@
     "build:packages": "tsc -b && pnpm gen && pnpm build:runtime && pnpm build:guest",
     "build:runtime": "node scripts/build-runtime.mjs",
     "build:guest": "node scripts/build-guest.mjs",
-    "fetch:sidecars": "node scripts/fetch-node.mjs",
+    "fetch:sidecars": "node scripts/fetch-sidecars.mjs",
     "dev": "pnpm build:packages && pnpm --filter @jesutobits/desktop tauri dev --config src-tauri/tauri.dev.conf.json",
     "dev:web": "node scripts/dev-web.mjs",
     "typecheck": "tsc -b",

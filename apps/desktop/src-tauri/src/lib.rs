@@ -168,6 +168,20 @@ fn launch_spec(
     } else {
         "jesutobits-node"
     });
+    // Text search (FR-074); without it the runtime falls back to a slower JS scan.
+    let ripgrep = exe_dir.join(if cfg!(windows) {
+        "jesutobits-rg.exe"
+    } else {
+        "jesutobits-rg"
+    });
+    let entry_args = if ripgrep.is_file() {
+        vec![
+            "--ripgrep".to_owned(),
+            ripgrep.to_string_lossy().into_owned(),
+        ]
+    } else {
+        Vec::new()
+    };
 
     let mut entry = app.path().resource_dir()?.join("runtime").join("main.mjs");
     let mut use_job_object = true;
@@ -191,7 +205,7 @@ fn launch_spec(
     Ok(LaunchSpec {
         node,
         entry,
-        entry_args: Vec::new(),
+        entry_args,
         data_dir,
         use_job_object,
         reverse_handler: Some(host_methods::reverse_handler(secrets)),

@@ -19,13 +19,23 @@
 //   node scripts/dev-relay.mjs [--port 1421] [--data-dir <dir>] [--origin http://127.0.0.1:1420]
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync } from "node:fs";
 import { createServer } from "node:http";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BUNDLE = join(root, "packages", "runtime", "dist", "bundle", "runtime.mjs");
+const BINARIES = join(root, "apps", "desktop", "src-tauri", "binaries");
+
+/** The fetched ripgrep sidecar for this machine, if `pnpm fetch:sidecars` has run. */
+function ripgrepSidecar() {
+  if (!existsSync(BINARIES)) return undefined;
+  const name = readdirSync(BINARIES).find(
+    (file) => file.startsWith("jesutobits-rg-") && !file.endsWith(".sha256"),
+  );
+  return name ? join(BINARIES, name) : undefined;
+}
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const CALL_TIMEOUT_MS = 60_000;
 
@@ -54,9 +64,19 @@ export async function startRelay({
   const { workbench, protocolVersion } = readAllowlist();
   mkdirSync(dataDir, { recursive: true });
 
-  const child = spawn(process.execPath, [BUNDLE, "--stdio", "--data-dir", dataDir], {
-    stdio: ["pipe", "pipe", "pipe"],
-  });
+  const child = spawn(
+    process.execPath,
+    [
+      BUNDLE,
+      "--stdio",
+      "--data-dir",
+      dataDir,
+      ...(ripgrepSidecar() ? ["--ripgrep", ripgrepSidecar()] : []),
+    ],
+    {
+      stdio: ["pipe", "pipe", "pipe"],
+    },
+  );
   const pending = new Map();
   const listeners = new Set();
   const revealed = [];

@@ -22,10 +22,12 @@ export type { LineEndings, TextFormat } from "./text.js";
 export {
   DEFAULT_MAX_TEXT_BYTES,
   hashBytes,
+  MAX_SNAPSHOT_BYTES,
   WorkspaceService,
   type DirEntry,
   type EntryKind,
   type FileStat,
+  type Snapshot,
   type TextFile,
   type WorkspaceServiceOptions,
   type WriteOptions,

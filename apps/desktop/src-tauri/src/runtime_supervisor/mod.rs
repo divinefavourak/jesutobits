@@ -61,6 +61,8 @@ const ENV_ALLOWLIST: &[&str] = &[
     "JESUTOBITS_RUNTIME_LOG",
     "JESUTOBITS_PROVIDER",
     "JESUTOBITS_CASSETTE",
+    // A local mock provider for tests; the runtime accepts loopback URLs only.
+    "JESUTOBITS_OPENROUTER_URL",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]

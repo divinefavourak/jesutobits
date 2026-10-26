@@ -5,6 +5,7 @@ const ERRNO_CODES: Record<string, JesutobitsErrorCode> = {
   ENOTDIR: ErrorCodes.fsNotADirectory,
   EISDIR: ErrorCodes.fsNotAFile,
   EEXIST: ErrorCodes.fsAlreadyExists,
+  ENOTEMPTY: ErrorCodes.fsNotEmpty,
   EACCES: ErrorCodes.fsPermissionDenied,
   EPERM: ErrorCodes.fsPermissionDenied,
 };
@@ -14,6 +15,7 @@ const MESSAGES: Partial<Record<JesutobitsErrorCode, string>> = {
   [ErrorCodes.fsNotADirectory]: "is not a folder",
   [ErrorCodes.fsNotAFile]: "is not a file",
   [ErrorCodes.fsAlreadyExists]: "already exists",
+  [ErrorCodes.fsNotEmpty]: "is a folder that is not empty",
   [ErrorCodes.fsPermissionDenied]: "cannot be accessed (permission denied)",
 };
 

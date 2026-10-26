@@ -30,7 +30,7 @@
     "active": true,
     "targets": ["nsis"],
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
-    "externalBin": ["binaries/jesutobits-node"],
+    "externalBin": ["binaries/jesutobits-node", "binaries/jesutobits-rg"],
     "resources": {
       "../../../packages/runtime/dist/bundle/runtime.mjs": "runtime/main.mjs"
     }

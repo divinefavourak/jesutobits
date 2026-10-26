@@ -61,6 +61,11 @@ export class FileIndex {
     return !this.truncated;
   }
 
+  /** Every indexed file, project-relative, in no particular order (`search_files`). */
+  list(): string[] {
+    return [...this.files];
+  }
+
   has(relative: string): boolean {
     return this.files.has(relative);
   }
