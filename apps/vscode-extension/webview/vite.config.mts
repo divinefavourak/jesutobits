@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 const webviewDir = dirname(fileURLToPath(import.meta.url));
-/** Which webview to build: `main` (the agent panel) or `preview` (scripts/build.mjs sets it). */
+/** Which webview to build: `main` (the agent panel), `preview`, `learn` or `studio` (scripts/build.mjs sets it). */
 const ENTRY = process.env.JESUTOBITS_WEBVIEW_ENTRY ?? "main";
 
 /**
@@ -14,6 +14,9 @@ const ENTRY = process.env.JESUTOBITS_WEBVIEW_ENTRY ?? "main";
  */
 export default defineConfig({
   root: webviewDir,
+  // Asset URLs relative to the stylesheet: a webview serves dist/webview from a resource
+  // URI, not a site root, so the default "/" pointed the fonts at nothing.
+  base: "./",
   plugins: [react(), tailwindcss()],
   build: {
     outDir: join(webviewDir, "..", "dist", "webview"),

@@ -82,6 +82,9 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
  * The HTML of a Jesutobits webview: one script (by nonce) and one stylesheet from `root`, and
  * nothing else. `frames` adds frame sources, for the preview's loopback dev server only.
  */
+/** Body text and headings (webview/src/styles/fonts.css), as emitted to dist/webview. */
+const PRELOADED_FONTS = ["dm-sans-400", "dm-sans-500", "space-grotesk-500"];
+
 export function webviewHtml(
   webview: vscode.Webview,
   root: vscode.Uri,
@@ -98,12 +101,19 @@ export function webviewHtml(
     `script-src 'nonce-${nonce}'`,
     ...(options.frames ? [`frame-src ${options.frames.join(" ")}`] : []),
   ].join("; ");
+  // The weights every panel paints first, fetched with the stylesheet rather than after it,
+  // so the first paint is already in the Studio fonts (no visible swap).
+  const preloads = PRELOADED_FONTS.map((name) => {
+    const font = webview.asWebviewUri(vscode.Uri.joinPath(root, `${name}.woff2`));
+    return `<link rel="preload" href="${font.toString()}" as="font" type="font/woff2" crossorigin>`;
+  }).join("\n");
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+${preloads}
 <link rel="stylesheet" href="${style.toString()}">
 <title>${options.title}</title>
 </head>
