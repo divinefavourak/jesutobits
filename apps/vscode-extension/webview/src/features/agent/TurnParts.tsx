@@ -4,6 +4,7 @@ import { t } from "../../i18n";
 import { useWorkbench } from "../../state/workbench-context";
 import { Badge, type BadgeTone } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
+import { Glyph } from "../../ui/Studio";
 import type { RevertOutcome } from "./agent-store";
 import type { TimelineItem, TurnView } from "./timeline-reducer";
 
@@ -222,7 +223,7 @@ export function TurnSummaryCard({ turn }: { turn: TurnView }) {
   return (
     <section
       aria-label={t("summary.title")}
-      className="flex flex-col gap-1.5 rounded-md border border-border bg-surface-sunken p-2"
+      className="flex flex-col gap-1.5 rounded-lg border border-border bg-surface-raised p-3"
     >
       {turn.state === "failed" && turn.error && (
         <p role="alert" className="m-0 text-danger">
@@ -233,11 +234,19 @@ export function TurnSummaryCard({ turn }: { turn: TurnView }) {
         <p className="m-0 text-text-muted">{t("summary.cancelled")}</p>
       )}
       <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent-subtle text-accent">
+          <Glyph name="code" size={15} />
+        </span>
         <span className="font-medium">
           {summary.files.length > 0
             ? t("summary.files", { count: summary.files.length })
             : t("summary.noFiles")}
         </span>
+        {summary.files.length > 0 && (
+          <span className="text-xs text-success">
+            +{summary.files.reduce((sum, file) => sum + file.added, 0)}
+          </span>
+        )}
         {summary.verification && (
           <Badge tone={LABEL_TONE[summary.verification] ?? "neutral"}>
             {t(`summary.label.${summary.verification}`)}

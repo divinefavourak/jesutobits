@@ -215,9 +215,25 @@ export function DiffView({ diff }: { diff: string }) {
 /** A decided or withdrawn approval, as one line in the transcript. */
 export function ResolvedApproval({ item }: { item: PermissionItem }) {
   if (item.decision === null) return null;
+  const allowed = item.decision.startsWith("allow");
+  const headline =
+    item.decision === "withdrawn"
+      ? t("approval.resolved.withdrawn")
+      : allowed
+        ? t("studio.decision.allowed")
+        : t("studio.decision.denied");
   return (
-    <p className="m-0 text-text-muted">
-      {describeAction(item.action)} · {t(`approval.resolved.${item.decision}`)}
-    </p>
+    <div className="flex items-start gap-2 rounded-lg border border-border bg-surface-raised p-2.5">
+      <span className={allowed ? "text-success" : "text-text-muted"}>
+        <Glyph name="shield" size={15} />
+      </span>
+      <div className="min-w-0">
+        <p className="m-0 font-medium">{headline}</p>
+        <p className="m-0 text-text-muted">
+          {describeAction(item.action)} · {t(`approval.resolved.${item.decision}`)}
+          {item.decision === "deny" && ` · ${t("studio.decision.nothingRan")}`}
+        </p>
+      </div>
+    </div>
   );
 }

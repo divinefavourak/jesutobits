@@ -25,6 +25,13 @@ export function AgentPanel() {
   const [tab, setTab] = useState<Tab>("chat");
   const [lookOpen, setLookOpen] = useState(false);
   const hasKey = useAgent((state) => state.hasKey);
+  // The Activity tab counts the session's real steps (tool calls), as its timeline lists them.
+  const steps = useAgent((state) =>
+    state.timeline.turns.reduce(
+      (sum, turn) => sum + turn.items.filter((item) => item.kind === "tool").length,
+      0,
+    ),
+  );
   const { agent, bridge, ui } = useWorkbench();
   const tabIds = { chat: useId(), timeline: useId(), learn: useId() };
   const closeLook = useCallback(() => setLookOpen(false), []);
@@ -86,6 +93,17 @@ export function AgentPanel() {
             {id === "chat" && <Glyph name="chat" size={13} />}
             {id === "learn" && <Glyph name="book" size={13} />}
             {t(`agent.tab.${id}`)}
+            {id === "timeline" && steps > 0 && (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="rounded-full bg-accent-subtle px-1.5 text-[11px] text-accent"
+                >
+                  {steps}
+                </span>
+                <span className="sr-only">{t("agent.tab.steps", { count: steps })}</span>
+              </>
+            )}
           </button>
         ))}
       </div>
@@ -305,8 +323,12 @@ function TimelineView() {
   );
 
   return (
-    <div className="flex flex-col gap-1 p-2">
-      <div role="radiogroup" aria-label={t("timeline.filter")} className="flex gap-1">
+    <div className="studio-in flex flex-col gap-2 p-4">
+      <div>
+        <h2 className="m-0 font-display text-lg font-medium">{t("timeline.heading")}</h2>
+        <p className="m-0 text-text-muted">{t("timeline.subheading")}</p>
+      </div>
+      <div role="radiogroup" aria-label={t("timeline.filter")} className="flex gap-1.5">
         {(["all", "changes", "errors"] as const).map((value) => (
           <button
             key={value}
@@ -314,7 +336,7 @@ function TimelineView() {
             role="radio"
             aria-checked={filter === value}
             onClick={() => setFilter(value)}
-            className={`rounded-sm px-2 py-0.5 ${filter === value ? "bg-item-active font-medium" : "text-text-muted"}`}
+            className={`rounded-full border px-2.5 py-0.5 text-xs ${filter === value ? "border-accent bg-accent-subtle text-text" : "border-border text-text-muted hover:text-text"}`}
           >
             {t(`timeline.filter.${value}`)}
           </button>

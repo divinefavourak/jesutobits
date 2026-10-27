@@ -146,7 +146,7 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
   it("lists tool rows in the Timeline tab and filters them by changes and errors", async () => {
     await setupPanel({ history: turnWithTools() });
 
-    await userEvent.click(screen.getByRole("tab", { name: "Activity" }));
+    await userEvent.click(screen.getByRole("tab", { name: /^Activity/ }));
 
     expect(screen.getByText("Edited src/a.ts (+2 −1)")).toBeTruthy();
     expect(screen.getByText("Tests failed")).toBeTruthy();
