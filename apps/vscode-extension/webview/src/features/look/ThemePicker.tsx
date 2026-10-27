@@ -32,6 +32,10 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
   const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  /** The remix waiting for its timer, so a theme switch can write it first. */
+  const unsaved = useRef<Remix | null>(null);
+  /** A theme switch is under way: a remix now would land on the wrong theme. */
+  const [switching, setSwitching] = useState(false);
 
   const show = useCallback((look: Look) => {
     setTheme(look.theme);
@@ -88,30 +92,53 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
     return () => {
       document.removeEventListener("keydown", onKey);
       clearTimeout(pending.current);
+      // A remix still waiting is written as the picker closes.
+      const next = unsaved.current;
+      if (next) void bridge.look.remix(next).catch(() => undefined);
       previous?.focus();
     };
-  }, [onClose]);
+  }, [onClose, bridge]);
+
+  /** Writes a remix still waiting for its timer, for the theme it was made on. */
+  const flush = async () => {
+    clearTimeout(pending.current);
+    const next = unsaved.current;
+    unsaved.current = null;
+    if (next) await bridge.look.remix(next);
+  };
+
+  const switchTheme = (work: () => Promise<void>) =>
+    run(async () => {
+      setSwitching(true);
+      try {
+        await work();
+        await load();
+      } finally {
+        setSwitching(false);
+      }
+    });
 
   const choose = (name: (typeof STUDIO_PALETTES)[number]["name"]) =>
-    run(async () => {
+    switchTheme(async () => {
+      await flush();
       await bridge.look.setTheme(name);
-      await load();
     });
 
   const change = (next: Remix) => {
     setRemix(next);
     setRemixed(true);
+    unsaved.current = next;
     clearTimeout(pending.current);
-    pending.current = setTimeout(() => void run(() => bridge.look.remix(next)), REMIX_DELAY_MS);
+    pending.current = setTimeout(() => void run(flush), REMIX_DELAY_MS);
   };
 
   const reset = () =>
-    run(async () => {
+    switchTheme(async () => {
       clearTimeout(pending.current);
+      unsaved.current = null;
       await bridge.look.remix(null);
       await bridge.look.setTheme("Lavender dusk");
       await bridge.look.remix(null);
-      await load();
     });
 
   const ratio = remix ? textContrast(remix) : 21;
@@ -144,11 +171,11 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
         </header>
 
         <div className="flex flex-col gap-3 overflow-y-auto p-4">
-          <div className="flex items-baseline justify-between gap-2">
+          <div>
             <h3 className="m-0 font-medium">{t("look.pick")}</h3>
             <span className="text-xs text-text-muted">{t("look.instant")}</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2" aria-busy={switching}>
             {STUDIO_PALETTES.map((palette) => {
               const selected = theme === palette.name;
               return (
@@ -156,6 +183,7 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
                   key={palette.name}
                   type="button"
                   aria-pressed={selected}
+                  disabled={switching}
                   onClick={() => void choose(palette.name)}
                   className={`flex flex-col gap-1 rounded-lg border p-2 text-left ${selected ? "border-accent ring-2 ring-accent-subtle" : "border-border hover:border-accent"}`}
                 >
@@ -206,6 +234,7 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
                     <input
                       type="color"
                       value={remix[part]}
+                      disabled={switching}
                       aria-label={t("look.partLabel", { part: t(`look.part.${part}`) })}
                       onChange={(event) => change({ ...remix, [part]: event.target.value })}
                       className="h-7 w-9 cursor-pointer rounded border border-border-strong bg-transparent"
@@ -240,15 +269,16 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
         <footer className="flex items-center gap-2 border-t border-border p-3">
           <button
             type="button"
+            disabled={switching}
             onClick={() => void reset()}
-            className="text-text-muted hover:text-text"
+            className="text-left text-text-muted hover:text-text"
           >
             {t("look.reset")}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="ml-auto flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium text-text-on-accent hover:bg-accent-hover"
+            className="ml-auto flex shrink-0 items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 font-medium whitespace-nowrap text-text-on-accent hover:bg-accent-hover"
           >
             {t("look.done")}
             <Glyph name="check" size={14} />

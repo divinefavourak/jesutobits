@@ -55,7 +55,13 @@ export function LearningCentre({ onAsk }: { onAsk: (text: string) => void }) {
       .catch(() => undefined);
   }, [bridge]);
 
-  useEffect(() => heading.current?.focus(), [open]);
+  // Opening or leaving a lesson moves focus to its title, so a screen reader announces it;
+  // opening the tab leaves focus where it was.
+  const shown = useRef(open);
+  useEffect(() => {
+    if (shown.current !== open) heading.current?.focus();
+    shown.current = open;
+  }, [open]);
 
   const show = (index: number | null) => {
     setOpen(index);
@@ -89,7 +95,7 @@ export function LearningCentre({ onAsk }: { onAsk: (text: string) => void }) {
         <h2
           ref={heading}
           tabIndex={-1}
-          className="m-0 mb-2 font-display text-xl leading-snug font-medium outline-none"
+          className="m-0 mb-2 font-display text-xl leading-snug font-medium focus:outline-none"
         >
           {lesson ? t("learn.titleLesson") : t("learn.title")}
         </h2>

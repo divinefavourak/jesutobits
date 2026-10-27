@@ -70,4 +70,40 @@ describe("ThemePicker", () => {
     await userEvent.click(screen.getByRole("button", { name: /Feels like me/ }));
     expect(closes()).toBe(2);
   });
+
+  it("saves a fresh remix on its own theme before switching, and waits while switching", async () => {
+    const { bridge } = setup();
+    const calls: string[] = [];
+    const { setTheme, remix } = bridge.look;
+    let finishSwitch = () => {};
+    bridge.look.remix = async (value) => {
+      calls.push(`remix ${bridge.currentLook.theme} ${value?.accent ?? "none"}`);
+      await remix(value);
+    };
+    bridge.look.setTheme = async (theme) => {
+      calls.push(`theme ${theme}`);
+      await new Promise<void>((resolve) => (finishSwitch = resolve));
+      await setTheme(theme);
+    };
+
+    const accent = await screen.findByLabelText("Custom Accent colour");
+    fireEvent.change(accent, { target: { value: MATCHA.accent } });
+    // Switch before the remix's timer fires: the remix is written first, on Lavender dusk.
+    await userEvent.click(screen.getByRole("button", { name: /^Matcha/ }));
+    await waitFor(() =>
+      expect(calls).toEqual([`remix Lavender dusk ${MATCHA.accent}`, "theme Matcha"]),
+    );
+
+    // While VS Code switches, the remix waits.
+    expect((screen.getByLabelText("Custom Accent colour") as HTMLInputElement).disabled).toBe(true);
+    finishSwitch();
+    await waitFor(() =>
+      expect((screen.getByLabelText("Custom Accent colour") as HTMLInputElement).disabled).toBe(
+        false,
+      ),
+    );
+    expect((screen.getByLabelText("Custom Canvas colour") as HTMLInputElement).value).toBe(
+      MATCHA.bg,
+    );
+  });
 });

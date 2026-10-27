@@ -127,16 +127,22 @@ export class MockHostBridge implements HostBridge {
     this.composeRequests.emit(text);
   }
 
-  /** The workspace's look, as the extension would keep it in VS Code's settings. */
-  currentLook: { theme: string; remix: Remix | null } = { theme: "Lavender dusk", remix: null };
+  /** The workspace's look, as the extension keeps it: one remix per theme, like VS Code. */
+  private theme = "Lavender dusk";
+  private readonly remixes = new Map<string, Remix>();
+
+  get currentLook(): { theme: string; remix: Remix | null } {
+    return { theme: this.theme, remix: this.remixes.get(this.theme) ?? null };
+  }
 
   readonly look = {
     get: async () => structuredClone(this.currentLook),
     setTheme: async (theme: StudioTheme): Promise<void> => {
-      this.currentLook = { ...this.currentLook, theme };
+      this.theme = theme;
     },
     remix: async (remix: Remix | null): Promise<void> => {
-      this.currentLook = { ...this.currentLook, remix };
+      if (remix) this.remixes.set(this.theme, remix);
+      else this.remixes.delete(this.theme);
     },
   };
 
