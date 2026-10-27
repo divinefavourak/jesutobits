@@ -77,12 +77,8 @@ export function PreviewApp({ bridge }: { bridge: HostBridge }) {
   return (
     <div className="flex h-screen flex-col bg-canvas font-ui">
       <header className="flex flex-wrap items-center gap-2 px-3 pt-3 pb-2">
-        {stopped ? (
-          <Button variant="primary" onClick={start}>
-            <Glyph name="play" size={14} />
-            {t("preview.start")}
-          </Button>
-        ) : (
+        {/* While it rests, the one Start button is the empty state's. */}
+        {!stopped && (
           <Button onClick={() => void run(() => bridge.rpc("preview.stop", {}))}>
             <Glyph name="stop" size={14} />
             {t("preview.stop")}

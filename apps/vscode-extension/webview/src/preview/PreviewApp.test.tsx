@@ -31,10 +31,11 @@ describe("PreviewApp", () => {
     expect(await screen.findByRole("heading", { name: "Your preview is resting" })).toBeTruthy();
     expect(screen.getByText("Not running")).toBeTruthy();
 
-    // The toolbar and the empty state both start it.
+    // One Start button, in the empty state; the toolbar has nothing to stop.
     const buttons = screen.getAllByRole("button", { name: /Start preview/ });
-    expect(buttons).toHaveLength(2);
-    await userEvent.click(buttons[1]!);
+    expect(buttons).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /Stop/ })).toBeNull();
+    await userEvent.click(buttons[0]!);
     await waitFor(() => expect(calls).toEqual(["start"]));
   });
 

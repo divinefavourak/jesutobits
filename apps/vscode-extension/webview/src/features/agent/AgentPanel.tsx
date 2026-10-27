@@ -7,14 +7,13 @@ import { Button } from "../../ui/Button";
 import { Markdown } from "../../ui/markdown/Markdown";
 import { Buddy, Glyph, JMark } from "../../ui/Studio";
 import { Companion } from "../companion/Companion";
-import { LearningCentre } from "../learn/LearningCentre";
 import { ThemePicker } from "../look/ThemePicker";
 import { OPENROUTER_REF } from "./agent-store";
 import { ApprovalCard, ResolvedApproval } from "./ApprovalCard";
 import { PlanChecklist, QuestionCard, ToolRow, TurnSummaryCard } from "./TurnParts";
 import { liveTurn, type TimelineItem, type TurnView } from "./timeline-reducer";
 
-type Tab = "chat" | "timeline" | "learn";
+type Tab = "chat" | "timeline";
 
 /**
  * The agent panel (UX_AND_INTERFACE.md section 6): sessions, Agent/Ask mode, the chat with
@@ -32,8 +31,8 @@ export function AgentPanel() {
       0,
     ),
   );
-  const { agent, bridge, ui } = useWorkbench();
-  const tabIds = { chat: useId(), timeline: useId(), learn: useId() };
+  const { agent, bridge } = useWorkbench();
+  const tabIds = { chat: useId(), timeline: useId() };
   const closeLook = useCallback(() => setLookOpen(false), []);
   useEffect(() => bridge.onOpenLook(() => setLookOpen(true)), [bridge]);
 
@@ -81,7 +80,7 @@ export function AgentPanel() {
         aria-label={t("panel.agent")}
         className="flex gap-6 border-b border-border px-4"
       >
-        {(["chat", "timeline", "learn"] as const).map((id) => (
+        {(["chat", "timeline"] as const).map((id) => (
           <button
             key={id}
             id={tabIds[id]}
@@ -92,7 +91,6 @@ export function AgentPanel() {
             className={`flex items-center gap-1.5 border-b-2 pt-1 pb-2.5 ${tab === id ? "border-accent text-accent" : "border-transparent text-text-muted hover:text-text"}`}
           >
             {id === "chat" && <Glyph name="chat" size={13} />}
-            {id === "learn" && <Glyph name="book" size={13} />}
             {t(`agent.tab.${id}`)}
             {id === "timeline" && steps > 0 && (
               <>
@@ -111,14 +109,6 @@ export function AgentPanel() {
       <div role="tabpanel" aria-labelledby={tabIds[tab]} className="min-h-0 flex-1 overflow-y-auto">
         {tab === "chat" && <ChatView />}
         {tab === "timeline" && <TimelineView />}
-        {tab === "learn" && (
-          <LearningCentre
-            onAsk={(text) => {
-              ui.getState().compose(text);
-              setTab("chat");
-            }}
-          />
-        )}
       </div>
       <Composer />
       {lookOpen && <ThemePicker onClose={closeLook} />}

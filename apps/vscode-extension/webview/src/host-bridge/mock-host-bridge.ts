@@ -111,6 +111,12 @@ export class MockHostBridge implements HostBridge {
     this.openedUrls.push(url);
   }
 
+  readonly navigations: Array<WebviewHostParams<"ui.navigate">["to"]> = [];
+
+  async navigate(to: WebviewHostParams<"ui.navigate">["to"]): Promise<void> {
+    this.navigations.push(to);
+  }
+
   readonly projectStarts: Array<"open" | "new"> = [];
 
   async startProject(how: "open" | "new"): Promise<void> {

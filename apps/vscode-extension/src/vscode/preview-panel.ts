@@ -31,17 +31,17 @@ export class PreviewPanel {
     return this.#panel !== undefined;
   }
 
-  /** Opens the panel beside the editor, or brings it forward. */
-  show(): void {
+  /** Opens the panel (beside the editor unless told where), or brings it forward. */
+  show(column: vscode.ViewColumn = vscode.ViewColumn.Beside): void {
     if (this.#panel) {
-      this.#panel.reveal(vscode.ViewColumn.Beside, true);
+      this.#panel.reveal(column, true);
       return;
     }
     const root = vscode.Uri.joinPath(this.#extensionUri, "dist", "webview");
     const panel = vscode.window.createWebviewPanel(
       "jesutobits.preview",
       "Preview",
-      { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
+      { viewColumn: column, preserveFocus: true },
       { enableScripts: true, localResourceRoots: [root], retainContextWhenHidden: true },
     );
     panel.iconPath = vscode.Uri.joinPath(this.#extensionUri, "media", "jesutobits.svg");

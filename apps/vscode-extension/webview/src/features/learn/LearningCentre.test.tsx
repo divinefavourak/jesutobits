@@ -2,17 +2,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { MockHostBridge } from "../../host-bridge";
-import { createWorkbench, WorkbenchProvider } from "../../state/workbench-context";
 import { LearningCentre } from "./LearningCentre";
 
 function setup() {
   const bridge = new MockHostBridge();
   const asked: string[] = [];
-  render(
-    <WorkbenchProvider value={createWorkbench(bridge)}>
-      <LearningCentre onAsk={(text) => asked.push(text)} />
-    </WorkbenchProvider>,
-  );
+  render(<LearningCentre bridge={bridge} onAsk={(text) => asked.push(text)} />);
   return { bridge, asked };
 }
 

@@ -44,6 +44,8 @@ export interface HostBridge {
   openFile(path: string, position?: { line: number; column: number }): Promise<void>;
   /** Opens a running preview (a loopback URL) in the user's browser. */
   openExternal(url: string): Promise<void>;
+  /** Goes to one of the Studio's places (Open Recent, Learning Centre, theme picker, …). */
+  navigate(to: WebviewHostParams<"ui.navigate">["to"]): Promise<void>;
   /** VS Code's Open Folder, or Jesutobits: New Project. */
   startProject(how: "open" | "new"): Promise<void>;
   /** Fills the agent panel's message box for the user to finish and send. */

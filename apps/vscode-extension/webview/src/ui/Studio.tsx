@@ -9,6 +9,13 @@ const GLYPHS: Record<string, ReactNode> = {
   play: <path d="M8 5v14l11-7z" />,
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
   close: <path d="M6 6l12 12M18 6 6 18" />,
+  leaf: <path d="M20 3C8 2 2 9 6 16s16 1 14-13ZM5 21l11-13" />,
+  settings: (
+    <>
+      <path d="m9 3 6 0 1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z" />
+      <circle cx="12" cy="12" r="3" />
+    </>
+  ),
   palette: (
     <>
       <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.7-4-8.6-9-8.6z" />

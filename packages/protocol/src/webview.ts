@@ -137,6 +137,16 @@ export const WEBVIEW_HOST_OPS = {
     params: z.object({ how: z.enum(["open", "new"]) }).strict(),
     result: z.object({}),
   },
+  /**
+   * Goes to one of the Studio's places: Open Recent, the Learning Centre tab, the theme
+   * picker, the welcome popup, or the agent panel.
+   */
+  "ui.navigate": {
+    params: z
+      .object({ to: z.enum(["recent", "learning", "look", "getStarted", "agent"]) })
+      .strict(),
+    result: z.object({}),
+  },
   /** Opens VS Code's Settings editor filtered to Jesutobits' settings. */
   "ui.openSettings": {
     params: z.object({ section: z.string().max(64).optional() }).strict(),

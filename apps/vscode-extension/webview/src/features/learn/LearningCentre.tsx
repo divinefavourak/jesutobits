@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { t, type MessageKey } from "../../i18n";
-import { useWorkbench } from "../../state/workbench-context";
+import type { HostBridge } from "../../host-bridge";
 import { Glyph } from "../../ui/Studio";
 
 interface Lesson {
@@ -36,8 +36,13 @@ const text = (lesson: Lesson, part: string) => t(`learn.${lesson.id}.${part}` as
  * bite-sized lessons with a quick check. Explore opens the matching file of the user's own
  * project; Ask puts a question in the agent's message box for the user to send.
  */
-export function LearningCentre({ onAsk }: { onAsk: (text: string) => void }) {
-  const { bridge } = useWorkbench();
+export function LearningCentre({
+  bridge,
+  onAsk,
+}: {
+  bridge: HostBridge;
+  onAsk: (text: string) => void;
+}) {
   const [open, setOpen] = useState<number | null>(null);
   const [choice, setChoice] = useState<number | null>(null);
   const [completed, setCompleted] = useState<string[]>([]);
@@ -89,7 +94,10 @@ export function LearningCentre({ onAsk }: { onAsk: (text: string) => void }) {
   const lesson = open === null ? null : LESSONS[open];
 
   return (
-    <section aria-label={t("agent.tab.learn")} className="studio-in flex flex-col gap-4 p-4">
+    <section
+      aria-label={t("learn.tab")}
+      className="studio-in mx-auto flex max-w-3xl flex-col gap-5 px-6 py-8"
+    >
       <div>
         <p className="m-0 mb-1 text-xs tracking-widest text-text-muted">{t("learn.eyebrow")}</p>
         <h2
@@ -200,7 +208,7 @@ export function LearningCentre({ onAsk }: { onAsk: (text: string) => void }) {
               <Glyph name="arrow" size={14} />
             </button>
           </div>
-          <ul className="m-0 grid list-none gap-3 p-0">
+          <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
             {LESSONS.map((item, index) => {
               const done = completed.includes(item.id);
               return (

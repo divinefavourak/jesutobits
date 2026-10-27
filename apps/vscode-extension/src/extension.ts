@@ -29,7 +29,9 @@ import { RpcCallError } from "./runtime/connection.js";
 import { RuntimeSupervisor } from "./runtime/supervisor.js";
 import { AGENT_VIEW_ID, AgentViewProvider } from "./vscode/agent-view.js";
 import { PreviewPanel } from "./vscode/preview-panel.js";
+import { LearningPanel } from "./vscode/learning-panel.js";
 import { registerPresetStatus } from "./vscode/studio-commands.js";
+import { STUDIO_VIEW_ID, StudioViewProvider } from "./vscode/studio-view.js";
 
 /** globalState key for the panel's remembered state (active session per project). */
 const UI_STATE_KEY = "jesutobits.uiState";
@@ -73,6 +75,7 @@ export function activate(context: vscode.ExtensionContext): void {
           vscode.workspace.isTrusted,
         )) ?? null;
       panel.post({ kind: "project", project });
+      studio.post({ kind: "project", project });
     } catch (error) {
       log("warn", `could not open the workspace folder as a project: ${String(error)}`);
     }
@@ -178,6 +181,9 @@ export function activate(context: vscode.ExtensionContext): void {
       panel.compose(text);
       await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
     },
+    navigate: async (to) => {
+      await vscode.commands.executeCommand(NAVIGATE[to]);
+    },
     startProject: async (how) => {
       await vscode.commands.executeCommand(
         how === "open" ? "workbench.action.files.openFolder" : "jesutobits.newProject",
@@ -210,6 +216,11 @@ export function activate(context: vscode.ExtensionContext): void {
     project,
   }));
   const preview = new PreviewPanel(context.extensionUri, services, () => runtime.status);
+  const learning = new LearningPanel(context.extensionUri, services);
+  const studio = new StudioViewProvider(context.extensionUri, services, () => ({
+    status: runtime.status,
+    project,
+  }));
   const startPreview = async () => {
     preview.show();
     try {
@@ -232,10 +243,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerWebviewViewProvider(AGENT_VIEW_ID, panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
+    vscode.window.registerWebviewViewProvider(STUDIO_VIEW_ID, studio),
     {
       dispose: runtime.onStatus((update) => {
         showStatus(status, update);
         panel.post({ kind: "status", update });
+        studio.post({ kind: "status", update });
         preview.post({ kind: "status", update });
       }),
     },
@@ -274,6 +287,7 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("jesutobits.openPreview", startPreview),
     vscode.commands.registerCommand("jesutobits.getStarted", getStarted),
+    vscode.commands.registerCommand("jesutobits.openLearning", () => learning.show()),
     vscode.commands.registerCommand("jesutobits.changeLook", async () => {
       await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
       panel.openLook();
@@ -292,7 +306,37 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidGrantWorkspaceTrust(() => void openProject(call)),
   );
   runtime.start();
+  // The Studio's middle column: with a folder open, the preview tab is there from the start,
+  // resting until the user presses Start (it never runs the project's code by itself).
+  if (
+    vscode.workspace.workspaceFolders?.length &&
+    vscode.workspace.getConfiguration("jesutobits").get<boolean>("preview.showOnStartup", true)
+  ) {
+    preview.show(vscode.ViewColumn.One);
+  }
+  // VS Code leaves a new Explorer view collapsed. In the Jesutobits app the welcome popup opens
+  // the Studio section and the agent as it closes (patch 004); in plain VS Code, do it once here.
+  if (!context.globalState.get<boolean>(LAYOUT_SHOWN_KEY)) {
+    void context.globalState.update(LAYOUT_SHOWN_KEY, true);
+    void vscode.commands.getCommands(true).then(async (commands) => {
+      if (commands.includes(WELCOME_POPUP_COMMAND)) return;
+      await vscode.commands.executeCommand(`${STUDIO_VIEW_ID}.focus`);
+      await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
+    });
+  }
 }
+
+/** globalState key: the Studio section and the agent were opened on a first run. */
+const LAYOUT_SHOWN_KEY = "jesutobits.layoutShown";
+
+/** The commands behind ui.navigate. */
+const NAVIGATE = {
+  recent: "workbench.action.openRecent",
+  learning: "jesutobits.openLearning",
+  look: "jesutobits.changeLook",
+  getStarted: "jesutobits.getStarted",
+  agent: "jesutobits.openAgent",
+} as const;
 
 export function deactivate(): Promise<void> | undefined {
   return supervisor?.shutdown();

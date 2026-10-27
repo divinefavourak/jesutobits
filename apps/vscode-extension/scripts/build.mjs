@@ -47,7 +47,7 @@ for (const [from, to] of guest) {
 }
 
 // One bundle per webview, each a single script and stylesheet (no shared chunks to allow).
-for (const [index, entry] of ["main", "preview"].entries()) {
+for (const [index, entry] of ["main", "preview", "learn", "studio"].entries()) {
   process.env.JESUTOBITS_WEBVIEW_ENTRY = entry;
   await viteBuild({
     configFile: join(extensionDir, "webview", "vite.config.mts"),

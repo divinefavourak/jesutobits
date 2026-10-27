@@ -39,6 +39,16 @@
           "id": "jesutobits.agent",
           "name": "Agent"
         }
+      ],
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "jesutobits.studio",
+          "name": "Studio",
+          "icon": "media/jesutobits.svg",
+          "visibility": "visible",
+          "initialSize": 2
+        }
       ]
     },
     "commands": [
@@ -104,6 +114,12 @@
         "title": "Change the Look",
         "category": "Jesutobits",
         "icon": "$(symbol-color)"
+      },
+      {
+        "command": "jesutobits.openLearning",
+        "title": "Open the Learning Centre",
+        "category": "Jesutobits",
+        "icon": "$(book)"
       }
     ],
     "walkthroughs": [
@@ -230,6 +246,11 @@
           ],
           "default": "buddy",
           "description": "How the companion beside the agent panel's header looks. It always shows the agent's real state."
+        },
+        "jesutobits.preview.showOnStartup": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the preview tab in the middle when a folder opens. It waits for you to press Start; it never starts the project by itself."
         },
         "jesutobits.agent.limits.stepsPerTurn": {
           "type": "integer",

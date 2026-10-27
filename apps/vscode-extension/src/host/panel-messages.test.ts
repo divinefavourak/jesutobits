@@ -83,6 +83,7 @@ function setup(
     openExternal: async () => undefined,
     compose: async () => undefined,
     startProject: async () => undefined,
+    navigate: async () => undefined,
     look: {
       get: () => ({ theme: "Lavender dusk", remix: null }),
       setTheme: async () => undefined,
