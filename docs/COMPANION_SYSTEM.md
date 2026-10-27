@@ -151,6 +151,8 @@ Every state also needs a **static poster** (a frame or image) for reduced motion
 | **Dot** | minimal | static | A single status dot with colour per state. Used at Minimal level. |
 | **Pip** | playful | lottie | Small character, shows that character skins work end to end. |
 
+Code-OSS fork (2026-10-27): until skin packs and the Lottie renderer arrive, the companion has four built-in CSS skins, chosen with `jesutobits.companion.skin`: **Buddy** (default; the Studio design's co-builder: still when resting, floating with a blinking antenna while active, a warning or danger antenna when blocking or after an error, stars after completing), **J mark** (the pixel "J"), **Dot** (a status dot) and **Off**. Every skin keeps the state in words beside it, and reduced motion stops all movement.
+
 ## 6. Configuration (user settings)
 
 | Setting | Values | Default |

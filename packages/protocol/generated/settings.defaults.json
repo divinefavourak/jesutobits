@@ -42,6 +42,9 @@
     "logModelTraffic": false,
     "providerAttributionHeaders": false
   },
+  "companion": {
+    "skin": "buddy"
+  },
   "developer": {
     "extensionDeveloperMode": false
   }

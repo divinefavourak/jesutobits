@@ -197,6 +197,23 @@
           "default": null,
           "description": "Where you are starting from, as chosen in the welcome popup."
         },
+        "jesutobits.companion.skin": {
+          "type": "string",
+          "enum": [
+            "buddy",
+            "mark",
+            "dot",
+            "off"
+          ],
+          "enumDescriptions": [
+            "Buddy, the co-builder: moves only while the agent works",
+            "The pixel J mark",
+            "A small status dot",
+            "No companion; the agent's state still shows in words"
+          ],
+          "default": "buddy",
+          "description": "How the companion beside the agent panel's header looks. It always shows the agent's real state."
+        },
         "jesutobits.agent.limits.stepsPerTurn": {
           "type": "integer",
           "minimum": 1,

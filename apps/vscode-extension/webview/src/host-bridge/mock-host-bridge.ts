@@ -196,6 +196,12 @@ export class MockHostBridge implements HostBridge {
     (this.handlers as Record<string, unknown>)[method] = handler;
   }
 
+  /** The user changed VS Code settings: the extension sends the new ones. */
+  changeSettings(settings: AppSettings): void {
+    this.currentSettings = AppSettingsSchema.parse(settings);
+    this.settingsChanges.emit(structuredClone(this.currentSettings));
+  }
+
   emitEvent(event: RuntimeEventBase): void {
     this.emitted.push(event);
     this.events.emit(event);

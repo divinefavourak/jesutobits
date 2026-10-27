@@ -105,6 +105,47 @@
   color: var(--jesutobits-color-accent);
 }
 
+/*
+ * Buddy as the companion (COMPANION_SYSTEM.md): small, and still unless the agent really
+ * works. Idle motion is off by default (section 6), so the empty-state Buddy's float, blink
+ * and stars stop here; each state family gets one signal.
+ */
+.buddy.buddy-companion {
+  zoom: 0.34;
+  margin: 0;
+  flex-shrink: 0;
+}
+.buddy-companion .buddy-face,
+.buddy-companion .buddy-face > i,
+.buddy-companion .buddy-star {
+  animation: none;
+}
+.buddy-companion .buddy-star {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.buddy-companion[data-kind="active"] .buddy-face {
+  animation: buddy-float 1.6s ease-in-out infinite;
+}
+.buddy-companion[data-kind="active"] .buddy-antenna::after {
+  background: var(--jesutobits-color-accent);
+  animation: buddy-signal 1.2s ease-in-out infinite;
+}
+.buddy-companion[data-kind="blocking"] .buddy-antenna::after {
+  background: var(--jesutobits-color-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jesutobits-color-warning) 35%, transparent);
+}
+.buddy-companion[data-kind="sticky"] .buddy-antenna::after {
+  background: var(--jesutobits-color-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--jesutobits-color-danger) 35%, transparent);
+}
+.buddy-companion[data-kind="transient"] .buddy-star {
+  opacity: 1;
+}
+[data-companion-state="unavailable"] .buddy-companion {
+  opacity: 0.5;
+}
+
 /* New conversation content slides in gently. */
 .studio-in {
   animation: studio-slide-in 0.3s ease;
@@ -150,10 +191,22 @@
   }
 }
 
+@keyframes buddy-signal {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .buddy-face,
   .buddy-face > i,
   .buddy-star,
+  .buddy-companion[data-kind="active"] .buddy-face,
+  .buddy-companion[data-kind="active"] .buddy-antenna::after,
   .studio-in {
     animation: none;
   }

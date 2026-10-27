@@ -1,7 +1,13 @@
-import { previewStatusEvent, type PreviewState, type RuntimeStatus } from "@jesutobits/protocol";
+import {
+  previewStatusEvent,
+  type CompanionSkin,
+  type PreviewState,
+  type RuntimeStatus,
+} from "@jesutobits/protocol";
 import { useEffect, useState } from "react";
 import { t } from "../../i18n";
 import { useAgent, useWorkbench } from "../../state/workbench-context";
+import { Buddy } from "../../ui/Studio";
 import { COMPANION_KIND, deriveCompanionState, type CompanionState } from "./companion-state";
 
 /**
@@ -18,8 +24,21 @@ export function Companion() {
     changedAt: 0,
   });
   const [now, setNow] = useState(() => Date.now());
+  const [skin, setSkin] = useState<CompanionSkin>("buddy");
 
   useEffect(() => bridge.onRuntimeStatus((update) => setRuntime(update.status)), [bridge]);
+  useEffect(() => {
+    let live = true;
+    bridge.settings
+      .get()
+      .then((settings) => live && setSkin(settings.companion.skin))
+      .catch(() => undefined);
+    const off = bridge.settings.onChange((settings) => setSkin(settings.companion.skin));
+    return () => {
+      live = false;
+      off();
+    };
+  }, [bridge]);
   useEffect(
     () =>
       bridge.onRuntimeEvent((event) => {
@@ -46,8 +65,14 @@ export function Companion() {
         ? "bg-danger-subtle text-danger"
         : "bg-success-subtle text-success";
   return (
-    <div className="flex min-w-0 items-center gap-2" data-companion-state={state}>
-      <CompanionMark state={state} kind={kind} />
+    <div
+      className="flex min-w-0 items-center gap-2"
+      data-companion-state={state}
+      data-companion-skin={skin}
+    >
+      {skin === "buddy" && <Buddy className="buddy-companion" kind={kind} />}
+      {skin === "mark" && <CompanionMark state={state} kind={kind} />}
+      {skin === "dot" && <CompanionDot state={state} kind={kind} />}
       <strong className="font-display text-[13px] font-medium">{t("studio.coBuilder")}</strong>
       <span
         role="status"
@@ -85,4 +110,19 @@ function CompanionMark({ state, kind }: { state: CompanionState; kind: string })
       </svg>
     </span>
   );
+}
+
+/** The minimal skin: one dot in the state's colour, pulsing only while the agent works. */
+function CompanionDot({ state, kind }: { state: CompanionState; kind: string }) {
+  const colour =
+    kind === "blocking"
+      ? "bg-warning"
+      : kind === "sticky"
+        ? "bg-danger"
+        : kind === "active"
+          ? "bg-accent motion-safe:animate-pulse"
+          : state === "unavailable"
+            ? "bg-text-muted opacity-50"
+            : "bg-success";
+  return <span aria-hidden="true" className={`inline-block h-2.5 w-2.5 rounded-full ${colour}`} />;
 }

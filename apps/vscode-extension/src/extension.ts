@@ -5,6 +5,7 @@ import { mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import {
   AppSettingsSchema,
+  CompanionSkinSchema,
   LogLevelSchema,
   previewStatusEvent,
   RuntimeEventBaseSchema,
@@ -49,7 +50,15 @@ export function activate(context: vscode.ExtensionContext): void {
     if (problem) log("warn", `invalid Jesutobits settings, using the defaults: ${problem}`);
     return config;
   };
-  const currentSettings = (): AppSettings => AppSettingsSchema.parse(currentConfig().settings);
+  const currentSettings = (): AppSettings => {
+    const skin = CompanionSkinSchema.safeParse(
+      vscode.workspace.getConfiguration("jesutobits").get("companion.skin"),
+    );
+    return AppSettingsSchema.parse({
+      ...currentConfig().settings,
+      companion: { skin: skin.success ? skin.data : "buddy" },
+    });
+  };
   const openRouterRef = (): SecretRef =>
     `provider:openrouter:${currentSettings().providers.openrouter.profile}`;
 

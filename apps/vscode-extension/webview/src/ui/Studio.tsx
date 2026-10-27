@@ -95,9 +95,9 @@ export function JMark({ size = 22 }: { size?: number }) {
 }
 
 /** Buddy, the co-builder (styles/studio.css draws it). */
-export function Buddy() {
+export function Buddy({ className = "", kind }: { className?: string; kind?: string }) {
   return (
-    <div className="buddy" aria-hidden="true">
+    <div className={`buddy ${className}`} data-kind={kind} aria-hidden="true">
       <div className="buddy-antenna" />
       <div className="buddy-face">
         <i />

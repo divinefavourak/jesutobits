@@ -67,6 +67,10 @@ export const PrivacySettingsSchema = z.object({
   providerAttributionHeaders: z.boolean().default(false),
 });
 
+/** Buddy (the Studio design's co-builder), the pixel "J", a status dot, or no companion. */
+export const CompanionSkinSchema = z.enum(["buddy", "mark", "dot", "off"]);
+export type CompanionSkin = z.infer<typeof CompanionSkinSchema>;
+
 export const AppSettingsSchema = z.object({
   schemaVersion: z.literal(SETTINGS_SCHEMA_VERSION).default(SETTINGS_SCHEMA_VERSION),
   workspace: z
@@ -95,6 +99,12 @@ export const AppSettingsSchema = z.object({
   providers: ProvidersSettingsSchema.prefault({}),
   agent: AgentSettingsSchema.prefault({}),
   privacy: PrivacySettingsSchema.prefault({}),
+  /** COMPANION_SYSTEM.md section 6: the built-in skins until skin packs arrive. */
+  companion: z
+    .object({
+      skin: CompanionSkinSchema.default("buddy"),
+    })
+    .prefault({}),
   developer: z
     .object({
       extensionDeveloperMode: z.boolean().default(false),
