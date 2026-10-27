@@ -82,6 +82,11 @@ function setup(
     projectRoot: () => undefined,
     openExternal: async () => undefined,
     compose: async () => undefined,
+    look: {
+      get: () => ({ theme: "Lavender dusk", remix: null }),
+      setTheme: async () => undefined,
+      remix: async () => undefined,
+    },
     openFile: async (path) => {
       openedFiles.push(path);
     },
@@ -404,5 +409,45 @@ describe("handlePanelMessage", () => {
       expect(errorOf(outcome).code).toBe(ErrorCodes.fsOutsideWorkspace);
     }
     expect(openedFiles).toEqual([]);
+  });
+
+  it("switches to a Studio theme and remixes it, refusing anything else", async () => {
+    const calls: unknown[] = [];
+    const { services } = setup({
+      look: {
+        get: () => ({ theme: "Matcha", remix: null }),
+        setTheme: async (theme) => void calls.push(theme),
+        remix: async (remix) => void calls.push(remix),
+      },
+    });
+    const remix = { accent: "#c5b1f7", canvas: "#17161c", surfaces: "#201e26", text: "#f2eff7" };
+
+    const send = (id: number, op: string, params: unknown) =>
+      handlePanelMessage({ kind: "host", id, op, params }, services);
+    expect(await send(1, "look.get", {})).toEqual({
+      kind: "result",
+      id: 1,
+      result: { theme: "Matcha", remix: null },
+    });
+    expect(await send(2, "look.setTheme", { theme: "Peach tea" })).toEqual({
+      kind: "result",
+      id: 2,
+      result: {},
+    });
+    expect(await send(3, "look.remix", { remix })).toEqual({ kind: "result", id: 3, result: {} });
+    expect(await send(4, "look.remix", { remix: null })).toEqual({
+      kind: "result",
+      id: 4,
+      result: {},
+    });
+
+    for (const [id, op, params] of [
+      [5, "look.setTheme", { theme: "Some Extension Theme" }],
+      [6, "look.remix", { remix: { ...remix, accent: "red; background: url(x)" } }],
+      [7, "look.remix", { remix: { ...remix, extra: "#000000" } }],
+    ] as const) {
+      expect(errorOf(await send(id, op, params)).code).toBe(ErrorCodes.rpcInvalidParams);
+    }
+    expect(calls).toEqual(["Peach tea", remix, null]);
   });
 });

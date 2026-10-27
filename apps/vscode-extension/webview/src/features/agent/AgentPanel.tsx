@@ -1,5 +1,5 @@
 import { isFinalTurnState, type TurnMode } from "@jesutobits/protocol";
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { t } from "../../i18n";
 import { useAgent, useUi, useWorkbench } from "../../state/workbench-context";
 import { Badge } from "../../ui/Badge";
@@ -7,12 +7,14 @@ import { Button } from "../../ui/Button";
 import { Markdown } from "../../ui/markdown/Markdown";
 import { Buddy, Glyph, JMark } from "../../ui/Studio";
 import { Companion } from "../companion/Companion";
+import { LearningCentre } from "../learn/LearningCentre";
+import { ThemePicker } from "../look/ThemePicker";
 import { OPENROUTER_REF } from "./agent-store";
 import { ApprovalCard, ResolvedApproval } from "./ApprovalCard";
 import { PlanChecklist, QuestionCard, ToolRow, TurnSummaryCard } from "./TurnParts";
 import { liveTurn, type TimelineItem, type TurnView } from "./timeline-reducer";
 
-type Tab = "chat" | "timeline";
+type Tab = "chat" | "timeline" | "learn";
 
 /**
  * The agent panel (UX_AND_INTERFACE.md section 6): sessions, Agent/Ask mode, the chat with
@@ -21,19 +23,32 @@ type Tab = "chat" | "timeline";
  */
 export function AgentPanel() {
   const [tab, setTab] = useState<Tab>("chat");
+  const [lookOpen, setLookOpen] = useState(false);
   const hasKey = useAgent((state) => state.hasKey);
-  const { agent, bridge } = useWorkbench();
-  const chatTabId = useId();
-  const timelineTabId = useId();
+  const { agent, bridge, ui } = useWorkbench();
+  const tabIds = { chat: useId(), timeline: useId(), learn: useId() };
+  const closeLook = useCallback(() => setLookOpen(false), []);
 
   useEffect(() => {
     void agent.getState().checkKey();
   }, [agent]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-canvas font-ui">
-      <header className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2">
-        <Companion />
+    <div className="relative flex h-full min-h-0 flex-col bg-canvas font-ui">
+      <header className="flex items-center gap-1 px-4 pt-3.5 pb-2">
+        <div className="flex-1">
+          <Companion />
+        </div>
+        <button
+          type="button"
+          title={t("look.open")}
+          aria-label={t("look.open")}
+          aria-haspopup="dialog"
+          onClick={() => setLookOpen(true)}
+          className="rounded-md p-1.5 text-text-muted hover:bg-item-hover hover:text-text"
+        >
+          <Glyph name="palette" size={17} />
+        </button>
         <button
           type="button"
           title={t("agent.session.new")}
@@ -58,10 +73,10 @@ export function AgentPanel() {
         aria-label={t("panel.agent")}
         className="flex gap-6 border-b border-border px-4"
       >
-        {(["chat", "timeline"] as const).map((id) => (
+        {(["chat", "timeline", "learn"] as const).map((id) => (
           <button
             key={id}
-            id={id === "chat" ? chatTabId : timelineTabId}
+            id={tabIds[id]}
             role="tab"
             type="button"
             aria-selected={tab === id}
@@ -69,18 +84,25 @@ export function AgentPanel() {
             className={`flex items-center gap-1.5 border-b-2 pt-1 pb-2.5 ${tab === id ? "border-accent text-accent" : "border-transparent text-text-muted hover:text-text"}`}
           >
             {id === "chat" && <Glyph name="chat" size={13} />}
+            {id === "learn" && <Glyph name="book" size={13} />}
             {t(`agent.tab.${id}`)}
           </button>
         ))}
       </div>
-      <div
-        role="tabpanel"
-        aria-labelledby={tab === "chat" ? chatTabId : timelineTabId}
-        className="min-h-0 flex-1 overflow-y-auto"
-      >
-        {tab === "chat" ? <ChatView /> : <TimelineView />}
+      <div role="tabpanel" aria-labelledby={tabIds[tab]} className="min-h-0 flex-1 overflow-y-auto">
+        {tab === "chat" && <ChatView />}
+        {tab === "timeline" && <TimelineView />}
+        {tab === "learn" && (
+          <LearningCentre
+            onAsk={(text) => {
+              ui.getState().compose(text);
+              setTab("chat");
+            }}
+          />
+        )}
       </div>
       <Composer />
+      {lookOpen && <ThemePicker onClose={closeLook} />}
     </div>
   );
 }

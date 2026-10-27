@@ -6,6 +6,15 @@ import type { ReactNode } from "react";
  */
 const GLYPHS: Record<string, ReactNode> = {
   plus: <path d="M12 5v14M5 12h14" />,
+  close: <path d="M6 6l12 12M18 6 6 18" />,
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.9-.7-1.3-.7-2.2 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4c0-4.7-4-8.6-9-8.6z" />
+      <circle cx="7.5" cy="11" r="1" />
+      <circle cx="10" cy="7" r="1" />
+      <circle cx="15" cy="7.5" r="1" />
+    </>
+  ),
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
   chevron: <path d="m9 6 6 6-6 6" />,
   down: <path d="m6 9 6 6 6-6" />,

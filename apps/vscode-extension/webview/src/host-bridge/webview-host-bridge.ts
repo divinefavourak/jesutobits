@@ -14,6 +14,8 @@ import {
   type SecretRef,
   type UiState,
   type WebviewHostOp,
+  type Remix,
+  type StudioTheme,
   type WebviewHostParams,
   type WebviewHostResult,
   type WebviewToHost,
@@ -163,6 +165,16 @@ export class WebviewHostBridge implements HostBridge {
   onCompose(handler: (text: string) => void): Unsubscribe {
     return this.#compose.add(handler);
   }
+
+  readonly look = {
+    get: () => this.#host("look.get", {}),
+    setTheme: async (theme: StudioTheme): Promise<void> => {
+      await this.#host("look.setTheme", { theme });
+    },
+    remix: async (remix: Remix | null): Promise<void> => {
+      await this.#host("look.remix", { remix });
+    },
+  };
 
   readonly settings = {
     get: (): Promise<AppSettings> => this.#host("settings.get", {}),

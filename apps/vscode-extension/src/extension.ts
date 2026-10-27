@@ -18,6 +18,7 @@ import {
   type UiState,
 } from "@jesutobits/protocol";
 import * as vscode from "vscode";
+import { readRemix, withRemix } from "./host/look.js";
 import type { PanelServices } from "./host/panel-messages.js";
 import { createReverseHandler } from "./host/reverse-calls.js";
 import { runtimeConfig } from "./host/runtime-config.js";
@@ -166,6 +167,26 @@ export function activate(context: vscode.ExtensionContext): void {
     compose: async (text) => {
       panel.compose(text);
       await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
+    },
+    look: {
+      get: () => {
+        const theme = vscode.workspace.getConfiguration("workbench").get<string>("colorTheme", "");
+        return { theme, remix: readRemix(colorCustomizations(), theme) };
+      },
+      setTheme: async (theme) => {
+        await vscode.workspace
+          .getConfiguration("workbench")
+          .update("colorTheme", theme, vscode.ConfigurationTarget.Global);
+      },
+      remix: async (remix) => {
+        const workbench = vscode.workspace.getConfiguration("workbench");
+        const theme = workbench.get<string>("colorTheme", "");
+        await workbench.update(
+          "colorCustomizations",
+          withRemix(colorCustomizations(), theme, remix),
+          vscode.ConfigurationTarget.Global,
+        );
+      },
     },
     log,
   };
@@ -355,3 +376,11 @@ async function getStarted(): Promise<void> {
 
 /** Registered by the Jesutobits app's core (jesutobits-ide patch 003). */
 const WELCOME_POPUP_COMMAND = "workbench.action.jesutobitsWelcome";
+
+/** The user's `workbench.colorCustomizations` (global), which a theme remix adds to. */
+function colorCustomizations(): Record<string, unknown> {
+  const inspected = vscode.workspace
+    .getConfiguration("workbench")
+    .inspect<Record<string, unknown>>("colorCustomizations");
+  return { ...(inspected?.globalValue ?? {}) };
+}

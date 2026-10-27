@@ -4,9 +4,11 @@ import type {
   MethodParams,
   MethodResult,
   Project,
+  Remix,
   RuntimeEventBase,
   RuntimeStatusUpdate,
   SecretRef,
+  StudioTheme,
   UiState,
   WebviewHostParams,
   WorkbenchMethod,
@@ -58,6 +60,13 @@ export interface HostBridge {
     get(): Promise<UiState>;
     /** Replaces the given top-level keys; `null` removes one. */
     update(patch: Record<string, unknown>): Promise<UiState>;
+  };
+  /** The workspace's colour theme and its remix (the theme picker). */
+  look: {
+    get(): Promise<{ theme: string; remix: Remix | null }>;
+    setTheme(theme: StudioTheme): Promise<void>;
+    /** `null` removes the remix. */
+    remix(remix: Remix | null): Promise<void>;
   };
   /**
    * VS Code `SecretStorage`. There is no way to read or even send a secret from here: the

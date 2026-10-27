@@ -15,6 +15,30 @@ import { AppSettingsSchema, UiStateSchema } from "./settings.js";
 
 const CallIdSchema = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 
+/** The colour themes the Jesutobits extension contributes (apps/vscode-extension/themes). */
+export const StudioThemeSchema = z.enum([
+  "Lavender dusk",
+  "Matcha",
+  "Ocean after hours",
+  "Peach tea",
+  "Daydream",
+  "Paper & sage",
+]);
+export type StudioTheme = z.infer<typeof StudioThemeSchema>;
+
+const HexColourSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+/** The four colours of a theme remix, as in the Studio design's theme picker. */
+export const RemixSchema = z
+  .object({
+    accent: HexColourSchema,
+    canvas: HexColourSchema,
+    surfaces: HexColourSchema,
+    text: HexColourSchema,
+  })
+  .strict();
+export type Remix = z.infer<typeof RemixSchema>;
+
 /** Operations the extension itself answers, with their params and results. */
 export const WEBVIEW_HOST_OPS = {
   "settings.get": { params: z.object({}).strict(), result: AppSettingsSchema },
@@ -76,6 +100,24 @@ export const WEBVIEW_HOST_OPS = {
    */
   "agent.compose": {
     params: z.object({ text: z.string().min(1).max(8000) }).strict(),
+    result: z.object({}),
+  },
+  /** The workspace's look: VS Code's colour theme and a remix of it, if the panel made one. */
+  "look.get": {
+    params: z.object({}).strict(),
+    result: z.object({ theme: z.string(), remix: RemixSchema.nullable() }),
+  },
+  /** Switches VS Code's colour theme to one of Jesutobits' Studio themes. */
+  "look.setTheme": {
+    params: z.object({ theme: StudioThemeSchema }).strict(),
+    result: z.object({}),
+  },
+  /**
+   * Fine-tunes the current theme's colours (`workbench.colorCustomizations` for that theme
+   * only); `null` removes the remix. Only the workspace changes, never the user's project.
+   */
+  "look.remix": {
+    params: z.object({ remix: RemixSchema.nullable() }).strict(),
     result: z.object({}),
   },
   /** Opens a running preview in the user's browser; loopback http URLs only. */

@@ -13,7 +13,9 @@ import {
   type AppSettings,
   type HostToWebview,
   type LogLevel,
+  type Remix,
   type SecretRef,
+  type StudioTheme,
   type UiState,
   type WebviewHostOp,
 } from "@jesutobits/protocol";
@@ -42,6 +44,12 @@ export interface PanelServices {
   openExternal(url: string): Promise<void>;
   /** Fills and focuses the agent panel's message box. */
   compose(text: string): Promise<void>;
+  /** The workspace's colour theme and its remix (the panel's theme picker). */
+  look: {
+    get(): { theme: string; remix: Remix | null };
+    setTheme(theme: StudioTheme): Promise<void>;
+    remix(remix: Remix | null): Promise<void>;
+  };
   log(level: LogLevel, message: string): void;
 }
 
@@ -154,6 +162,14 @@ async function hostOp(op: string, params: unknown, services: PanelServices): Pro
       return {};
     case "agent.compose":
       await services.compose(input.text as string);
+      return {};
+    case "look.get":
+      return services.look.get();
+    case "look.setTheme":
+      await services.look.setTheme(input.theme as StudioTheme);
+      return {};
+    case "look.remix":
+      await services.look.remix(input.remix as Remix | null);
       return {};
     case "log":
       services.log(input.level as LogLevel, `[panel] ${String(input.message)}`);

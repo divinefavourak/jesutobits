@@ -10,7 +10,9 @@ import {
   type Project,
   type RuntimeEventBase,
   type RuntimeStatusUpdate,
+  type Remix,
   type SecretRef,
+  type StudioTheme,
   type UiState,
   type WebviewHostParams,
   type WorkbenchMethod,
@@ -124,6 +126,19 @@ export class MockHostBridge implements HostBridge {
   requestCompose(text: string): void {
     this.composeRequests.emit(text);
   }
+
+  /** The workspace's look, as the extension would keep it in VS Code's settings. */
+  currentLook: { theme: string; remix: Remix | null } = { theme: "Lavender dusk", remix: null };
+
+  readonly look = {
+    get: async () => structuredClone(this.currentLook),
+    setTheme: async (theme: StudioTheme): Promise<void> => {
+      this.currentLook = { ...this.currentLook, theme };
+    },
+    remix: async (remix: Remix | null): Promise<void> => {
+      this.currentLook = { ...this.currentLook, remix };
+    },
+  };
 
   readonly settings = {
     get: async (): Promise<AppSettings> => structuredClone(this.currentSettings),
