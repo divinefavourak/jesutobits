@@ -4,7 +4,7 @@ import type { SecretRegistry } from "../log/secret-registry.js";
 /** No key is stored for the provider; the adapter reports it as `auth` / `no_credentials`. */
 export class MissingCredentialError extends Error {
   constructor(readonly ref: SecretRef) {
-    super("No OpenRouter API key is stored. Add one in Settings > Models & providers.");
+    super("No OpenRouter API key is stored yet. Add your key to start.");
     this.name = "MissingCredentialError";
   }
 }

@@ -5,6 +5,7 @@ import { useAgent, useUi, useWorkbench } from "../../state/workbench-context";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Markdown } from "../../ui/markdown/Markdown";
+import { Buddy, Glyph, JMark } from "../../ui/Studio";
 import { Companion } from "../companion/Companion";
 import { OPENROUTER_REF } from "./agent-store";
 import { ApprovalCard, ResolvedApproval } from "./ApprovalCard";
@@ -30,10 +31,19 @@ export function AgentPanel() {
   }, [agent]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border px-3 py-1.5">
+    <div className="flex h-full min-h-0 flex-col bg-canvas font-ui">
+      <header className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2">
         <Companion />
-      </div>
+        <button
+          type="button"
+          title={t("agent.session.new")}
+          aria-label={t("agent.session.new")}
+          onClick={() => void agent.getState().newSession()}
+          className="rounded-md p-1.5 text-text-muted hover:bg-item-hover hover:text-text"
+        >
+          <Glyph name="plus" size={17} />
+        </button>
+      </header>
       <AgentHeader />
       {hasKey === false && (
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-warning-subtle px-3 py-2">
@@ -46,7 +56,7 @@ export function AgentPanel() {
       <div
         role="tablist"
         aria-label={t("panel.agent")}
-        className="flex gap-1 border-b border-border px-2"
+        className="flex gap-6 border-b border-border px-4"
       >
         {(["chat", "timeline"] as const).map((id) => (
           <button
@@ -56,8 +66,9 @@ export function AgentPanel() {
             type="button"
             aria-selected={tab === id}
             onClick={() => setTab(id)}
-            className={`px-2 py-1.5 ${tab === id ? "border-b-2 border-accent font-medium" : "text-text-muted"}`}
+            className={`flex items-center gap-1.5 border-b-2 pt-1 pb-2.5 ${tab === id ? "border-accent text-accent" : "border-transparent text-text-muted hover:text-text"}`}
           >
+            {id === "chat" && <Glyph name="chat" size={13} />}
             {t(`agent.tab.${id}`)}
           </button>
         ))}
@@ -79,12 +90,11 @@ function AgentHeader() {
   const sessions = useAgent((state) => state.sessions);
   const activeId = useAgent((state) => state.activeSessionId);
   const mode = useAgent((state) => state.mode);
-  const busy = useAgent((state) => state.busy);
   const selectId = useId();
   const active = sessions?.find((session) => session.id === activeId);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-border px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-2 px-4 pb-2.5">
       <label htmlFor={selectId} className="sr-only">
         {t("agent.session.label")}
       </label>
@@ -92,7 +102,7 @@ function AgentHeader() {
         id={selectId}
         value={activeId ?? ""}
         onChange={(event) => void agent.getState().selectSession(event.target.value || null)}
-        className="w-40 min-w-32 max-w-56 flex-1 truncate rounded-md border border-border bg-surface px-1.5 py-1"
+        className="w-40 min-w-32 max-w-56 flex-1 truncate rounded-md border border-border bg-surface-raised px-2 py-1"
       >
         {!activeId && <option value="">{t("agent.session.none")}</option>}
         {(sessions ?? []).map((session) => (
@@ -101,9 +111,6 @@ function AgentHeader() {
           </option>
         ))}
       </select>
-      <Button variant="ghost" disabled={busy} onClick={() => void agent.getState().newSession()}>
-        {t("agent.session.new")}
-      </Button>
       <ModeToggle mode={mode} onChange={(next) => agent.getState().setMode(next)} />
       {active && (
         <span className="text-xs text-text-muted" title={active.modelId}>
@@ -150,9 +157,20 @@ function ChatView() {
 
   if (loading) return <p className="m-0 p-4 text-text-muted">{t("agent.loading")}</p>;
   if (timeline.turns.length === 0)
-    return <p className="m-0 p-4 text-text-muted">{t("agent.empty")}</p>;
+    return (
+      <div className="studio-in px-5 pt-7 pb-6 text-center">
+        <Buddy />
+        <h2 className="m-0 font-display text-[21px] leading-tight font-medium tracking-tight">
+          {t("studio.emptyTitle")}
+        </h2>
+        <p className="mx-auto mt-2.5 mb-0 max-w-60 leading-relaxed text-text-muted">
+          {t("studio.emptyBody")}
+        </p>
+        <p className="mx-auto mt-4 mb-0 max-w-64 text-xs text-text-subtle">{t("agent.empty")}</p>
+      </div>
+    );
   return (
-    <div className="flex flex-col gap-3 p-3">
+    <div className="flex flex-col gap-4 px-4 py-3">
       {timeline.turns.map((turn) => (
         <TurnChat key={turn.turnId} turn={turn} />
       ))}
@@ -163,15 +181,20 @@ function ChatView() {
 
 function TurnChat({ turn }: { turn: TurnView }) {
   return (
-    <article className="flex flex-col gap-2">
+    <article className="studio-in flex flex-col gap-2.5">
       {turn.userText !== undefined ? (
-        <div className="self-end max-w-[90%] rounded-md bg-accent-subtle px-3 py-2">
-          <p className="m-0 text-xs text-text-muted">{t("agent.you")}</p>
+        <div className="self-end max-w-[90%] rounded-[13px_13px_3px_13px] border border-accent-subtle bg-accent-subtle px-3.5 py-2.5 leading-relaxed">
+          <p className="sr-only">{t("agent.you")}</p>
           <p className="m-0 whitespace-pre-wrap">{turn.userText}</p>
         </div>
       ) : turn.retryOf ? (
         <p className="m-0 text-xs text-text-muted">{t("agent.retryOf")}</p>
       ) : null}
+      <p className="m-0 flex items-center gap-1.5 text-xs">
+        <JMark size={17} />
+        <strong className="font-medium">Jesutobits</strong>
+        <span className="text-text-muted">· {t("studio.speakerRole")}</span>
+      </p>
       {turn.plan && <PlanChecklist items={turn.plan} />}
       {turn.items.map((item, index) => (
         <ChatItem key={itemKey(item, index)} item={item} />
@@ -326,11 +349,15 @@ function itemKey(item: TimelineItem, index: number): string {
 }
 
 /** Ctrl+Enter sends (UX 9); while a turn runs, Send becomes Stop. */
+/** VS Code setting the "Open settings" fix opens on (apps/vscode-extension/package.json). */
+const MODEL_SETTING = "jesutobits.providers.openrouter.defaultModel";
+
 function Composer() {
-  const { agent, ui } = useWorkbench();
+  const { agent, ui, bridge } = useWorkbench();
   const live = useAgent((state) => liveTurn(state.timeline));
   const busy = useAgent((state) => state.busy);
   const error = useAgent((state) => state.error);
+  const errorFix = useAgent((state) => state.errorFix);
   const composerRequest = useUi((state) => state.focusComposerRequest);
   const text = useUi((state) => state.draft);
   const setText = (value: string) => ui.getState().setDraft(value);
@@ -352,45 +379,89 @@ function Composer() {
   };
 
   return (
-    <div className="flex flex-col gap-1 border-t border-border p-2">
+    <div className="flex flex-col gap-2 px-4 pt-3">
       {error && (
         <p role="alert" className="m-0 flex items-start gap-2 text-danger">
           <span className="flex-1">{error}</span>
+          {errorFix === "model" && (
+            <Button variant="secondary" onClick={() => void bridge.openSettings(MODEL_SETTING)}>
+              {t("agent.error.openSettings")}
+            </Button>
+          )}
+          {errorFix === "key" && (
+            <Button
+              variant="secondary"
+              onClick={() =>
+                void bridge.secrets.prompt(OPENROUTER_REF).then(async (stored) => {
+                  await agent.getState().checkKey();
+                  if (stored) agent.getState().dismissError();
+                })
+              }
+            >
+              {t("agent.error.addKey")}
+            </Button>
+          )}
           <Button variant="ghost" onClick={() => agent.getState().dismissError()}>
             {t("errors.dismiss")}
           </Button>
         </p>
       )}
-      <label htmlFor={inputId} className="sr-only">
-        {t("agent.composer.label")}
-      </label>
-      <textarea
-        id={inputId}
-        ref={input}
-        rows={3}
-        value={text}
-        placeholder={t("agent.composer.placeholder")}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={onKeyDown}
-        className="resize-none rounded-md border border-border-strong bg-surface p-2"
-      />
-      <div className="flex items-center gap-2">
-        {live && <Badge tone="info">{t(`agent.state.${live.state}`)}</Badge>}
-        <span className="flex-1" />
-        {live ? (
-          <Button variant="danger" onClick={() => void agent.getState().stop()}>
-            {t("agent.stop")}
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            disabled={busy || text.trim() === ""}
-            onClick={() => void send()}
+      <div className="flex flex-wrap gap-1.5">
+        {(["explain", "look"] as const).map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            onClick={() => ui.getState().compose(t(`studio.chip.${chip}Prompt`))}
+            className="flex items-center gap-1 rounded-full border border-accent-subtle px-2.5 py-1 text-xs text-text-muted hover:-translate-y-0.5 hover:bg-accent-subtle hover:text-text motion-reduce:hover:translate-y-0"
           >
-            {t("agent.send")}
-          </Button>
-        )}
+            <Glyph name={chip === "explain" ? "book" : "sun"} size={12} />
+            {t(`studio.chip.${chip}`)}
+          </button>
+        ))}
       </div>
+      <div className="rounded-lg border border-border-strong bg-surface-raised p-3 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-subtle">
+        <label htmlFor={inputId} className="sr-only">
+          {t("agent.composer.label")}
+        </label>
+        <textarea
+          id={inputId}
+          ref={input}
+          rows={3}
+          value={text}
+          placeholder={t("agent.composer.placeholder")}
+          onChange={(event) => setText(event.target.value)}
+          onKeyDown={onKeyDown}
+          className="w-full resize-none border-0 bg-transparent p-0 leading-relaxed outline-none placeholder:text-text-subtle"
+        />
+        <div className="mt-1.5 flex items-center gap-2">
+          {live ? (
+            <Badge tone="info">{t(`agent.state.${live.state}`)}</Badge>
+          ) : (
+            <span className="text-xs text-text-subtle">{t("studio.sendHint")}</span>
+          )}
+          <span className="flex-1" />
+          {live ? (
+            <Button variant="danger" onClick={() => void agent.getState().stop()}>
+              {t("agent.stop")}
+            </Button>
+          ) : (
+            <button
+              type="button"
+              aria-label={t("agent.send")}
+              title={t("agent.send")}
+              disabled={busy || text.trim() === ""}
+              onClick={() => void send()}
+              className="flex h-7 w-7 items-center justify-center rounded-md bg-accent text-text-on-accent hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Glyph name="arrow" size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+      <p className="m-0 flex items-center justify-center gap-1 pb-2.5 text-[11px] text-text-subtle">
+        <Glyph name="shield" size={11} />
+        {t("studio.composeHint")}
+      </p>
     </div>
   );
 }

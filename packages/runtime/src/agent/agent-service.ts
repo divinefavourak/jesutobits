@@ -508,7 +508,7 @@ export class AgentService {
     if (this.provider instanceof ScriptedProvider) return SCRIPTED_MODEL.id;
     throw new JesutobitsError(
       ErrorCodes.providerNoModel,
-      "Choose a model in Settings > Models & providers first",
+      "Choose a default model for the agent first.",
       {
         userAction: "open_settings",
       },

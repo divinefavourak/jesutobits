@@ -2,6 +2,8 @@
 @import "tailwindcss" source("..");
 @import "./theme.css";
 @import "./vscode-tokens.css";
+@import "./fonts.css";
+@import "./studio.css";
 
 *,
 *::before,

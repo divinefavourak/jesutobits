@@ -168,61 +168,6 @@ export const en = {
   "command.agent.focusComposer": "Agent: Focus the message box",
   "command.agent.newSession": "Agent: New session",
 
-  "onboarding.progress": "Setup progress",
-  "onboarding.stepOf": "Step {step} of {total}",
-  "onboarding.back": "Back",
-  "onboarding.skip": "Skip",
-  "onboarding.continue": "Continue",
-  "onboarding.getStarted": "Get started",
-  "onboarding.toStart": "Finish and go to the start screen",
-  "onboarding.welcome.title": "Welcome to Jesutobits",
-  "onboarding.welcome.body":
-    "Jesutobits builds and changes software with an AI agent you can watch. Your projects stay on your computer; only your messages and the files the agent reads are sent to the model provider you choose.",
-  "onboarding.workspace.title": "Where new projects go",
-  "onboarding.workspace.body": "Choose a folder for the projects you create in Jesutobits.",
-  "onboarding.workspace.folder": "Workspace folder",
-  "onboarding.workspace.note":
-    "New projects go here. You can open folders anywhere. The folder is created when you continue.",
-  "onboarding.workspace.choose": "Choose the workspace folder",
-  "onboarding.workspace.failed": "The folder could not be prepared. {reason}",
-  "onboarding.toolchain.title": "Check your tools",
-  "onboarding.toolchain.body":
-    "Projects run with the Git, Node.js and package manager on this computer. Missing tools do not stop you; the agent and previews need them later.",
-  "onboarding.toolchain.checking": "Looking for Git, Node.js and package managers…",
-  "onboarding.toolchain.failed": "The check did not finish. {reason}",
-  "onboarding.toolchain.git": "Git",
-  "onboarding.toolchain.node": "Node.js",
-  "onboarding.toolchain.packageManager": "Package manager",
-  "onboarding.toolchain.found": "Found ({version})",
-  "onboarding.toolchain.missing": "Not found",
-  "onboarding.toolchain.why": "Why this matters",
-  "onboarding.toolchain.git.why":
-    "Git keeps the history of your changes, so you can see and undo what changed.",
-  "onboarding.toolchain.node.why":
-    "Node.js runs JavaScript projects: their dev servers, tests and builds.",
-  "onboarding.toolchain.packageManager.why":
-    "A package manager (npm, pnpm, Yarn or Bun) installs a project's libraries. npm comes with Node.js.",
-  "onboarding.toolchain.install": "Install it from",
-  "onboarding.toolchain.copy": "Copy link",
-  "onboarding.toolchain.copied": "Copied",
-  "onboarding.provider.title": "Choose a model provider",
-  "onboarding.provider.body":
-    "The agent uses a model provider such as OpenRouter, with your own API key.",
-  "onboarding.provider.openrouter": "OpenRouter",
-  "onboarding.provider.openrouterBody":
-    "One API key for models from many companies. You pay OpenRouter for what the agent uses.",
-  "onboarding.provider.others": "Other providers arrive later.",
-  "onboarding.provider.setUpLater": "Set up later",
-  "onboarding.credentials.title": "Add your API key",
-  "onboarding.credentials.body":
-    "Your key will be kept in the system's credential store, never in files Jesutobits writes.",
-  "onboarding.look.title": "Choose a look",
-  "onboarding.look.companionLater":
-    "Companions arrive in Jesutobits 0.6. You can change the theme any time in Settings.",
-  "onboarding.project.title": "Your first project",
-  "onboarding.project.body":
-    "Create a project in your workspace folder, or open a folder you already have.",
-
   "appearance.theme": "Theme",
   "appearance.followOs": "Follow system",
 
@@ -313,6 +258,8 @@ export const en = {
   "errors.remove": "Could not remove the project from the list. {reason}",
   "errors.locate": "Could not point the project at that folder. {reason}",
   "errors.list": "Could not load recent projects. {reason}",
+  "agent.error.openSettings": "Open settings",
+  "agent.error.addKey": "Add my key",
   "errors.dismiss": "Dismiss",
 
   "files.count": { one: "{count} file", other: "{count} files" },
@@ -345,10 +292,10 @@ export const en = {
   "agent.model.optionPriced": "{name} · {context} tokens · USD {input} / {output} per million",
   "agent.key.missing": "No OpenRouter API key is stored, so the agent cannot reach a model.",
   "agent.key.add": "Add API key",
-  "agent.tab.chat": "Chat",
-  "agent.tab.timeline": "Timeline",
+  "agent.tab.chat": "Build",
+  "agent.tab.timeline": "Activity",
   "agent.composer.label": "Message to the agent",
-  "agent.composer.placeholder": "Ask the agent… (Ctrl+Enter to send)",
+  "agent.composer.placeholder": "What shall we make next?",
   "agent.send": "Send",
   "agent.stop": "Stop",
   "agent.pause": "Pause",
@@ -384,7 +331,7 @@ export const en = {
   "plan.status.done": "Done",
   "plan.status.skipped": "Skipped",
 
-  "approval.title": "Approval needed",
+  "approval.title": "A small permission check",
   "approval.risk.read": "Reads files",
   "approval.risk.sensitive_read": "May contain secrets",
   "approval.risk.write": "Changes files",
@@ -403,10 +350,10 @@ export const en = {
   "approval.explanation": "Agent's explanation",
   "approval.changes": "Changes",
   "approval.rule": "Rule: {rule}",
-  "approval.allowOnce": "Allow once",
+  "approval.allowOnce": "Looks good, allow once",
   "approval.allowSession": "Allow for this session",
   "approval.allowRedacted": "Share with values hidden",
-  "approval.deny": "Deny",
+  "approval.deny": "Not right now",
   "approval.denyWithMessage": "Deny with message…",
   "approval.message": "Message for the agent",
   "approval.sendDenial": "Deny and send",
@@ -525,8 +472,10 @@ export const en = {
   "preview.genericNote": "Visual editing is off for this project: {reason}",
   "preview.log": "Dev server output",
   "preview.noProject": "Open a folder to preview it.",
-  "preview.inspector.title": "Selected element",
-  "preview.inspector.empty": "Turn on Inspect and click an element in the app.",
+  "preview.inspector.title": "Make it yours",
+  "preview.inspector.empty": "Point. Pick. Make it yours.",
+  "preview.inspector.emptyBody":
+    "Turn on Inspect, then click something in your app to see where it comes from and change how it looks.",
   "preview.inspector.component": "Component",
   "preview.inspector.source": "Source",
   "preview.inspector.classes": "Classes",
@@ -553,6 +502,16 @@ export const en = {
   "companion.cancelled": "Stopped",
   "companion.preview_ready": "Preview is ready",
   "companion.unavailable": "Restarting",
+  "studio.coBuilder": "Your co-builder",
+  "studio.speakerRole": "Your co-builder",
+  "studio.emptyTitle": "A little help. A lot of possibility.",
+  "studio.emptyBody": "You bring the idea. We'll figure out the code together.",
+  "studio.chip.explain": "Explain this",
+  "studio.chip.explainPrompt": "Can you explain how this project works, in simple terms?",
+  "studio.chip.look": "Try a new look",
+  "studio.chip.lookPrompt": "Let's try a different colour palette for the app.",
+  "studio.composeHint": "Your project. Your pace. Your say.",
+  "studio.sendHint": "Ctrl+Enter to send",
 } as const;
 
 export type Messages = typeof en;

@@ -1,0 +1,160 @@
+/*
+ * The Studio design's character pieces (Figma Make "Jesutobits AI Coding Workspace",
+ * studio.css), on theme tokens: every colour comes from the active theme's accent, so Buddy
+ * matches Lavender dusk, Matcha or any other theme. Motion stops under reduced motion.
+ */
+
+/* Buddy, the co-builder: a small robot face with an antenna and two stars. */
+.buddy {
+  width: 92px;
+  height: 82px;
+  position: relative;
+  margin: 0 auto 12px;
+  isolation: isolate;
+}
+.buddy-face {
+  position: absolute;
+  left: 18px;
+  top: 15px;
+  width: 57px;
+  height: 47px;
+  background: color-mix(in srgb, var(--jesutobits-color-accent) 85%, white);
+  border-radius: 19px 20px 18px 17px;
+  transform: rotate(-7deg);
+  display: flex;
+  justify-content: center;
+  gap: 13px;
+  padding-top: 18px;
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--jesutobits-color-accent) 55%, black);
+  animation: buddy-float 5s ease-in-out infinite;
+}
+.buddy-face > i {
+  width: 5px;
+  height: 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--jesutobits-color-accent) 25%, black);
+  animation: buddy-blink 7s infinite;
+}
+.buddy-face > span {
+  position: absolute;
+  left: 24px;
+  top: 30px;
+  height: 4px;
+  width: 10px;
+  border-bottom: 2px solid color-mix(in srgb, var(--jesutobits-color-accent) 25%, black);
+  border-radius: 0 0 8px 8px;
+}
+.buddy-antenna {
+  position: absolute;
+  width: 2px;
+  height: 13px;
+  background: var(--jesutobits-color-accent);
+  top: 3px;
+  left: 46px;
+  transform: rotate(-20deg);
+}
+.buddy-antenna::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jesutobits-color-success);
+}
+.buddy-feet {
+  position: absolute;
+  left: 29px;
+  top: 59px;
+  display: flex;
+  gap: 14px;
+  z-index: -1;
+  transform: rotate(-7deg);
+}
+.buddy-feet > i {
+  width: 9px;
+  height: 13px;
+  background: color-mix(in srgb, var(--jesutobits-color-accent) 70%, black);
+  border-radius: 0 0 6px 6px;
+}
+.buddy-orbit {
+  position: absolute;
+  left: 7px;
+  bottom: 1px;
+  width: 81px;
+  height: 13px;
+  border: 1px solid color-mix(in srgb, var(--jesutobits-color-accent) 25%, transparent);
+  border-radius: 50%;
+  transform: rotate(-6deg);
+}
+.buddy-star {
+  position: absolute;
+  color: var(--jesutobits-color-success);
+  font: 22px var(--jesutobits-font-display);
+  left: 2px;
+  top: 14px;
+  animation: star-bob 5s ease-in-out infinite;
+}
+.buddy-star.star-two {
+  left: auto;
+  right: -1px;
+  top: 46px;
+  font-size: 14px;
+  animation-delay: 1s;
+  color: var(--jesutobits-color-accent);
+}
+
+/* New conversation content slides in gently. */
+.studio-in {
+  animation: studio-slide-in 0.3s ease;
+}
+
+@keyframes buddy-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-7deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(2deg);
+  }
+}
+@keyframes buddy-blink {
+  0%,
+  42%,
+  46%,
+  100% {
+    transform: scaleY(1);
+  }
+  44% {
+    transform: scaleY(0.15);
+  }
+}
+@keyframes star-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(35deg);
+  }
+}
+@keyframes studio-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buddy-face,
+  .buddy-face > i,
+  .buddy-star,
+  .studio-in {
+    animation: none;
+  }
+}

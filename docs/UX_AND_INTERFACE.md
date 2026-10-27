@@ -51,6 +51,17 @@ Shown on first run (FR-001). A step indicator shows 7 steps. Back is always avai
 
 Phase 1 (2026-10-22): steps 4 and 5 say the agent and providers arrive in 0.2 and can be skipped; step 6 has the theme and says companions arrive in 0.6; step 7 offers New project, Open folder and the start screen (no sample project yet). Jesutobits does not open web pages yet, so the toolchain step shows each install address with a Copy button. The Documents folder comes from the Host (`HostBridge.paths.documents`); without one the user must choose a folder.
 
+Code-OSS fork (2026-10-27, ADR-0015): the table above describes the Tauri app. Jesutobits now greets a new user with a popup over the workbench: VS Code's own onboarding modal (focus trap, progress dots, Escape or the close button skips) with Jesutobits' steps, added by `jesutobits-ide` patch 003. VS Code covers the workspace folder (any folder opens) and toolchain checks, so the steps are:
+
+| Step | Content | Effect |
+|---|---|---|
+| 1. A little hello | "You bring the idea. We'll find the way.", Buddy, and Just getting started / Finding my feet / I know my way around | `jesutobits.experience` |
+| 2. Make it yours | The six Studio themes (Cosy & dark, Light & airy) as cards with a preview in each theme's colours | `workbench.colorTheme`, applied at once |
+| 3. Meet your co-builder | Add my OpenRouter key (VS Code's password box, through `jesutobits.setApiKey`), Choose a model (`jesutobits.chooseModel`), and Cautious / Balanced / Autonomous | The key goes to SecretStorage and the popup only learns whether one is stored (`jesutobits.hasApiKey`); `jesutobits.agent.defaultPolicyPreset` |
+| 4. Your first idea | Idea chips and a text box; "Enter my workspace" | The text waits in the agent's message box (`jesutobits.compose`); nothing is sent |
+
+**Jesutobits: Get Started** shows the popup again; in plain VS Code, where the extension is developed, it opens the walkthrough instead. When the agent cannot start because no model or no valid key is set, the panel's message offers the fix: Open settings (on `jesutobits.providers.openrouter.defaultModel`) or Add my key.
+
 After onboarding, a dismissible "First steps" checklist appears in the agent panel: ask the agent something, open the preview, try Inspect mode, review a diff.
 
 ## 4. Layout

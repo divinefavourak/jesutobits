@@ -1,4 +1,5 @@
 import {
+  ErrorCodes,
   JesutobitsError,
   sessionUpdatedEvent,
   type MethodResult,
@@ -38,6 +39,8 @@ export interface AgentState {
   busy: boolean;
   /** The last action's failure, in words, shown where the user acted. */
   error: string | null;
+  /** What fixes `error`, when the user can: a default model, or the OpenRouter key. */
+  errorFix: ErrorFix | null;
 
   refreshSessions(): Promise<void>;
   selectSession(id: string | null): Promise<void>;
@@ -77,11 +80,11 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
 
   const store = createStore<AgentState>()((set, get) => {
     const run = async <T>(work: () => Promise<T>): Promise<T | undefined> => {
-      set({ busy: true, error: null });
+      set({ busy: true, error: null, errorFix: null });
       try {
         return await work();
       } catch (error) {
-        set({ error: message(error) });
+        set({ error: message(error), errorFix: fixFor(error) });
         return undefined;
       } finally {
         set({ busy: false });
@@ -123,7 +126,7 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
           after = page.next;
         }
       } catch (error) {
-        set({ error: message(error) });
+        set({ error: message(error), errorFix: fixFor(error) });
       }
       if (generation !== loadGeneration) return;
       const live = (pending ?? []).filter(
@@ -144,6 +147,7 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
       hasKey: null,
       busy: false,
       error: null,
+      errorFix: null,
 
       refreshSessions: async () => {
         await run(async () => {
@@ -153,7 +157,7 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
       },
 
       selectSession: async (id) => {
-        set({ activeSessionId: id, timeline: EMPTY_TIMELINE, error: null });
+        set({ activeSessionId: id, timeline: EMPTY_TIMELINE, error: null, errorFix: null });
         void rememberSession(id);
         if (id) await loadHistory(id);
       },
@@ -263,7 +267,7 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
         }
       },
 
-      dismissError: () => set({ error: null }),
+      dismissError: () => set({ error: null, errorFix: null }),
     };
   });
 
@@ -318,6 +322,18 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
   });
 
   return store;
+}
+
+export type ErrorFix = "model" | "key";
+
+/** The provider errors the panel can offer a way out of (they carry `open_settings`). */
+function fixFor(error: unknown): ErrorFix | null {
+  if (!(error instanceof JesutobitsError)) return null;
+  if (error.code === ErrorCodes.providerNoModel) return "model";
+  if (error.code === ErrorCodes.providerNoCredentials || error.code === ErrorCodes.providerAuth) {
+    return "key";
+  }
+  return null;
 }
 
 function message(error: unknown): string {

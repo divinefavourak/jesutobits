@@ -106,7 +106,7 @@ describe("ApprovalCard (UX_AND_INTERFACE.md section 6.4)", () => {
   it("is an alertdialog with an accessible name", () => {
     renderCard(permissionItem());
 
-    const dialog = screen.getByRole("alertdialog", { name: "Approval needed" });
+    const dialog = screen.getByRole("alertdialog", { name: "A small permission check" });
     expect(dialog.getAttribute("aria-describedby")).toBeTruthy();
   });
 
@@ -137,7 +137,7 @@ describe("ApprovalCard (UX_AND_INTERFACE.md section 6.4)", () => {
     await userEvent.keyboard("{Enter}");
     expect(responses).toHaveLength(0);
 
-    await userEvent.click(screen.getByRole("button", { name: "Allow once" }));
+    await userEvent.click(screen.getByRole("button", { name: "Looks good, allow once" }));
     await waitFor(() => expect(responses).toHaveLength(1));
     expect(responses[0]).toMatchObject({
       permissionId: PERMISSION_ID,

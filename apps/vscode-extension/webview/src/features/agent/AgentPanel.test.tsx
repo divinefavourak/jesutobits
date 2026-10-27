@@ -1,4 +1,11 @@
-import type { MethodParams, Project, RuntimeEventBase, Session } from "@jesutobits/protocol";
+import {
+  ErrorCodes,
+  JesutobitsError,
+  type MethodParams,
+  type Project,
+  type RuntimeEventBase,
+  type Session,
+} from "@jesutobits/protocol";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -139,7 +146,7 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
   it("lists tool rows in the Timeline tab and filters them by changes and errors", async () => {
     await setupPanel({ history: turnWithTools() });
 
-    await userEvent.click(screen.getByRole("tab", { name: "Timeline" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Activity" }));
 
     expect(screen.getByText("Edited src/a.ts (+2 −1)")).toBeTruthy();
     expect(screen.getByText("Tests failed")).toBeTruthy();
@@ -206,5 +213,44 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
 
     await userEvent.click(within(group).getByRole("radio", { name: "Agent" }));
     expect(workbench.agent.getState().mode).toBe("agent");
+  });
+
+  it("sends the user to the default-model setting when no model is chosen", async () => {
+    const { bridge } = await setupPanel({ history: completedTurn() });
+    bridge.handle("agent.sendMessage", () => {
+      throw new JesutobitsError(
+        ErrorCodes.providerNoModel,
+        "Choose a default model for the agent first.",
+        {
+          userAction: "open_settings",
+        },
+      );
+    });
+
+    await userEvent.type(screen.getByLabelText("Message to the agent"), "Hello");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Choose a default model");
+
+    await userEvent.click(within(alert).getByRole("button", { name: "Open settings" }));
+    expect(bridge.openedSettings).toEqual(["jesutobits.providers.openrouter.defaultModel"]);
+  });
+
+  it("offers the key prompt when OpenRouter rejects the key", async () => {
+    const { bridge } = await setupPanel({ history: completedTurn() });
+    bridge.handle("agent.sendMessage", () => {
+      throw new JesutobitsError(ErrorCodes.providerAuth, "OpenRouter did not accept the API key.", {
+        userAction: "open_settings",
+      });
+    });
+    bridge.nextPromptedKey = "sk-or-new-not-real";
+
+    await userEvent.type(screen.getByLabelText("Message to the agent"), "Hello");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: "Add my key" }));
+
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(document.body.textContent).not.toContain("sk-or-new-not-real");
   });
 });

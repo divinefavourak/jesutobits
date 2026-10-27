@@ -41,12 +41,14 @@
   --jesutobits-color-preview-inspect: var(--vscode-focusBorder);
   --jesutobits-color-preview-draft: var(--vscode-editorWarning-foreground);
 
-  --jesutobits-font-ui: var(--vscode-font-family, system-ui, sans-serif);
+  /* The Studio design's type (Figma Make "Jesutobits AI Coding Workspace"); fonts/ holds them. */
+  --jesutobits-font-ui: "DM Sans", var(--vscode-font-family, system-ui, sans-serif);
+  --jesutobits-font-display: "Space Grotesk", var(--jesutobits-font-ui);
   --jesutobits-font-mono: var(--vscode-editor-font-family, ui-monospace, monospace);
   --jesutobits-font-size-base: var(--vscode-font-size, 13px);
-  --jesutobits-radius-sm: 2px;
-  --jesutobits-radius-md: 4px;
-  --jesutobits-radius-lg: 6px;
+  --jesutobits-radius-sm: 6px;
+  --jesutobits-radius-md: 9px;
+  --jesutobits-radius-lg: 13px;
   --jesutobits-shadow-sm: 0 1px 2px var(--vscode-widget-shadow, transparent);
   --jesutobits-shadow-md: 0 2px 8px var(--vscode-widget-shadow, transparent);
   --jesutobits-shadow-lg: 0 4px 16px var(--vscode-widget-shadow, transparent);

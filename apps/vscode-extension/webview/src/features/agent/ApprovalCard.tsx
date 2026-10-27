@@ -4,6 +4,7 @@ import { t } from "../../i18n";
 import { useWorkbench } from "../../state/workbench-context";
 import { Badge, type BadgeTone } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
+import { Glyph } from "../../ui/Studio";
 import type { TimelineItem } from "./timeline-reducer";
 
 type PermissionItem = Extract<TimelineItem, { kind: "permission" }>;
@@ -78,7 +79,7 @@ export function ApprovalCard({ item }: { item: PermissionItem }) {
       role="alertdialog"
       aria-labelledby={titleId}
       aria-describedby={`${titleId}-action`}
-      className="rounded-md border border-warning bg-surface-raised p-3"
+      className="studio-in rounded-lg border border-warning-subtle bg-warning-subtle p-3.5"
     >
       <div
         ref={body}
@@ -86,7 +87,11 @@ export function ApprovalCard({ item }: { item: PermissionItem }) {
         className="flex flex-col gap-2 outline-none focus-visible:ring-2 focus-visible:ring-focus"
       >
         <div className="flex flex-wrap items-center gap-1.5">
-          <h3 id={titleId} className="m-0 text-base font-semibold">
+          <h3
+            id={titleId}
+            className="m-0 flex items-center gap-1.5 text-[13px] font-medium text-warning"
+          >
+            <Glyph name="shield" size={16} />
             {t("approval.title")}
           </h3>
           {[...new Set(item.risk)].map((risk) => (
@@ -95,7 +100,11 @@ export function ApprovalCard({ item }: { item: PermissionItem }) {
             </Badge>
           ))}
         </div>
-        <p id={`${titleId}-action`} className="m-0 break-all font-mono">
+        <p
+          id={`${titleId}-action`}
+          className="m-0 flex items-center gap-2 rounded-md bg-surface-sunken p-2.5 break-all font-mono text-xs"
+        >
+          <Glyph name={item.action.kind === "command" ? "terminal" : "code"} size={14} />
           {describeAction(item.action)}
         </p>
         {item.reasons.length > 0 && (
@@ -144,28 +153,36 @@ export function ApprovalCard({ item }: { item: PermissionItem }) {
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-col gap-2">
           {offers("allow_once") && (
-            <Button disabled={sent} onClick={() => respond("allow_once")}>
+            <Button
+              variant="primary"
+              disabled={sent}
+              onClick={() => respond("allow_once")}
+              className="w-full justify-between"
+            >
               {t("approval.allowOnce")}
+              <Glyph name="arrow" size={14} />
             </Button>
           )}
           {offers("allow_session") && (
-            <Button disabled={sent} onClick={() => respond("allow_session")}>
+            <Button disabled={sent} onClick={() => respond("allow_session")} className="w-full">
               {t("approval.allowSession")}
             </Button>
           )}
           {offers("allow_redacted") && (
-            <Button disabled={sent} onClick={() => respond("allow_redacted")}>
+            <Button disabled={sent} onClick={() => respond("allow_redacted")} className="w-full">
               {t("approval.allowRedacted")}
             </Button>
           )}
-          <Button variant="danger" disabled={sent} onClick={() => respond("deny")}>
-            {t("approval.deny")}
-          </Button>
-          <Button variant="ghost" disabled={sent} onClick={() => setDenying(true)}>
-            {t("approval.denyWithMessage")}
-          </Button>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button variant="ghost" disabled={sent} onClick={() => respond("deny")}>
+              {t("approval.deny")}
+            </Button>
+            <Button variant="ghost" disabled={sent} onClick={() => setDenying(true)}>
+              {t("approval.denyWithMessage")}
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -72,6 +72,21 @@
         "title": "Open Preview",
         "category": "Jesutobits",
         "icon": "$(open-preview)"
+      },
+      {
+        "command": "jesutobits.getStarted",
+        "title": "Get Started",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.hasApiKey",
+        "title": "Check for an OpenRouter API Key",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.compose",
+        "title": "Put a Task in the Agent's Message Box",
+        "category": "Jesutobits"
       }
     ],
     "walkthroughs": [
@@ -136,7 +151,7 @@
             "null"
           ],
           "default": null,
-          "description": "Model for new agent sessions, for example `anthropic/claude-sonnet-5.5`."
+          "markdownDescription": "Model for new agent sessions, for example `anthropic/claude-sonnet-5.5`. Run **Jesutobits: Choose Default Model** to pick from OpenRouter's list."
         },
         "jesutobits.providers.openrouter.dataCollection": {
           "type": "string",
@@ -161,6 +176,26 @@
           ],
           "default": "balanced",
           "description": "How often the agent asks before acting, for projects without a preset of their own."
+        },
+        "jesutobits.experience": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "new",
+            "some",
+            "pro",
+            null
+          ],
+          "enumDescriptions": [
+            "Just getting started",
+            "Finding my feet",
+            "I know my way around",
+            ""
+          ],
+          "default": null,
+          "description": "Where you are starting from, as chosen in the welcome popup."
         },
         "jesutobits.agent.limits.stepsPerTurn": {
           "type": "integer",
@@ -215,6 +250,61 @@
           "description": "Send Jesutobits' name to OpenRouter in attribution headers."
         }
       }
+    },
+    "themes": [
+      {
+        "id": "Lavender dusk",
+        "label": "Lavender dusk",
+        "uiTheme": "vs-dark",
+        "path": "./themes/lavender-dusk.json"
+      },
+      {
+        "id": "Matcha",
+        "label": "Matcha",
+        "uiTheme": "vs-dark",
+        "path": "./themes/matcha.json"
+      },
+      {
+        "id": "Ocean after hours",
+        "label": "Ocean after hours",
+        "uiTheme": "vs-dark",
+        "path": "./themes/ocean-after-hours.json"
+      },
+      {
+        "id": "Peach tea",
+        "label": "Peach tea",
+        "uiTheme": "vs-dark",
+        "path": "./themes/peach-tea.json"
+      },
+      {
+        "id": "Daydream",
+        "label": "Daydream",
+        "uiTheme": "vs",
+        "path": "./themes/daydream.json"
+      },
+      {
+        "id": "Paper & sage",
+        "label": "Paper & sage",
+        "uiTheme": "vs",
+        "path": "./themes/paper-and-sage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "workbench.colorTheme": "Lavender dusk",
+      "workbench.preferredDarkColorTheme": "Lavender dusk",
+      "workbench.preferredLightColorTheme": "Daydream"
+    },
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "jesutobits.hasApiKey",
+          "when": "false"
+        },
+        {
+          "command": "jesutobits.compose",
+          "when": "false"
+        }
+      ]
     }
   },
   "scripts": {

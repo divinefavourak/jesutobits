@@ -39,10 +39,21 @@ export function Companion() {
     return () => clearTimeout(timer);
   }, [kind, now, state]);
 
+  const chip =
+    kind === "blocking"
+      ? "bg-warning-subtle text-warning"
+      : kind === "sticky"
+        ? "bg-danger-subtle text-danger"
+        : "bg-success-subtle text-success";
   return (
-    <div className="flex items-center gap-2" data-companion-state={state}>
+    <div className="flex min-w-0 items-center gap-2" data-companion-state={state}>
       <CompanionMark state={state} kind={kind} />
-      <span role="status" aria-live="polite" className="text-xs text-text-muted">
+      <strong className="font-display text-[13px] font-medium">{t("studio.coBuilder")}</strong>
+      <span
+        role="status"
+        aria-live="polite"
+        className={`truncate rounded-full px-2 py-0.5 text-[11px] ${chip}`}
+      >
         {t(`companion.${state}`)}
       </span>
     </div>
@@ -54,6 +65,7 @@ const RING: Record<string, string> = {
   sticky: "ring-2 ring-danger",
 };
 
+/** The pixel "J" (the Studio design's mark), moving only while the agent really works. */
 function CompanionMark({ state, kind }: { state: CompanionState; kind: string }) {
   const motion =
     kind === "active"
@@ -64,18 +76,13 @@ function CompanionMark({ state, kind }: { state: CompanionState; kind: string })
   const tone =
     state === "completed" || state === "preview_ready" ? "ring-2 ring-success" : (RING[kind] ?? "");
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width="22"
-      height="22"
+    <span
       aria-hidden="true"
-      className={`shrink-0 rounded-md ${motion} ${tone} ${state === "unavailable" ? "opacity-40" : ""}`}
+      className={`inline-flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-accent-subtle text-accent ${motion} ${tone} ${state === "unavailable" ? "opacity-40" : ""}`}
     >
-      <rect width="24" height="24" rx="5" fill="var(--jesutobits-color-surface-sunken)" />
-      <path
-        d="M14 5h3v9.5a4.5 4.5 0 0 1-9 0V13h3v1.5a1.5 1.5 0 0 0 3 0z"
-        fill="var(--jesutobits-color-accent)"
-      />
-    </svg>
+      <svg viewBox="0 0 32 32" width="20" height="20">
+        <path d="M8 6h18v6h-5v14H9v-5H4v-7h6v6h5v-8H8z" fill="currentColor" />
+      </svg>
+    </span>
   );
 }

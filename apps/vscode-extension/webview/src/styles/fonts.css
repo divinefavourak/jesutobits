@@ -1,0 +1,32 @@
+/* DM Sans and Space Grotesk (SIL Open Font Licence 1.1, see fonts/OFL-*.txt), bundled so the
+   webview's CSP needs no font host. Latin subset, the weights the Studio design uses. */
+@font-face {
+  font-family: "DM Sans";
+  font-weight: 400;
+  font-display: swap;
+  src: url("../fonts/dm-sans-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/dm-sans-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "DM Sans";
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/dm-sans-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 500;
+  font-display: swap;
+  src: url("../fonts/space-grotesk-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 600;
+  font-display: swap;
+  src: url("../fonts/space-grotesk-600.woff2") format("woff2");
+}

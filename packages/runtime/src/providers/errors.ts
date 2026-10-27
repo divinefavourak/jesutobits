@@ -90,7 +90,7 @@ const CODES: Record<ProviderErrorCategory, JesutobitsErrorCode> = {
 /** Plain-language guidance per category (FR-025); the provider's text goes in details. */
 const GUIDANCE: Record<ProviderErrorCategory, { message: string; userAction?: UserAction }> = {
   auth: {
-    message: "OpenRouter did not accept the API key. Check it in Settings > Models & providers.",
+    message: "OpenRouter did not accept the API key. Enter your key again.",
     userAction: "open_settings",
   },
   insufficient_credits: {
@@ -124,7 +124,7 @@ export function providerFailure(error: ProviderError): JesutobitsError {
   if (error.category === "auth" && error.providerErrorType === "no_credentials") {
     return new JesutobitsError(
       ErrorCodes.providerNoCredentials,
-      "No OpenRouter API key is stored. Add one in Settings > Models & providers.",
+      "No OpenRouter API key is stored yet. Add your key to start.",
       { userAction: "open_settings", details: { category: "auth" } },
     );
   }

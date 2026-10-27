@@ -43,6 +43,7 @@
 
   --font-ui: var(--jesutobits-font-ui);
   --font-mono: var(--jesutobits-font-mono);
+  --font-display: var(--jesutobits-font-display);
   --radius-sm: var(--jesutobits-radius-sm);
   --radius-md: var(--jesutobits-radius-md);
   --radius-lg: var(--jesutobits-radius-lg);

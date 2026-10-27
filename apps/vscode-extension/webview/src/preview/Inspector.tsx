@@ -3,6 +3,7 @@ import { useId, useState } from "react";
 import type { HostBridge } from "../host-bridge";
 import { t } from "../i18n";
 import { Button } from "../ui/Button";
+import { Glyph } from "../ui/Studio";
 
 export type Selection = Extract<BridgeToWorkbenchMessage, { type: "inspect.selected" }>;
 
@@ -27,7 +28,15 @@ export function Inspector({
   const fieldId = useId();
 
   if (!selection) {
-    return <p className="m-0 p-3 text-text-muted">{t("preview.inspector.empty")}</p>;
+    return (
+      <div className="flex flex-col items-center px-4 py-10 text-center text-accent">
+        <Glyph name="inspect" size={35} />
+        <h3 className="mt-5 mb-3 font-display text-lg font-medium text-text">
+          {t("preview.inspector.empty")}
+        </h3>
+        <p className="m-0 leading-relaxed text-text-muted">{t("preview.inspector.emptyBody")}</p>
+      </div>
+    );
   }
 
   const match = /^(.+):(\d+):(\d+)$/.exec(selection.loc);
@@ -69,7 +78,16 @@ export function Inspector({
   };
 
   return (
-    <section aria-label={t("preview.inspector.title")} className="flex flex-col gap-2 p-3">
+    <section
+      aria-label={t("preview.inspector.title")}
+      className="studio-in flex flex-col gap-2 p-4"
+    >
+      <p className="m-0 mb-3 flex items-center gap-2 font-display text-lg font-medium">
+        <span className="text-accent">
+          <Glyph name="inspect" size={19} />
+        </span>
+        {t("preview.inspector.title")}
+      </p>
       <h2 className="m-0 text-sm font-semibold">
         &lt;{selection.tag}&gt;
         {selection.text && (

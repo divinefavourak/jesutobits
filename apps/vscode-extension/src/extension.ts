@@ -145,8 +145,12 @@ export function activate(context: vscode.ExtensionContext): void {
     restartRuntime: () => {
       if (runtime.status.status === "failed") runtime.restart();
     },
-    openSettings: async () => {
-      await vscode.commands.executeCommand("workbench.action.openSettings", "jesutobits");
+    // A section names one setting (`jesutobits.…`), which Settings then shows on its own.
+    openSettings: async (section) => {
+      await vscode.commands.executeCommand(
+        "workbench.action.openSettings",
+        section?.startsWith("jesutobits.") ? `@id:${section}` : "jesutobits",
+      );
     },
     projectRoot: () => project?.path,
     openFile: async (path, position) => {
@@ -217,10 +221,22 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("jesutobits.openAgent", async () => {
       await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
     }),
-    vscode.commands.registerCommand("jesutobits.setApiKey", async () => {
-      await services.secrets.prompt(openRouterRef());
-    }),
+    // True when a key was stored (the welcome popup shows the new state).
+    vscode.commands.registerCommand("jesutobits.setApiKey", () =>
+      services.secrets.prompt(openRouterRef()),
+    ),
+    // For the welcome popup: whether a key is stored, never the key (invariant 3).
+    vscode.commands.registerCommand("jesutobits.hasApiKey", () =>
+      services.secrets.exists(openRouterRef()),
+    ),
+    // For the welcome popup's first idea: fills the agent's message box; the user sends it.
+    vscode.commands.registerCommand("jesutobits.compose", (text: unknown) =>
+      typeof text === "string" && text.trim()
+        ? services.compose(text.slice(0, 8000))
+        : vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`),
+    ),
     vscode.commands.registerCommand("jesutobits.openPreview", startPreview),
+    vscode.commands.registerCommand("jesutobits.getStarted", getStarted),
     vscode.commands.registerCommand("jesutobits.chooseModel", () =>
       chooseModel(call, services.setDefaultModel, log),
     ),
@@ -319,3 +335,23 @@ function errorText(error: unknown): string {
   if (error instanceof RpcCallError) return error.error.message;
   return error instanceof Error ? error.message : String(error);
 }
+
+/**
+ * The welcome popup is part of the Jesutobits app (jesutobits-ide patch 003); in plain VS Code,
+ * where the extension is developed, the walkthrough stands in for it.
+ */
+async function getStarted(): Promise<void> {
+  const commands = await vscode.commands.getCommands(true);
+  if (commands.includes(WELCOME_POPUP_COMMAND)) {
+    await vscode.commands.executeCommand(WELCOME_POPUP_COMMAND);
+  } else {
+    await vscode.commands.executeCommand(
+      "workbench.action.openWalkthrough",
+      "jesutobits.jesutobits#jesutobits.start",
+      false,
+    );
+  }
+}
+
+/** Registered by the Jesutobits app's core (jesutobits-ide patch 003). */
+const WELCOME_POPUP_COMMAND = "workbench.action.jesutobitsWelcome";

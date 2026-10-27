@@ -166,7 +166,7 @@ describe("the canary key (SECURITY.md 6.6)", () => {
     expect(end.type).toBe("turn.failed");
     expect((end as { error?: Record<string, unknown> }).error).toMatchObject({
       code: "provider.no_credentials",
-      message: "No OpenRouter API key is stored. Add one in Settings > Models & providers.",
+      message: "No OpenRouter API key is stored yet. Add your key to start.",
       userAction: "open_settings",
     });
     // Nothing was ever sent: there was nothing to authenticate with.
