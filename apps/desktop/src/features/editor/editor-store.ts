@@ -450,16 +450,21 @@ export function createEditorStore(
   });
 
   const restore = async (id: string) => {
+    // Another project (or the same one opened again) replaces this restore.
+    const forGeneration = generation;
+    const stale = () => projectId !== id || generation !== forGeneration;
     const uiState = await bridge.uiState.get().catch(() => ({}) as Record<string, unknown>);
     const all = uiState[EDITORS_KEY];
     stored = typeof all === "object" && all !== null ? { ...all } : {};
     const parsed = StoredEditorsSchema.safeParse(stored[id]);
+    if (stale()) return;
     restoring = false;
-    if (!parsed.success || projectId !== id) return;
+    if (!parsed.success) return;
     const { tabs, active, cursors, recent } = parsed.data;
     store.setState({ cursors });
     for (const tab of tabs) {
       await store.getState().open(tab.path, { preview: tab.preview });
+      if (stale()) return;
       // A file deleted since last time is not reopened.
       if (store.getState().files[tab.path]?.failure?.code === ErrorCodes.fsNotFound) {
         store.getState().close(tab.path);

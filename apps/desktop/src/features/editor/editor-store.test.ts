@@ -355,4 +355,28 @@ describe("open tabs per project (FR-008)", () => {
       vi.useRealTimers();
     }
   });
+
+  it("stops restoring a project's tabs once another project opens", async () => {
+    const { bridge, editor, projects, disk } = await opened();
+    await editor.getState().open("a.ts");
+    await editor.getState().open("b.ts");
+    await projects.getState().openRecent(B);
+    expect(editor.getState().tabs).toEqual([]);
+
+    // A's first tab loads slowly, and the user opens B meanwhile.
+    let release: () => void = () => undefined;
+    bridge.handle("fs.readFile", async ({ path }) => {
+      if (path === "a.ts") await new Promise<void>((resolve) => (release = resolve));
+      const text = disk.get(path) ?? "";
+      return { path, text, hash: hash(text), size: text.length, format };
+    });
+    await projects.getState().openRecent(A);
+    await vi.waitFor(() => expect(editor.getState().tabs).toHaveLength(1));
+    await projects.getState().openRecent(B);
+    release();
+    await settle();
+    await settle();
+
+    expect(editor.getState().tabs).toEqual([]);
+  });
 });

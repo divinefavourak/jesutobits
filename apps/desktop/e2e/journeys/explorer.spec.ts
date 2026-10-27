@@ -46,6 +46,8 @@ test("the tree lists folders lazily, dims ignored ones and works from the keyboa
   await expect(item("lib")).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("ArrowRight");
   await expect(item("lib")).toHaveAttribute("aria-expanded", "true");
+  // Right moves into the folder once its listing has arrived.
+  await expect(item("date.ts")).toBeVisible();
   await page.keyboard.press("ArrowRight");
   await expect(item("date.ts")).toHaveAttribute("aria-selected", "true");
   await page.keyboard.press("ArrowLeft");
