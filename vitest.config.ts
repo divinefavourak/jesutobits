@@ -25,18 +25,19 @@ export default defineConfig({
             "packages/*/src/**/*.test.ts",
             "packages/*/test/**/*.test.ts",
             "apps/*/src/**/*.test.ts",
+            "apps/*/webview/src/**/*.test.ts",
             "scripts/**/*.test.mjs",
           ],
         },
       },
       {
-        // Workbench components with Testing Library (TESTING_STRATEGY.md section 2).
+        // Agent panel components with Testing Library (TESTING_STRATEGY.md section 2).
         extends: true,
         test: {
           name: "components",
-          include: ["apps/*/src/**/*.test.tsx"],
+          include: ["apps/*/webview/src/**/*.test.tsx"],
           environment: "jsdom",
-          setupFiles: ["apps/desktop/src/test/setup-components.ts"],
+          setupFiles: ["apps/vscode-extension/webview/src/test/setup-components.ts"],
         },
       },
     ],

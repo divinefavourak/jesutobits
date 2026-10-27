@@ -1,6 +1,6 @@
 # Project Structure
 
-> Status: Agreed target layout. Phase 0 creates it (ROADMAP.md). Tooling per ADR-0013.
+> Status: Agreed layout, revised for the Code-OSS fork (ADR-0015). Tooling per ADR-0013.
 
 ## 1. Repository layout
 
@@ -15,51 +15,33 @@ jesutobits/
 ├── tsconfig.tests.json            # typechecks *.test.ts and test/ (kept out of package builds)
 ├── vitest.config.ts
 ├── eslint.config.js               # includes dependency boundary rules (section 3)
-├── rust-toolchain.toml
-├── .github/workflows/             # ci.yml (PR), nightly.yml, release.yml
+├── .vscode/launch.json            # F5: VS Code with the extension loaded
+├── .github/workflows/             # ci.yml (PR), nightly.yml
 │
 ├── apps/
-│   └── desktop/
-│       ├── index.html
-│       ├── vite.config.ts         # Workbench build (Vite 8)
-│       ├── src/                   # WORKBENCH (React + TS + Tailwind)
-│       │   ├── main.tsx
-│       │   ├── host-bridge/       # HostBridge interface, TauriHostBridge, MockHostBridge
-│       │   ├── state/             # EventStore, UI stores
-│       │   ├── ui/                # primitives styled only with theme tokens; markdown/ sanitiser
-│       │   ├── features/
-│       │   │   ├── onboarding/  layout/  explorer/  editor/  search/  git/
-│       │   │   ├── agent/       timeline/  approvals/  terminal/  problems/
-│       │   │   ├── preview/     inspector/  companion/  appearance/
-│       │   │   └── extensions/  settings/  diagnostics/
-│       │   └── i18n/              # externalised strings (NFR-020)
-│       ├── e2e/                   # Playwright: journeys/, visual-editing/, a11y/
-│       ├── desktop-tests/         # the real app through tauri-driver (pnpm test:desktop, nightly)
-│       └── src-tauri/             # HOST (Rust)
-│           ├── Cargo.toml
-│           ├── tauri.conf.json    # bundle.externalBin: jesutobits-node, jesutobits-rg; resources
-│           ├── tauri.dev.conf.json  # merged by `pnpm dev`: dev identifier dev.jesutobits.app.dev
-│           ├── capabilities/main.json
-│           ├── icons/             # app icons, from docs/assets/jesutobits-icon.svg
-│           ├── binaries/          # fetched sidecars with target-triple names (git-ignored)
-│           ├── resources/         # for build outputs that need assembling first: preview/, builtin/, templates/ (git-ignored).
-│           │                      # Single files are mapped straight from their build output in tauri.conf.json,
-│           │                      # e.g. packages/runtime/dist/bundle/runtime.mjs -> runtime/main.mjs
+│   └── vscode-extension/          # HOST: the Jesutobits VS Code extension (ADR-0015)
+│       ├── package.json           # contributions: agent view, commands, jesutobits.* settings
+│       ├── scripts/build.mjs      # dist/extension.js, dist/runtime/ (runtime bundle), dist/webview/
+│       ├── media/                 # activity-bar icon
+│       ├── src/
+│       │   ├── extension.ts       # activate/deactivate: wires everything to the VS Code API
+│       │   ├── runtime/           # RuntimeSupervisor, RuntimeConnection, RestartPolicy, launch spec
+│       │   ├── host/              # reverse calls, runtime.configure, workspace project, panel messages
+│       │   └── vscode/            # webview views and other VS Code API adapters
+│       └── webview/               # AGENT PANEL (React + TS + Tailwind on --vscode-* variables)
+│           ├── vite.config.mts
 │           └── src/
-│               ├── main.rs, lib.rs
-│               ├── runtime_supervisor/   # spawn, health, restart; job_object_windows.rs; process_group_unix.rs
-│               ├── rpc_relay/            # relay + allowlist (allowlist.rs is generated)
-│               ├── logging/              # host/workbench/runtime .jsonl files: rotation, redaction
-│               ├── secret_store.rs
-│               ├── pty_manager.rs
-│               ├── extension_store/      # archive checks, staging, registry, jesutobits-ext protocol
-│               ├── settings_store/       # settings.json, ui-state.json, migrations
-│               ├── dialogs.rs
-│               └── updater.rs
+│               ├── main.tsx
+│               ├── host-bridge/   # HostBridge interface, WebviewHostBridge, MockHostBridge
+│               ├── state/         # project, UI and agent stores
+│               ├── ui/            # primitives styled only with theme tokens; markdown/ renderer
+│               ├── features/agent/
+│               ├── styles/        # Tailwind theme on tokens; vscode-tokens.css maps them to VS Code
+│               └── i18n/          # externalised strings (NFR-020)
 │
 ├── packages/
-│   ├── protocol/                  # Zod schemas: RPC methods, events, JesutobitsError, bridge messages,
-│   │                              # VisualChange, settings; generates JSON Schemas and the Host allowlist
+│   ├── protocol/                  # Zod schemas: RPC methods, events, JesutobitsError, bridge and webview
+│   │                              # messages, VisualChange, settings; generates JSON Schemas and methods.json
 │   ├── shared/                    # pure utilities: ids (ULID + prefix), Result, semver helpers, the Logger interface; no Node or DOM APIs
 │   ├── runtime/                   # RUNTIME entry + AGENT HARNESS (boundary B)
 │   │   ├── src/main.ts            # stdio wiring, dependency injection of services
@@ -93,9 +75,9 @@ jesutobits/
 │   ├── jesutobits-themes/               # Light, Dark, High Contrast (real packages)
 │   └── jesutobits-companions/           # Ember, Dot, Pip
 ├── templates/                     # react-vite-ts-tailwind, react-vite-ts, empty, general
-├── fixtures/                      # projects/, extensions/, bin/ (TESTING_STRATEGY.md section 3)
-├── scripts/                       # fetch-sidecars.mjs (Node and ripgrep, pinned in sidecars.json), build-runtime.mjs, build-guest.mjs,
-│   │                              # gen-protocol.mjs, gen-allowlist.mjs, gen-logo.mjs, package-builtins.mjs
+├── fixtures/                      # projects/, extensions/, cassettes/, bin/ (TESTING_STRATEGY.md section 3)
+├── scripts/                       # build-runtime.mjs, build-guest.mjs, gen-protocol.mjs, gen-logo.mjs,
+│   │                              # package-builtins.mjs, bench-cancel.mjs
 │   ├── eslint-rules/              # local ESLint plugin: boundaries.mjs is the section 3 rule table
 │   └── spikes/                    # Phase 0 spike measurements, kept runnable (docs/spikes/)
 └── docs/                          # this documentation
@@ -107,8 +89,9 @@ Responsibilities per module are specified in ARCHITECTURE.md section 5. Ownershi
 
 | Area | Package or folder | Boundary |
 |---|---|---|
-| Desktop UI | `apps/desktop/src` | A (Workbench) |
-| Desktop OS integration, credentials, PTYs, relay | `apps/desktop/src-tauri` | A (Host) |
+| Editor, explorer, terminal, Git, settings, themes | VS Code itself (the `jesutobits-ide` fork, ADR-0015) | A |
+| Agent panel and other Jesutobits UI | `apps/vscode-extension/webview` | A (webviews) |
+| Runtime supervision, credentials, reverse calls, panel relay | `apps/vscode-extension/src` | A (Host) |
 | Agent loop, providers, tools, permissions, context, sessions, verification | `packages/runtime` | B |
 | File I/O, processes, previews, Git, visual source edits, headless checks | `packages/services` | D |
 | Code that runs inside user projects' dev servers | `packages/preview-launcher`, `packages/vite-plugin`, `packages/visual-bridge` | D (guest side) |
@@ -118,7 +101,7 @@ Responsibilities per module are specified in ARCHITECTURE.md section 5. Ownershi
 
 ## 3. Dependency rules (enforced by lint, NFR-017)
 
-The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforced by the `jesutobits/import-boundaries` rule, plus `no-console`, `no-restricted-globals` (`fetch`), `no-restricted-syntax` (`dangerouslySetInnerHTML`) and `jesutobits/no-raw-colors` in `eslint.config.js`. Change the table and this section together; `scripts/eslint-rules/eslint-rules.test.mjs` tests the real table. pnpm's strict `node_modules` adds a second layer: a package cannot import a dependency it has not declared. Rules about node built-ins (`fs`, `child_process`, network) do not apply to test files, which need temp directories and process harnesses. Relative imports may not leave their own package, except that test code (`*.test.*`, `test/` and `e2e/` folders) may import the development scripts in `scripts/`, for example the E2E fixtures starting `scripts/dev-relay.mjs`. Native addons are caught only when imported as `.node` files; a dependency audit for native packages arrives with the sidecar build (Spike S1).
+The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforced by the `jesutobits/import-boundaries` rule, plus `no-console`, `no-restricted-globals` (`fetch`), `no-restricted-syntax` (`dangerouslySetInnerHTML`) and `jesutobits/no-raw-colors` in `eslint.config.js`. Change the table and this section together; `scripts/eslint-rules/eslint-rules.test.mjs` tests the real table. pnpm's strict `node_modules` adds a second layer: a package cannot import a dependency it has not declared. Rules about node built-ins (`fs`, `child_process`, network) do not apply to test files, which need temp directories and process harnesses. Relative imports may not leave their own package, except that test code (`*.test.*`, `test/` and `e2e/` folders) may import the development scripts in `scripts/`. Native addons are caught only when imported as `.node` files.
 
 ### 3.1 Between packages
 
@@ -128,7 +111,8 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 | `shared` | nothing | Any Jesutobits package |
 | `services` | `protocol`, `shared` | `runtime`, `apps/*` |
 | `runtime` | `protocol`, `shared`, `services`, `extension-schema` | `apps/*` |
-| `apps/desktop` (Workbench) | `protocol`, `shared`, `extension-schema` (types and token compiler), `builtin-themes` (token files, imported at build time until the Host serves extensions in Phase 6) | `runtime`, `services`, Node built-ins |
+| `apps/vscode-extension/src` (Host) | `protocol`, `shared`; spawns the runtime bundle as a process | `runtime`, `services` |
+| `apps/vscode-extension/webview` (panel) | `protocol`, `shared`, `extension-schema` (types and token compiler), `builtin-themes` (token files) | `runtime`, `services`, Node built-ins, `vscode` |
 | `extensions/builtin/*` | nothing (data: a manifest and token or asset files) | Everything |
 | `extension-schema` | `zod`, `shared` | `runtime`, `services`, `apps/*` |
 | `extension-cli` | `extension-schema` | `runtime`, `services`, `apps/*` |
@@ -138,8 +122,7 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 
 | Rule | Why |
 |---|---|
-| Only `apps/desktop/src/host-bridge/` imports `@tauri-apps/*` | Shell replaceability (ADR-0001) |
-| Only `features/editor/` imports `monaco-editor` | Editor replaceability (ADR-0004) |
+| Only `extension.ts` and `vscode/` in the extension import `vscode`; `runtime/` and `host/` stay testable on plain Node | Testability; VS Code API in one place (ADR-0015) |
 | Only `features/companion/renderers/` imports animation libraries | Renderer isolation (ADR-0006) |
 | Only `ui/markdown/` may produce HTML from strings; `dangerouslySetInnerHTML` banned elsewhere | XSS defence (SECURITY.md section 8) |
 | Components use theme tokens only; raw colour literals banned in `features/` and `ui/` | Theming (EXTENSION_SYSTEM.md section 4) |
@@ -152,11 +135,11 @@ The tables below are encoded in `scripts/eslint-rules/boundaries.mjs` and enforc
 
 ## 4. Conventions
 
-- **Language:** TypeScript strict; Rust 2021 edition; documentation in British English; code identifiers follow platform conventions (for example CSS `color`).
-- **Files:** kebab-case for modules, PascalCase for React components, `*.test.ts` colocated, E2E specs under `apps/desktop/e2e/`.
+- **Language:** TypeScript strict; documentation in British English; code identifiers follow platform conventions (for example CSS `color`).
+- **Files:** kebab-case for modules, PascalCase for React components, `*.test.ts` colocated.
 - **IDs:** ULID with type prefix (ARCHITECTURE.md section 6.5).
 - **Errors:** `JesutobitsError` with stable dotted codes (ARCHITECTURE.md section 9.1).
-- **Schemas first:** any new RPC method, event or bridge message is added to `packages/protocol` before implementation; generators update JSON Schemas and the Host allowlist.
-- **Generated files** carry a header `// Generated by scripts/<name>. Do not edit.` (a `$comment` field in JSON) and are checked in only when the build needs them before codegen can run: `packages/protocol/generated/methods.json` (read by the Host allowlist and its Rust contract test) and the Rust allowlist itself. JSON Schemas go to `packages/protocol/dist/json-schema/`. CI runs `pnpm gen:check`.
+- **Schemas first:** any new RPC method, event, bridge or webview message is added to `packages/protocol` before implementation; generators update JSON Schemas and `methods.json`. The extension builds its allowlists from the same schemas at runtime (`methodsCallableBy`, `WEBVIEW_HOST_OPS`).
+- **Generated files** carry a header `// Generated by scripts/<name>. Do not edit.` (a `$comment` field in JSON) and are checked in only when something reads them without building: `packages/protocol/generated/methods.json`. JSON Schemas go to `packages/protocol/dist/json-schema/`. CI runs `pnpm gen:check`.
 - **Migrations:** `packages/runtime/src/storage/migrations/NNNN_short_name.sql`, never edited after merge.
 - **Prompts:** `packages/runtime/src/agent/prompts/` with a version constant bumped on every change.

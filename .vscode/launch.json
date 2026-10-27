@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Jesutobits extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/apps/vscode-extension/dist/**/*.js"]
+    },
+    {
+      "name": "Jesutobits extension (scripted provider)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/apps/vscode-extension"],
+      "outFiles": ["${workspaceFolder}/apps/vscode-extension/dist/**/*.js"],
+      "env": {
+        "JESUTOBITS_PROVIDER": "scripted",
+        "JESUTOBITS_CASSETTE": "${workspaceFolder}/fixtures/cassettes/agent-file-edit.jsonl"
+      }
+    }
+  ]
+}

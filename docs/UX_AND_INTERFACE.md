@@ -2,6 +2,8 @@
 
 > Status: Agreed interaction design. Visual design (exact colours, typography) is defined by the built-in themes (EXTENSION_SYSTEM.md section 4).
 
+> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+
 ## 1. UX principles
 
 | Principle | In practice |

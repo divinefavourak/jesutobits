@@ -32,7 +32,7 @@ export interface TextSearchOutcome {
 
 export interface TextSearchContext {
   workspace: WorkspaceService;
-  /** The bundled `jesutobits-rg` sidecar; without it the JS fallback runs. */
+  /** The ripgrep VS Code ships (`--ripgrep`, ADR-0015); without it the JS fallback runs. */
   ripgrep?: string | undefined;
   /** Every non-ignored file (the quick-open index), for the fallback. */
   files(): string[];
@@ -67,7 +67,7 @@ function compile(options: TextSearchOptions): RegExp {
 /**
  * Project text search (FR-074, `search_text`): ripgrep over the project root, respecting
  * .gitignore and .jesutobitsignore, never following links (so it stays inside the project).
- * Without the sidecar, or if it cannot start, a slower JS scan of the indexed files runs.
+ * Without ripgrep, or if it cannot start, a slower JS scan of the indexed files runs.
  */
 export async function searchText(
   options: TextSearchOptions,

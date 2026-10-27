@@ -379,7 +379,7 @@ ADR-0015 moves Jesutobits from the Tauri shell to a Code-OSS fork. Phase 2's run
 
 ## 5. Next implementation milestone
 
-**The Code-OSS pivot** (section 3, ADR-0015), then Phase 3 on the fork. Phase 2 is complete (0.2.0, acceptance above) except a run with a real OpenRouter key. The step plan: A (archive, ADR, docs) done 2026-10-27; B (the extension) next. Phase 0's record follows.
+**The Code-OSS pivot** (section 3, ADR-0015), then Phase 3 on the fork. Phase 2 is complete (0.2.0, acceptance above) except a run with a real OpenRouter key. The step plan: A (archive, ADR, docs) done 2026-10-27. B (the extension) mostly done 2026-10-27: runtime supervisor on VS Code's Electron, reverse calls, settings, workspace project and trust, the agent panel in a webview with a schema-checked bridge, the API key typed into VS Code's password box, changed files opening in the editor. Checked live in VS Code 1.143 with the scripted provider: handshake in 607 ms, a full turn edits the file, Revert turn restores it, and a force-killed window leaves no runtime behind. D's deletion of `apps/desktop` moved forward into B. Still open in B: the onboarding walkthrough and `@vscode/test-electron` integration tests in CI; then C (the fork). Phase 0's record follows.
 
 **Phase 0**, in this order:
 

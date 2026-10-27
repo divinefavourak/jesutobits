@@ -24,47 +24,24 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Tauri system dependencies (DEVELOPMENT_SETUP.md section 1.2)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-
       - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
       - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: apps/desktop/src-tauri
+
+      # The ripgrep half of the text-search tests (in the app, the extension uses VS Code's).
+      - name: ripgrep
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then choco install ripgrep --no-progress -y; else sudo apt-get install -y ripgrep; fi
+          echo "JESUTOBITS_TEST_RIPGREP=$(command -v rg)" >> "$GITHUB_ENV"
 
       - run: pnpm install --frozen-lockfile
-      - name: Cache sidecar archives
-        uses: actions/cache@v4
-        with:
-          path: node_modules/.cache/jesutobits-sidecars
-          key: sidecars-${{ runner.os }}-${{ hashFiles('scripts/sidecars.json') }}
-      # The Host build needs the runtime bundle (a Tauri resource) and the Node sidecar.
       - run: pnpm build:packages
-      - run: pnpm fetch:sidecars
+      - run: pnpm build:extension
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
-      - run: pnpm test:rust
       - name: Generated files are up to date
         run: pnpm gen:check
-
-      # Browser E2E smoke subset: the Workbench in Chromium against real runtimes.
-      - name: Playwright browser
-        run: pnpm --filter @jesutobits/desktop exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
-      - name: Keep the Playwright report when E2E fails
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report-${{ matrix.os }}
-          path: |
-            apps/desktop/playwright-report/
-            apps/desktop/test-results/
-          retention-days: 7

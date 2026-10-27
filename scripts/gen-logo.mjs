@@ -3,8 +3,8 @@
 // many Markdown previews and lose their alignment.
 // Outputs:
 //   docs/assets/jesutobits-logo.svg  the full banner (README)
-//   docs/assets/jesutobits-icon.svg  the "J" on a square tile, the source for app icons
-//                                    (`pnpm --filter @jesutobits/desktop tauri icon ...`)
+//   docs/assets/jesutobits-icon.svg  the "J" on a square tile, the source for the app icons
+//                                    in the jesutobits-ide fork (ADR-0015)
 // Run: node scripts/gen-logo.mjs
 import { writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";

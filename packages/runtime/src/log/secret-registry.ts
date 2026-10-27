@@ -1,9 +1,8 @@
 /**
  * Masks secrets wherever runtime text may leave the process (SECURITY.md section 6.1): log
  * lines now, model requests in Phase 2. Two layers: exact values of known secrets,
- * replaced with `[REDACTED:<ref>]`, then common token shapes. The token patterns match the
- * Host's (`apps/desktop/src-tauri/src/logging/redact.rs`); both run the cases in
- * `fixtures/redaction/cases.json`.
+ * replaced with `[REDACTED:<ref>]`, then common token shapes. The cases are in
+ * `fixtures/redaction/cases.json` (the Tauri Host ran them too, until ADR-0015).
  */
 
 /** Shorter values would mask ordinary text everywhere they occur. */

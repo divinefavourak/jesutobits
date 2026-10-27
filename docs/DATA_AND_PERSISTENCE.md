@@ -2,6 +2,8 @@
 
 > Status: Agreed design (ADR-0008, provisional on `node:sqlite`).
 
+> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+
 ## 1. Principles
 
 1. **Local only.** No remote backend, no accounts, no sync in the MVP.

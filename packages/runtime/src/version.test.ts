@@ -4,13 +4,13 @@ import { describe, expect, it } from "vitest";
 import { RUNTIME_VERSION } from "./version.js";
 
 describe("RUNTIME_VERSION", () => {
-  it("is the app's version (tauri.conf.json), so the handshake reports what shipped", () => {
-    const config = JSON.parse(
+  it("is the extension's version, so the handshake reports what shipped", () => {
+    const manifest = JSON.parse(
       readFileSync(
-        fileURLToPath(new URL("../../../apps/desktop/src-tauri/tauri.conf.json", import.meta.url)),
+        fileURLToPath(new URL("../../../apps/vscode-extension/package.json", import.meta.url)),
         "utf8",
       ),
     ) as { version: string };
-    expect(RUNTIME_VERSION).toBe(config.version);
+    expect(RUNTIME_VERSION).toBe(manifest.version);
   });
 });

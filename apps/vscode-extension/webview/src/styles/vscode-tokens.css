@@ -1,0 +1,54 @@
+/*
+ * Jesutobits' theme tokens on VS Code's theme variables (ADR-0015): the panel follows the
+ * active VS Code colour theme, high contrast included, and components keep using tokens only.
+ * Each token falls back to a neutral value for themes that leave a colour unset.
+ */
+:root {
+  --jesutobits-color-canvas: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  --jesutobits-color-surface: var(--vscode-sideBar-background, var(--vscode-editor-background));
+  --jesutobits-color-surface-raised: var(--vscode-editorWidget-background);
+  --jesutobits-color-surface-sunken: var(--vscode-input-background);
+  --jesutobits-color-text: var(--vscode-foreground);
+  --jesutobits-color-text-muted: var(--vscode-descriptionForeground);
+  --jesutobits-color-text-subtle: var(
+    --vscode-disabledForeground,
+    var(--vscode-descriptionForeground)
+  );
+  --jesutobits-color-text-on-accent: var(--vscode-button-foreground);
+  --jesutobits-color-border: var(--vscode-widget-border, var(--vscode-panel-border, transparent));
+  --jesutobits-color-border-strong: var(
+    --vscode-input-border,
+    var(--vscode-contrastBorder, var(--vscode-panel-border))
+  );
+  --jesutobits-color-accent: var(--vscode-button-background);
+  --jesutobits-color-accent-hover: var(--vscode-button-hoverBackground);
+  --jesutobits-color-accent-subtle: var(--vscode-list-inactiveSelectionBackground);
+  --jesutobits-color-focus: var(--vscode-focusBorder);
+  --jesutobits-color-selection: var(--vscode-editor-selectionBackground);
+  --jesutobits-color-item-hover: var(--vscode-list-hoverBackground);
+  --jesutobits-color-item-active: var(--vscode-list-activeSelectionBackground);
+  --jesutobits-color-success: var(--vscode-testing-iconPassed, #3fb950);
+  --jesutobits-color-success-subtle: var(--vscode-diffEditor-insertedLineBackground, transparent);
+  --jesutobits-color-warning: var(--vscode-editorWarning-foreground);
+  --jesutobits-color-warning-subtle: var(--vscode-inputValidation-warningBackground, transparent);
+  --jesutobits-color-danger: var(--vscode-errorForeground);
+  --jesutobits-color-danger-subtle: var(--vscode-inputValidation-errorBackground, transparent);
+  --jesutobits-color-info: var(--vscode-editorInfo-foreground);
+  --jesutobits-color-info-subtle: var(--vscode-inputValidation-infoBackground, transparent);
+  --jesutobits-color-diff-added: var(--vscode-gitDecoration-addedResourceForeground);
+  --jesutobits-color-diff-removed: var(--vscode-gitDecoration-deletedResourceForeground);
+  --jesutobits-color-preview-chrome: var(--vscode-editorWidget-background);
+  --jesutobits-color-preview-inspect: var(--vscode-focusBorder);
+  --jesutobits-color-preview-draft: var(--vscode-editorWarning-foreground);
+
+  --jesutobits-font-ui: var(--vscode-font-family, system-ui, sans-serif);
+  --jesutobits-font-mono: var(--vscode-editor-font-family, ui-monospace, monospace);
+  --jesutobits-font-size-base: var(--vscode-font-size, 13px);
+  --jesutobits-radius-sm: 2px;
+  --jesutobits-radius-md: 4px;
+  --jesutobits-radius-lg: 6px;
+  --jesutobits-shadow-sm: 0 1px 2px var(--vscode-widget-shadow, transparent);
+  --jesutobits-shadow-md: 0 2px 8px var(--vscode-widget-shadow, transparent);
+  --jesutobits-shadow-lg: 0 4px 16px var(--vscode-widget-shadow, transparent);
+  --jesutobits-space-1: 4px;
+}

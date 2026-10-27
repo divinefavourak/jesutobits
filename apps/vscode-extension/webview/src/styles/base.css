@@ -1,0 +1,42 @@
+/* Scan only the panel's sources for class names. */
+@import "tailwindcss" source("..");
+@import "./theme.css";
+@import "./vscode-tokens.css";
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: var(--jesutobits-font-size-base);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--jesutobits-color-canvas);
+  color: var(--jesutobits-color-text);
+  font-family: var(--jesutobits-font-ui);
+  line-height: 1.5;
+}
+
+/* The focus ring is never removed (UX_AND_INTERFACE.md section 10). */
+:focus-visible {
+  outline: 1px solid var(--jesutobits-color-focus);
+  outline-offset: 1px;
+}
+
+::selection {
+  background: var(--jesutobits-color-selection);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+}

@@ -139,7 +139,7 @@ export const fsQuickOpen = defineMethod({
 });
 
 /**
- * Project text search (FR-074, `Ctrl+Shift+F`): ripgrep through the bundled sidecar, or a
+ * Project text search (FR-074): ripgrep (the one VS Code ships, ADR-0015), or a
  * slower scan without it. Ignored files are not searched. Results arrive in one reply,
  * capped by `limit`.
  */

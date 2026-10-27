@@ -2,6 +2,8 @@
 
 > Status: Agreed baseline. Every item marked **MVP** must be implemented and tested before the first public release (Phase 7 gate).
 
+> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+
 ## 1. Principles
 
 1. **The harness enforces; the model requests.** A tool call is a request. The `PermissionBroker` decides, using policy and the user's answers. Nothing the model writes (including "the user already approved this") changes a decision.
@@ -46,11 +48,12 @@ flowchart TB
 
 ## 3. Credentials (MVP)
 
-- Provider keys are entered in the Workbench and sent once to the Host (`secrets.set`), which stores them in the OS credential store using the `keyring` crate (ADR-0008). The Workbench has no command to read them back.
+- Provider keys are typed into VS Code's own password box (`showInputBox` with `password: true`), opened by the extension when the agent panel asks (`secrets.prompt`), and stored in VS Code `SecretStorage`, which uses the OS credential store (ADR-0015). The key never enters the webview, its DOM or its messages; the panel can only ask whether a key exists or delete it.
 - The runtime fetches a key through `host.secrets.get` only when it needs to call the provider, keeps it in memory, and registers it with the `SecretRegistry` for redaction.
 - Keys never appear in: settings files, SQLite, logs, crash bundles, model context, child-process environments, event payloads, or diagnostic exports. **Canary test:** CI runs a session with a fake key `sk-or-CANARY-...` and fails if the string appears in any file under the app data directory or in any event.
 - On Linux without a Secret Service, the user enters the key per session; it lives only in runtime memory.
-- Implementation (Phase 2): `apps/desktop/src-tauri/src/secret_store.rs` with `keyring` 3.6.3. The service name is the bundle identifier (`dev.jesutobits.app`, `dev.jesutobits.app.dev` for development builds) and the account is the reference (`provider:openrouter:default`). Linux uses the kernel keyring (keyutils), which needs no D-Bus and keeps keys for the login session, matching the per-session fallback above; a Secret Service backend can follow when Linux packages are scheduled. The Host registers every value it stores or reads with its log redactor. The Workbench's commands are `secrets_set`, `secrets_delete` and `secrets_exists`; the runtime reads keys with `host.secrets.get`, which answers `{ value: null }` when none is stored.
+- Implementation (pivot, ADR-0015): `apps/vscode-extension/src/extension.ts` (`context.secrets`, keyed by the reference, for example `provider:openrouter:default`) and `src/host/reverse-calls.ts` for `host.secrets.get`, which answers `{ value: null }` when none is stored. Runtime log lines are masked by the runtime's `SecretRegistry` before they reach the output channel.
+- Implementation (Phase 2, Tauri, archived at `tauri-final`): `apps/desktop/src-tauri/src/secret_store.rs` with `keyring` 3.6.3. The service name is the bundle identifier (`dev.jesutobits.app`, `dev.jesutobits.app.dev` for development builds) and the account is the reference (`provider:openrouter:default`). Linux uses the kernel keyring (keyutils), which needs no D-Bus and keeps keys for the login session, matching the per-session fallback above; a Secret Service backend can follow when Linux packages are scheduled. The Host registers every value it stores or reads with its log redactor. The Workbench's commands are `secrets_set`, `secrets_delete` and `secrets_exists`; the runtime reads keys with `host.secrets.get`, which answers `{ value: null }` when none is stored.
 
 ## 4. Permission model
 

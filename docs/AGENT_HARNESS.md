@@ -3,6 +3,8 @@
 > Status: Agreed design for the MVP. Lives in `packages/runtime` (see PROJECT_STRUCTURE.md).
 > Related: ADR-0005 (providers), ADR-0011 (processes), ADR-0012 (checkpoints), SECURITY.md (policy).
 
+> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+
 ## 1. What the harness is
 
 The harness turns a user request into a sequence of model calls and **authorised** tool executions on a real project, until the work is done, cancelled, blocked on the user, or stopped by a limit. Then it verifies what it can and reports honestly.

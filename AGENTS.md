@@ -15,7 +15,7 @@ Instructions for AI coding agents working on the **Jesutobits** repository. Huma
 
 Jesutobits is an AI coding workspace built on a **Code-OSS fork** (ADR-0015). This repository holds the Jesutobits logic: a Node.js **Runtime** (agent harness, tools, permissions, sessions, previews) that speaks JSON-RPC over stdio, and the VS Code extension `apps/vscode-extension`, which is the **Host**. It spawns the runtime on VS Code's Electron (`ELECTRON_RUN_AS_NODE`) and shows Jesutobits UI in webviews. The fork itself (branding, `product.json`, built-in extension, core patches) lives in the separate `jesutobits-ide` repository.
 
-The pivot is in progress (`docs/ROADMAP.md` section 5). `apps/desktop` (the Tauri shell, archived at tag `tauri-final`) still exists until the extension reaches parity. Do not add features to it.
+The pivot is in progress (`docs/ROADMAP.md` section 5). The Tauri shell that came before is archived at tag `tauri-final` (branch `archive/tauri`) and removed from this branch.
 
 ## Read before changing anything
 
@@ -45,17 +45,13 @@ If the docs and the code disagree, stop and point it out. Do not silently pick o
 ## Commands
 
 ```bash
-pnpm install && pnpm fetch:sidecars && pnpm build:packages   # first time
-pnpm dev            # desktop app
-pnpm dev:web        # Workbench in a browser with MockHostBridge
+pnpm install && pnpm build:packages                          # first time
+pnpm build:extension   # apps/vscode-extension/dist: extension, runtime bundle, panel webview
+pnpm dev               # builds, then opens VS Code with the extension loaded (`code` on PATH)
 pnpm lint && pnpm typecheck && pnpm test                     # required before finishing
-pnpm test:e2e       # when you touch UI flows or visual editing
-cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml  # when you touch Rust
 ```
 
-These commands still build the archived Tauri shell; `apps/vscode-extension` scripts replace `pnpm dev`, `test:e2e`, the Rust steps and `fetch:sidecars` during the pivot (ROADMAP section 5).
-
-`pnpm test:e2e` needs `pnpm build:packages` and a Playwright Chromium (`pnpm --filter @jesutobits/desktop exec playwright install chromium`). `pnpm lint` includes `cargo fmt --check` and `cargo clippy`, so it needs `pnpm build:packages` and `pnpm fetch:sidecars` first (the Host build embeds the runtime bundle and the Node sidecar). `pnpm test:rust` runs `cargo test`. `pnpm test:desktop` (nightly) drives the real app; it needs `cargo install tauri-driver --locked` and `pnpm build:desktop-test`.
+In VS Code you can also open this repository and press F5 after `pnpm build:extension`. The runtime runs on VS Code's own Electron (`ELECTRON_RUN_AS_NODE`), so no Node sidecar is fetched. Set `JESUTOBITS_TEST_RIPGREP` to a ripgrep binary to run the ripgrep half of the text-search tests.
 
 Use `JESUTOBITS_PROVIDER=scripted JESUTOBITS_CASSETTE=<file>` to run without an API key. Never add real keys anywhere in the repo.
 

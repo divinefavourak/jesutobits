@@ -10,8 +10,8 @@
     { "path": "packages/preview-launcher" },
     { "path": "packages/vite-plugin" },
     { "path": "packages/visual-bridge" },
-    { "path": "apps/desktop" },
-    { "path": "apps/desktop/tsconfig.node.json" },
+    { "path": "apps/vscode-extension" },
+    { "path": "apps/vscode-extension/webview" },
     { "path": "tsconfig.tests.json" }
   ]
 }

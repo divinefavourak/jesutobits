@@ -44,16 +44,18 @@ Every document distinguishes:
 
 ```mermaid
 flowchart LR
-    subgraph app["Jesutobits desktop app"]
-        WB["Workbench<br/>React UI in OS webview"]
-        H["Host<br/>Tauri 2, Rust"]
-        RT["Runtime<br/>Node sidecar: agent harness + services"]
+    subgraph app["Jesutobits (Code-OSS fork)"]
+        VS["VS Code workbench<br/>editor, explorer, terminal, Git"]
+        WB["Agent panel<br/>React in a webview"]
+        H["Host<br/>Jesutobits extension"]
+        RT["Runtime<br/>Node process on VS Code's Electron:<br/>agent harness + services"]
     end
     P[("User projects")]
     DS["Dev servers<br/>127.0.0.1"]
     M["Model provider<br/>OpenRouter"]
-    K[("OS credential store")]
-    WB <-->|IPC, allowlisted| H
+    K[("OS credential store<br/>VS Code SecretStorage")]
+    VS --- H
+    WB <-->|postMessage, allowlisted| H
     H <-->|JSON-RPC over stdio| RT
     H --> K
     RT -->|WorkspaceService| P
@@ -66,10 +68,10 @@ Key decisions (details in `docs/DECISIONS/`):
 
 | Topic | Decision |
 |---|---|
-| Shell | Tauri 2, with the UI and runtime kept shell-agnostic (ADR-0001) |
-| Agent runtime | Official Node.js binary shipped as a Tauri sidecar, no native addons (ADR-0002) |
-| IPC | JSON-RPC 2.0 over stdio, relayed and allowlisted by the Host (ADR-0003) |
-| Editor | Monaco behind a thin wrapper (ADR-0004) |
+| Shell | A Code-OSS fork; Jesutobits logic in a built-in extension (ADR-0015, superseding the Tauri shell of ADR-0001) |
+| Agent runtime | A separate Node process on VS Code's Electron (`ELECTRON_RUN_AS_NODE`), no native addons (ADR-0002, ADR-0015) |
+| IPC | JSON-RPC 2.0 over stdio, relayed and allowlisted by the extension (ADR-0003) |
+| Editor | VS Code's (ADR-0015) |
 | Models | Own provider contract; OpenRouter adapter over plain HTTP + SSE (ADR-0005) |
 | Companion | Jesutobits-owned state machine; static and dotLottie renderers first (ADR-0006) |
 | Extensions | Stage 1 declarative only; sandboxed UI and MCP integrations later (ADR-0007) |
@@ -79,7 +81,7 @@ Key decisions (details in `docs/DECISIONS/`):
 
 ## MVP in one paragraph
 
-Windows desktop app; OpenRouter models with tool calling; an agent that reads, edits, runs commands with approval, uses Git (read and commit), runs checks and labels its work Verified only with evidence; a workbench with explorer, Monaco, terminal, timeline, problems and a minimal Git panel; live previews for any project with a dev script; visual editing for React + Vite projects styled with Tailwind classes or inline styles; a truthful companion with three built-in skins; and locally installable themes and companion skins. See [ROADMAP section 2](docs/ROADMAP.md#2-mvp-versus-later) for what is explicitly later.
+Windows desktop app built on a Code-OSS fork; OpenRouter models with tool calling; an agent that reads, edits, runs commands with approval, uses Git (read and commit), runs checks and labels its work Verified only with evidence; an agent panel with timeline, approvals and turn summaries beside VS Code's own editor, terminal, Git and problems; live previews for any project with a dev script; visual editing for React + Vite projects styled with Tailwind classes or inline styles; a truthful companion with three built-in skins; and locally installable themes and companion skins. See [ROADMAP section 2](docs/ROADMAP.md#2-mvp-versus-later) for what is explicitly later.
 
 ## Name
 
@@ -90,7 +92,8 @@ The name also appears in identifiers. These are the ones to keep stable once peo
 | Kind | Examples | Hard to change after 1.0? |
 |---|---|---|
 | Display text | "Jesutobits", window titles, docs | No |
-| Package names and binaries | `@jesutobits/*`, `jesutobits-node`, `jesutobits-rg`, `jesutobits-ext` | No |
+| Package names and binaries | `@jesutobits/*`, `jesutobits-ext` | No |
+| VS Code identifiers | extension `jesutobits.jesutobits`, settings `jesutobits.*`, commands `jesutobits.*` | Partly (settings live in users' settings.json) |
 | Environment variables | `JESUTOBITS_*` | No |
 | App identifier and data paths | `dev.jesutobits.app` (proposed) | **Yes** |
 | Files in user projects and packages | `.jesutobits/`, `.jesutobitsignore`, `.jesutobitspkg`, `jesutobits-extension.json` | **Yes** |
@@ -102,9 +105,10 @@ The app identifier is reverse-DNS, so it should use a domain you control. Confir
 
 | Term | Meaning |
 |---|---|
-| **Host** | The Tauri (Rust) process: window, OS integration, credentials, PTYs, IPC relay |
-| **Workbench** | The React UI inside the OS webview |
-| **Runtime** | The Node sidecar process running the agent harness and services |
+| **Host** | The Jesutobits VS Code extension: supervises the runtime, credentials (SecretStorage), reverse calls, the webview relay |
+| **Workbench** | VS Code's window. Older docs use the word for the hand-built Tauri UI (archived at tag `tauri-final`) |
+| **Agent panel** | The React UI in a VS Code webview: chat, timeline, approvals |
+| **Runtime** | The separate Node process running the agent harness and services |
 | **Services** | Preview and execution services (files, processes, previews, Git, visual source edits) inside the runtime process |
 | **Session** | A conversation with the agent in one project, persisted |
 | **Turn** | One user message and all the agent work it triggers |

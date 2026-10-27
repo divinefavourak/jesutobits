@@ -2,6 +2,8 @@
 
 > Status: Agreed design. Source mapping confirmed by Spike S2 (ADR-0009, `docs/spikes/S2.md`). Preview isolation confirmed on Windows by Spike S3 (ADR-0010, `docs/spikes/S3.md`).
 
+> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+
 ## 1. Goals and non-goals
 
 Goals:

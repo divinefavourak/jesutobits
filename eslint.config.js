@@ -11,13 +11,7 @@ import jesutobits from "./scripts/eslint-rules/index.mjs";
 const root = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig([
-  globalIgnores([
-    "**/dist/",
-    "**/node_modules/",
-    "**/coverage/",
-    "apps/desktop/src-tauri/",
-    "fixtures/",
-  ]),
+  globalIgnores(["**/dist/", "**/node_modules/", "**/coverage/", "**/.vscode-test/", "fixtures/"]),
 
   js.configs.recommended,
   tseslint.configs.recommended,
@@ -68,29 +62,24 @@ export default defineConfig([
     },
   },
 
-  // Workbench: browser code.
+  // Webviews: browser code.
   {
-    files: ["apps/desktop/src/**", "packages/visual-bridge/src/**"],
+    files: ["apps/vscode-extension/webview/src/**", "packages/visual-bridge/src/**"],
     languageOptions: { globals: { ...globals.browser } },
   },
-  // Playwright reads a fixture's dependencies from its destructuring pattern; `{}` means none.
+  // Spike scripts run in Node but pass functions to a browser page to run.
   {
-    files: ["apps/desktop/e2e/**"],
-    rules: { "no-empty-pattern": "off" },
-  },
-  // Spike scripts and desktop tests run in Node but pass functions to the webview to run.
-  {
-    files: ["scripts/spikes/**", "apps/desktop/desktop-tests/**"],
+    files: ["scripts/spikes/**"],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   {
-    files: ["apps/desktop/src/**/*.{ts,tsx}"],
+    files: ["apps/vscode-extension/webview/src/**/*.{ts,tsx}"],
     plugins: { "react-hooks": reactHooks },
     rules: { ...reactHooks.configs.recommended.rules },
   },
   {
-    files: ["apps/desktop/src/**"],
-    ignores: ["apps/desktop/src/ui/markdown/**"],
+    files: ["apps/vscode-extension/webview/src/**"],
+    ignores: ["apps/vscode-extension/webview/src/ui/markdown/**"],
     rules: {
       "no-restricted-syntax": [
         "error",
@@ -102,7 +91,10 @@ export default defineConfig([
     },
   },
   {
-    files: ["apps/desktop/src/features/**", "apps/desktop/src/ui/**"],
+    files: [
+      "apps/vscode-extension/webview/src/features/**",
+      "apps/vscode-extension/webview/src/ui/**",
+    ],
     rules: { "jesutobits/no-raw-colors": "error" },
   },
 ]);

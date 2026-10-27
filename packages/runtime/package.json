@@ -2,7 +2,7 @@
   "name": "@jesutobits/runtime",
   "version": "0.0.0",
   "private": true,
-  "description": "The Node sidecar: JSON-RPC over stdio, agent harness and services wiring.",
+  "description": "The agent runtime process: JSON-RPC over stdio, agent harness and services wiring.",
   "type": "module",
   "exports": {
     ".": {

@@ -35,13 +35,20 @@ export const boundaryRules = [
     message: "runtime may depend only on protocol, shared, services and extension-schema",
   },
   {
-    files: ["apps/desktop/src/"],
+    files: ["apps/vscode-extension/webview/src/"],
     imports: [
       jesutobitsExcept("protocol", "shared", "extension-schema", "builtin-themes"),
       NODE_BUILTINS,
     ],
+    // `vscode` is refused by the rule further down, which allows it only in extension.ts and vscode/.
     message:
-      "The Workbench may depend only on protocol, shared, extension-schema and the built-in themes' data, and never on Node APIs",
+      "Webviews may depend only on protocol, shared, extension-schema and the built-in themes' data, and never on Node APIs (invariant 4)",
+  },
+  {
+    files: ["apps/vscode-extension/src/"],
+    imports: [jesutobitsExcept("protocol", "shared")],
+    message:
+      "The extension may depend only on protocol and shared; it runs the runtime as a process (ADR-0015)",
   },
   {
     files: ["packages/extension-schema/"],
@@ -69,19 +76,14 @@ export const boundaryRules = [
   // 3.2 Inside packages
   {
     files: [""],
-    except: ["apps/desktop/src/host-bridge/"],
-    imports: ["^@tauri-apps/"],
-    message: "Only apps/desktop/src/host-bridge/ may import Tauri (ADR-0001)",
+    except: ["apps/vscode-extension/src/extension.ts", "apps/vscode-extension/src/vscode/"],
+    imports: ["^vscode$"],
+    message:
+      "Only extension.ts and vscode/ import the VS Code API; runtime/ and host/ stay testable on Node (ADR-0015)",
   },
   {
     files: [""],
-    except: ["apps/desktop/src/features/editor/"],
-    imports: ["^monaco-editor(?:/|$)", "^@monaco-editor/"],
-    message: "Only features/editor/ may import Monaco (ADR-0004)",
-  },
-  {
-    files: [""],
-    except: ["apps/desktop/src/features/companion/renderers/"],
+    except: ["apps/vscode-extension/webview/src/features/companion/renderers/"],
     imports: ["^@lottiefiles/", "^lottie-web(?:/|$)", "^@rive-app/"],
     message: "Only features/companion/renderers/ may import animation libraries (ADR-0006)",
   },

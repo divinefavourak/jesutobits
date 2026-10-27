@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { ErrorCodes } from "@jesutobits/protocol";
 import { nullLogger } from "@jesutobits/shared";
@@ -16,15 +15,11 @@ import {
 } from "./text-search.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-/** The repo root, for the bundled ripgrep sidecar the desktop build fetches. */
-const ROOT_PATH = fileURLToPath(new URL("../../../..", import.meta.url));
-const RG = path.join(
-  ROOT_PATH,
-  "apps/desktop/src-tauri/binaries",
-  process.platform === "win32"
-    ? "jesutobits-rg-x86_64-pc-windows-msvc.exe"
-    : "jesutobits-rg-x86_64-unknown-linux-gnu",
-);
+/**
+ * A ripgrep binary for the ripgrep half of the suite (CI installs one); without it only the
+ * fallback runs. In the app the extension passes the ripgrep VS Code ships (ADR-0015).
+ */
+const RG = process.env.JESUTOBITS_TEST_RIPGREP ?? "";
 
 /** A small project fixture shared by both engines. */
 const FIXTURE: Record<string, string> = {

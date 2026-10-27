@@ -2,6 +2,8 @@
 
 > Status: Agreed. Applies from Phase 0. Tools per ADR-0013: Vitest, Playwright, cargo test, WebdriverIO + tauri-driver.
 
+> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+
 ## 1. Principles
 
 1. **No paid model calls in CI.** Every agent behaviour is testable with scripted model streams (NFR-016). Real-model evaluations are a separate, opt-in suite.
