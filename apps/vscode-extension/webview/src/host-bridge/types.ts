@@ -42,6 +42,10 @@ export interface HostBridge {
   openFile(path: string, position?: { line: number; column: number }): Promise<void>;
   /** Opens a running preview (a loopback URL) in the user's browser. */
   openExternal(url: string): Promise<void>;
+  /** Fills the agent panel's message box for the user to finish and send. */
+  compose(text: string): Promise<void>;
+  /** Text the extension asks the agent panel to put in its message box. */
+  onCompose(handler: (text: string) => void): Unsubscribe;
 
   /** The `jesutobits.*` VS Code settings, in the `settings.json` shape the panel knows. */
   settings: {

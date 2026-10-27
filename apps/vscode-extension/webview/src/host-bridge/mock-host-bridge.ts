@@ -109,6 +109,22 @@ export class MockHostBridge implements HostBridge {
     this.openedUrls.push(url);
   }
 
+  readonly composed: string[] = [];
+  private readonly composeRequests = new Listeners<string>(false);
+
+  async compose(text: string): Promise<void> {
+    this.composed.push(text);
+  }
+
+  onCompose(handler: (text: string) => void): Unsubscribe {
+    return this.composeRequests.add(handler);
+  }
+
+  /** The extension asks this panel to compose `text`. */
+  requestCompose(text: string): void {
+    this.composeRequests.emit(text);
+  }
+
   readonly settings = {
     get: async (): Promise<AppSettings> => structuredClone(this.currentSettings),
     update: async (patch: WebviewHostParams<"settings.update">): Promise<AppSettings> => {

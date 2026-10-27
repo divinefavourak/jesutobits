@@ -159,6 +159,10 @@ export function activate(context: vscode.ExtensionContext): void {
     openExternal: async (url) => {
       await vscode.env.openExternal(vscode.Uri.parse(url));
     },
+    compose: async (text) => {
+      panel.compose(text);
+      await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
+    },
     log,
   };
   const panel = new AgentViewProvider(context.extensionUri, services, () => ({

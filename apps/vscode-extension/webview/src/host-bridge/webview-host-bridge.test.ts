@@ -303,6 +303,22 @@ describe("WebviewHostBridge", () => {
     expect(second).toBe(1);
   });
 
+  it("asks for compose and passes compose messages to subscribers", () => {
+    const { bridge, deliver, posted } = setup();
+    const texts: string[] = [];
+    bridge.onCompose((text) => texts.push(text));
+
+    void bridge.compose("About the <h1>: ");
+    deliver({ kind: "compose", text: "About the <p>: " });
+
+    expect(posted.at(-1)).toMatchObject({
+      kind: "host",
+      op: "agent.compose",
+      params: { text: "About the <h1>: " },
+    });
+    expect(texts).toEqual(["About the <p>: "]);
+  });
+
   it("ignores messages it cannot read", async () => {
     const { bridge, deliver } = setup();
 

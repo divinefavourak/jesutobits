@@ -81,6 +81,7 @@ function setup(
     },
     projectRoot: () => undefined,
     openExternal: async () => undefined,
+    compose: async () => undefined,
     openFile: async (path) => {
       openedFiles.push(path);
     },

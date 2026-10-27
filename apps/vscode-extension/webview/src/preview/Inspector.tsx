@@ -103,9 +103,12 @@ export function Inspector({
         onChange={(event) => setClasses(event.target.value)}
         className="w-full resize-y rounded-md border border-border-strong bg-surface-sunken p-2 font-mono text-text"
       />
-      <div>
+      <div className="flex flex-wrap gap-2">
         <Button variant="primary" disabled={busy} onClick={() => void apply()}>
           {t("preview.inspector.apply")}
+        </Button>
+        <Button onClick={() => void bridge.compose(askText(selection)).catch(() => undefined)}>
+          {t("preview.inspector.ask")}
         </Button>
       </div>
       {status && (
@@ -118,4 +121,17 @@ export function Inspector({
       )}
     </section>
   );
+}
+
+/** The element's context for the agent (FR-113); the user writes what to change. */
+function askText(selection: Selection): string {
+  return t("preview.inspector.askText", {
+    tag: selection.tag,
+    text: selection.text ? ` "${selection.text.slice(0, 80)}"` : "",
+    loc: selection.loc,
+    component: selection.component
+      ? t("preview.inspector.askComponent", { name: selection.component })
+      : "",
+    classes: selection.className,
+  });
 }

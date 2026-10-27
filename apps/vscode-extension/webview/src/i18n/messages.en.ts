@@ -531,6 +531,10 @@ export const en = {
   "preview.inspector.source": "Source",
   "preview.inspector.classes": "Classes",
   "preview.inspector.apply": "Apply",
+  "preview.inspector.ask": "Ask the agent about this",
+  "preview.inspector.askText":
+    'About the <{tag}>{text} in {loc}{component} with classes "{classes}": ',
+  "preview.inspector.askComponent": " (component {name})",
   "preview.inspector.applied": "Saved to {path}.",
   "preview.inspector.unchanged": "Nothing to change.",
   "preview.inspector.failed": "Could not change it: {reason}",

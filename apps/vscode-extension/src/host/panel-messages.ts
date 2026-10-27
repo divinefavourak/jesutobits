@@ -40,6 +40,8 @@ export interface PanelServices {
   openFile(path: string, position?: { line: number; column: number }): Promise<void>;
   /** Opens an already-checked loopback URL in the user's browser. */
   openExternal(url: string): Promise<void>;
+  /** Fills and focuses the agent panel's message box. */
+  compose(text: string): Promise<void>;
   log(level: LogLevel, message: string): void;
 }
 
@@ -149,6 +151,9 @@ async function hostOp(op: string, params: unknown, services: PanelServices): Pro
     }
     case "ui.openExternal":
       await services.openExternal(input.url as string);
+      return {};
+    case "agent.compose":
+      await services.compose(input.text as string);
       return {};
     case "log":
       services.log(input.level as LogLevel, `[panel] ${String(input.message)}`);

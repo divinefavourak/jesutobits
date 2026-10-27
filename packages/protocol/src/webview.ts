@@ -70,6 +70,14 @@ export const WEBVIEW_HOST_OPS = {
       .strict(),
     result: z.object({}),
   },
+  /**
+   * Puts text in the agent panel's message box and focuses it, for the user to finish and
+   * send ("Ask the agent about this element", FR-113). Never sends anything by itself.
+   */
+  "agent.compose": {
+    params: z.object({ text: z.string().min(1).max(8000) }).strict(),
+    result: z.object({}),
+  },
   /** Opens a running preview in the user's browser; loopback http URLs only. */
   "ui.openExternal": {
     params: z
@@ -138,5 +146,7 @@ export const HostToWebviewSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("settings"), settings: AppSettingsSchema }).strict(),
   /** A stored secret was set or removed (never which value): the panel checks again. */
   z.object({ kind: z.literal("secretsChanged") }).strict(),
+  /** Text for the agent panel's message box (`agent.compose`); the user sends it. */
+  z.object({ kind: z.literal("compose"), text: z.string().max(8000) }).strict(),
 ]);
 export type HostToWebview = z.infer<typeof HostToWebviewSchema>;

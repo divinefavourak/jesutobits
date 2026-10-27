@@ -14,6 +14,8 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
   readonly #services: PanelServices;
   readonly #current: () => { status: RuntimeStatusUpdate; project: Project | null };
   #view: vscode.WebviewView | undefined;
+  /** Text to compose once the view has loaded (it may not have been opened yet). */
+  #pendingCompose: string | undefined;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -43,10 +45,20 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
       const { status, project } = this.#current();
       this.post({ kind: "status", update: status });
       this.post({ kind: "project", project });
+      if (this.#pendingCompose !== undefined) {
+        this.post({ kind: "compose", text: this.#pendingCompose });
+        this.#pendingCompose = undefined;
+      }
     });
     view.onDidDispose(() => {
       if (this.#view === view) this.#view = undefined;
     });
+  }
+
+  /** Fills the message box, now or as soon as the view has loaded. */
+  compose(text: string): void {
+    if (this.#view) this.post({ kind: "compose", text });
+    else this.#pendingCompose = text;
   }
 
   /** Sends to the panel if it is open; a closed panel catches up on its next "ready". */

@@ -46,6 +46,7 @@ export class WebviewHostBridge implements HostBridge {
   readonly #projects = new Listeners<Project | null>(true);
   readonly #settings = new Listeners<AppSettings>(false);
   readonly #secretsChanged = new Listeners<void>(false);
+  readonly #compose = new Listeners<string>(false);
   #nextId = 1;
 
   constructor(vscode: VsCodeApi, target: Pick<Window, "addEventListener"> = window) {
@@ -117,6 +118,9 @@ export class WebviewHostBridge implements HostBridge {
         return;
       case "secretsChanged":
         this.#secretsChanged.emit();
+        return;
+      case "compose":
+        this.#compose.emit(message.text);
     }
   }
 
@@ -150,6 +154,14 @@ export class WebviewHostBridge implements HostBridge {
 
   async openExternal(url: string): Promise<void> {
     await this.#host("ui.openExternal", { url });
+  }
+
+  async compose(text: string): Promise<void> {
+    await this.#host("agent.compose", { text });
+  }
+
+  onCompose(handler: (text: string) => void): Unsubscribe {
+    return this.#compose.add(handler);
   }
 
   readonly settings = {

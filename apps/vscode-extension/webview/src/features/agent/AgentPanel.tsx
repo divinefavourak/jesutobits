@@ -322,12 +322,13 @@ function itemKey(item: TimelineItem, index: number): string {
 
 /** Ctrl+Enter sends (UX 9); while a turn runs, Send becomes Stop. */
 function Composer() {
-  const { agent } = useWorkbench();
+  const { agent, ui } = useWorkbench();
   const live = useAgent((state) => liveTurn(state.timeline));
   const busy = useAgent((state) => state.busy);
   const error = useAgent((state) => state.error);
   const composerRequest = useUi((state) => state.focusComposerRequest);
-  const [text, setText] = useState("");
+  const text = useUi((state) => state.draft);
+  const setText = (value: string) => ui.getState().setDraft(value);
   const input = useRef<HTMLTextAreaElement>(null);
   const inputId = useId();
 
