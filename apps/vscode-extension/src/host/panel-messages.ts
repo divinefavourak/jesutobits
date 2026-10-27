@@ -44,6 +44,8 @@ export interface PanelServices {
   openExternal(url: string): Promise<void>;
   /** Fills and focuses the agent panel's message box. */
   compose(text: string): Promise<void>;
+  /** Runs Open Folder, or Jesutobits: New Project. */
+  startProject(how: "open" | "new"): Promise<void>;
   /** The workspace's colour theme and its remix (the panel's theme picker). */
   look: {
     get(): { theme: string; remix: Remix | null };
@@ -162,6 +164,9 @@ async function hostOp(op: string, params: unknown, services: PanelServices): Pro
       return {};
     case "agent.compose":
       await services.compose(input.text as string);
+      return {};
+    case "ui.startProject":
+      await services.startProject(input.how as "open" | "new");
       return {};
     case "look.get":
       return services.look.get();

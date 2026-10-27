@@ -363,7 +363,10 @@ export class Projects {
 
   private requireActive(): ActiveProject {
     if (!this.active) {
-      throw new JesutobitsError(ErrorCodes.fsNoProject, "Open a project first");
+      throw new JesutobitsError(
+        ErrorCodes.fsNoProject,
+        "Open a folder or start a new project first.",
+      );
     }
     return this.active;
   }

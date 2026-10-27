@@ -178,6 +178,11 @@ export function activate(context: vscode.ExtensionContext): void {
       panel.compose(text);
       await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
     },
+    startProject: async (how) => {
+      await vscode.commands.executeCommand(
+        how === "open" ? "workbench.action.files.openFolder" : "jesutobits.newProject",
+      );
+    },
     look: {
       get: () => {
         const theme = vscode.workspace.getConfiguration("workbench").get<string>("colorTheme", "");

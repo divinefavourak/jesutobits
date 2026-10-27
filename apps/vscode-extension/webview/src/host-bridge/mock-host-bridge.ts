@@ -111,6 +111,12 @@ export class MockHostBridge implements HostBridge {
     this.openedUrls.push(url);
   }
 
+  readonly projectStarts: Array<"open" | "new"> = [];
+
+  async startProject(how: "open" | "new"): Promise<void> {
+    this.projectStarts.push(how);
+  }
+
   readonly composed: string[] = [];
   private readonly composeRequests = new Listeners<string>(false);
 

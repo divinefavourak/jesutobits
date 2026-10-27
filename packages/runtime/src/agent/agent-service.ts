@@ -621,7 +621,11 @@ export class AgentService {
 
   private requireContext(): ActiveContext {
     const context = this.options.projects.activeContext();
-    if (!context) throw new JesutobitsError(ErrorCodes.fsNoProject, "Open a project first");
+    if (!context)
+      throw new JesutobitsError(
+        ErrorCodes.fsNoProject,
+        "Open a folder or start a new project first.",
+      );
     return context;
   }
 

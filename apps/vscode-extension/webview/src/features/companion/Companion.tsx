@@ -73,7 +73,9 @@ export function Companion() {
       {skin === "buddy" && <Buddy className="buddy-companion" kind={kind} />}
       {skin === "mark" && <CompanionMark state={state} kind={kind} />}
       {skin === "dot" && <CompanionDot state={state} kind={kind} />}
-      <strong className="font-display text-[13px] font-medium">{t("studio.coBuilder")}</strong>
+      <strong className="font-display text-[13px] font-medium whitespace-nowrap">
+        {t("studio.coBuilder")}
+      </strong>
       <span
         role="status"
         aria-live="polite"

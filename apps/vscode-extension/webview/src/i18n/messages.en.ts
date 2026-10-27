@@ -260,6 +260,8 @@ export const en = {
   "errors.list": "Could not load recent projects. {reason}",
   "agent.error.openSettings": "Open settings",
   "agent.error.addKey": "Add my key",
+  "agent.error.openFolder": "Open Folder",
+  "agent.error.newProject": "New Project",
   "errors.dismiss": "Dismiss",
 
   "files.count": { one: "{count} file", other: "{count} files" },

@@ -253,4 +253,21 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(document.body.textContent).not.toContain("sk-or-new-not-real");
   });
+
+  it("offers Open Folder and New Project when no project is open", async () => {
+    const { bridge } = await setupPanel({ history: completedTurn() });
+    bridge.handle("agent.sendMessage", () => {
+      throw new JesutobitsError(
+        ErrorCodes.fsNoProject,
+        "Open a folder or start a new project first.",
+      );
+    });
+
+    await userEvent.type(screen.getByLabelText("Message to the agent"), "Hello");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: "Open Folder" }));
+    await userEvent.click(within(alert).getByRole("button", { name: "New Project" }));
+    expect(bridge.projectStarts).toEqual(["open", "new"]);
+  });
 });

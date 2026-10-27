@@ -426,30 +426,42 @@ function Composer() {
   return (
     <div className="flex flex-col gap-2 px-4 pt-3">
       {error && (
-        <p role="alert" className="m-0 flex items-start gap-2 text-danger">
-          <span className="flex-1">{error}</span>
-          {errorFix === "model" && (
-            <Button variant="secondary" onClick={() => void bridge.openSettings(MODEL_SETTING)}>
-              {t("agent.error.openSettings")}
+        <div role="alert" className="flex flex-col gap-2">
+          <p className="m-0 text-danger">{error}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {errorFix === "model" && (
+              <Button variant="secondary" onClick={() => void bridge.openSettings(MODEL_SETTING)}>
+                {t("agent.error.openSettings")}
+              </Button>
+            )}
+            {errorFix === "project" && (
+              <>
+                <Button variant="secondary" onClick={() => void bridge.startProject("open")}>
+                  {t("agent.error.openFolder")}
+                </Button>
+                <Button variant="secondary" onClick={() => void bridge.startProject("new")}>
+                  {t("agent.error.newProject")}
+                </Button>
+              </>
+            )}
+            {errorFix === "key" && (
+              <Button
+                variant="secondary"
+                onClick={() =>
+                  void bridge.secrets.prompt(OPENROUTER_REF).then(async (stored) => {
+                    await agent.getState().checkKey();
+                    if (stored) agent.getState().dismissError();
+                  })
+                }
+              >
+                {t("agent.error.addKey")}
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => agent.getState().dismissError()}>
+              {t("errors.dismiss")}
             </Button>
-          )}
-          {errorFix === "key" && (
-            <Button
-              variant="secondary"
-              onClick={() =>
-                void bridge.secrets.prompt(OPENROUTER_REF).then(async (stored) => {
-                  await agent.getState().checkKey();
-                  if (stored) agent.getState().dismissError();
-                })
-              }
-            >
-              {t("agent.error.addKey")}
-            </Button>
-          )}
-          <Button variant="ghost" onClick={() => agent.getState().dismissError()}>
-            {t("errors.dismiss")}
-          </Button>
-        </p>
+          </div>
+        </div>
       )}
       <div className="flex flex-wrap gap-1.5">
         {(["explain", "look"] as const).map((chip) => (

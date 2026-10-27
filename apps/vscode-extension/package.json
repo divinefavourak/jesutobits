@@ -24,7 +24,7 @@
   },
   "contributes": {
     "viewsContainers": {
-      "activitybar": [
+      "secondarySidebar": [
         {
           "id": "jesutobits",
           "title": "Jesutobits",
@@ -326,7 +326,8 @@
     "configurationDefaults": {
       "workbench.colorTheme": "Lavender dusk",
       "workbench.preferredDarkColorTheme": "Lavender dusk",
-      "workbench.preferredLightColorTheme": "Daydream"
+      "workbench.preferredLightColorTheme": "Daydream",
+      "workbench.secondarySideBar.defaultVisibility": "visible"
     },
     "menus": {
       "commandPalette": [

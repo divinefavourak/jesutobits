@@ -132,6 +132,11 @@ export const WEBVIEW_HOST_OPS = {
       .strict(),
     result: z.object({}),
   },
+  /** Starts the user on a project: VS Code's Open Folder, or Jesutobits: New Project. */
+  "ui.startProject": {
+    params: z.object({ how: z.enum(["open", "new"]) }).strict(),
+    result: z.object({}),
+  },
   /** Opens VS Code's Settings editor filtered to Jesutobits' settings. */
   "ui.openSettings": {
     params: z.object({ section: z.string().max(64).optional() }).strict(),

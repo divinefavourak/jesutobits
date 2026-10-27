@@ -39,7 +39,7 @@ export interface AgentState {
   busy: boolean;
   /** The last action's failure, in words, shown where the user acted. */
   error: string | null;
-  /** What fixes `error`, when the user can: a default model, or the OpenRouter key. */
+  /** What fixes `error`, when the user can: a default model, the OpenRouter key, a project. */
   errorFix: ErrorFix | null;
 
   refreshSessions(): Promise<void>;
@@ -324,12 +324,13 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
   return store;
 }
 
-export type ErrorFix = "model" | "key";
+export type ErrorFix = "model" | "key" | "project";
 
 /** The provider errors the panel can offer a way out of (they carry `open_settings`). */
 function fixFor(error: unknown): ErrorFix | null {
   if (!(error instanceof JesutobitsError)) return null;
   if (error.code === ErrorCodes.providerNoModel) return "model";
+  if (error.code === ErrorCodes.fsNoProject) return "project";
   if (error.code === ErrorCodes.providerNoCredentials || error.code === ErrorCodes.providerAuth) {
     return "key";
   }

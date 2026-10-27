@@ -162,6 +162,10 @@ export class WebviewHostBridge implements HostBridge {
     await this.#host("ui.openExternal", { url });
   }
 
+  async startProject(how: "open" | "new"): Promise<void> {
+    await this.#host("ui.startProject", { how });
+  }
+
   async compose(text: string): Promise<void> {
     await this.#host("agent.compose", { text });
   }
