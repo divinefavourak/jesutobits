@@ -185,6 +185,8 @@ describe("cancellation (NFR-025)", () => {
 });
 
 describe("pause and resume (UX_AND_INTERFACE.md 6.1)", () => {
+  // The stall alone takes 3 s, and starting the runtime during a full parallel run can
+  // take several more, hence the longer timeout.
   it("pauses after the current tool and continues on resume", async () => {
     // The stall keeps the first stream open so the pause lands while the tool is
     // still pending; the runtime then holds at the next safe point (after tools).
@@ -193,7 +195,7 @@ describe("pause and resume (UX_AND_INTERFACE.md 6.1)", () => {
         ...toolStep("c1", "read_file", JSON.stringify({ path: "src/a.ts" }), "Reading it."),
         events: [
           { type: "text_delta", text: "Reading it." },
-          { type: "stall", ms: 8000 },
+          { type: "stall", ms: 3000 },
           { type: "tool_call_start", callId: "c1", name: "read_file" },
           {
             type: "tool_call_args_delta",
@@ -254,5 +256,5 @@ describe("pause and resume (UX_AND_INTERFACE.md 6.1)", () => {
     expect(after.slice(resumedRequest + 1)).toContainEqual(
       expect.objectContaining({ type: "model.text_delta" }),
     );
-  });
+  }, 20_000);
 });
