@@ -87,3 +87,35 @@ describe("MockHostBridge storage", () => {
     expect(await bridge.uiState.get()).toEqual({ schemaVersion: 1, window: null });
   });
 });
+
+describe("MockHostBridge secrets", () => {
+  const ref = "provider:openrouter:default";
+
+  it("stores secrets write-only and never in its storage", async () => {
+    const items = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, value),
+    };
+    const bridge = new MockHostBridge({ storage });
+    expect(await bridge.secrets.exists(ref)).toBe(false);
+    await bridge.secrets.set(ref, "  sk-or-v1-CANARY-0123456789  ");
+    await bridge.settings.update({ providers: { openrouter: { defaultModel: "a/b" } } });
+    expect(await bridge.secrets.exists(ref)).toBe(true);
+    expect("get" in bridge.secrets).toBe(false);
+    expect([...items.values()].join("")).not.toContain("CANARY");
+    await bridge.secrets.delete(ref);
+    expect(await bridge.secrets.exists(ref)).toBe(false);
+  });
+
+  it("refuses empty and multi-line values, like the Host", async () => {
+    const bridge = new MockHostBridge();
+    await expect(bridge.secrets.set(ref, "   ")).rejects.toMatchObject({
+      code: "rpc.invalid_params",
+    });
+    await expect(bridge.secrets.set(ref, "sk-or\nsecond")).rejects.toMatchObject({
+      code: "rpc.invalid_params",
+    });
+    expect(await bridge.secrets.exists(ref)).toBe(false);
+  });
+});

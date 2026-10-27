@@ -139,6 +139,41 @@ export const fsQuickOpen = defineMethod({
 });
 
 /**
+ * Project text search (FR-074, `Ctrl+Shift+F`): ripgrep through the bundled sidecar, or a
+ * slower scan without it. Ignored files are not searched. Results arrive in one reply,
+ * capped by `limit`.
+ */
+export const fsSearch = defineMethod({
+  name: "fs.search",
+  description: "Search file contents in the active project.",
+  callers: ["workbench"],
+  params: z.object({
+    query: z.string().min(1).max(1000),
+    isRegex: z.boolean().default(false),
+    caseSensitive: z.boolean().default(false),
+    /** Only paths matching this glob, in ripgrep's `--glob` syntax. */
+    glob: z.string().min(1).max(500).optional(),
+    limit: z.number().int().min(1).max(2000).default(500),
+  }),
+  result: z.object({
+    matches: z.array(
+      z.object({
+        path: RelativePathSchema,
+        /** From 1. */
+        line: z.number().int().positive(),
+        /** From 1, in characters. */
+        column: z.number().int().positive(),
+        /** The line, shortened to 300 characters. */
+        text: z.string(),
+      }),
+    ),
+    /** More matches exist than `limit`. */
+    truncated: z.boolean(),
+    engine: z.enum(["ripgrep", "fallback"]),
+  }),
+});
+
+/**
  * Moves a file or folder to the OS trash (FR-072). The runtime confines the path, then asks
  * the Host to do it (ADR-0014). Fails with `fs.trash_failed` when the OS refuses, for example
  * on a drive without a Recycle Bin; the file is then left where it is.

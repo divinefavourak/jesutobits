@@ -19,4 +19,6 @@ export function startRelay(options?: {
   token?: string;
   /** Hides the runtime's log lines. */
   quiet?: boolean;
+  /** Added to the runtime's environment. */
+  env?: Record<string, string>;
 }): Promise<DevRelay>;

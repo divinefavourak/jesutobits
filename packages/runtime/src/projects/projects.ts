@@ -13,6 +13,7 @@ import {
   detectToolchain,
   FileIndex,
   folderExists,
+  searchText,
   prepareWorkspaceFolder,
   WorkspaceService,
   type WatchHandle,
@@ -24,6 +25,8 @@ import type { Storage } from "../storage/storage.js";
 import { ProjectStore } from "./project-store.js";
 
 export interface ProjectsOptions {
+  /** The bundled ripgrep (`--ripgrep`), for `fs.search`. */
+  ripgrep?: string | undefined;
   /** Moves a confined absolute path to the OS trash through the Host (ADR-0014). */
   trash: (absolutePath: string) => Promise<void>;
   /** Shows a confined absolute path in the OS file manager through the Host. */
@@ -101,9 +104,17 @@ class ActiveProject {
  * `projects.*` and `fs.*` (ARCHITECTURE.md section 6.3): recent projects in SQLite, and the
  * active project's files through WorkspaceService only (invariant 2).
  */
+/** What the agent needs of the open project. */
+export interface ActiveContext {
+  project: Project;
+  workspace: WorkspaceService;
+  index: FileIndex;
+}
+
 export class Projects {
   private active: ActiveProject | undefined;
   private readonly now: () => Date;
+  private readonly closeListeners = new Set<(projectId: string) => void>();
 
   constructor(private readonly options: ProjectsOptions) {
     this.now = options.now ?? (() => new Date());
@@ -111,6 +122,18 @@ export class Projects {
 
   get activeProject(): Project | undefined {
     return this.active?.project;
+  }
+
+  /** The open project with its WorkspaceService and file index, if one is open. */
+  activeContext(): ActiveContext | undefined {
+    const active = this.active;
+    return active && { project: active.project, workspace: active.workspace, index: active.index };
+  }
+
+  /** Called with a project's ID just before it closes (the agent stops its turns). */
+  onClose(listener: (projectId: string) => void): () => void {
+    this.closeListeners.add(listener);
+    return () => this.closeListeners.delete(listener);
   }
 
   register(server: RpcServer): void {
@@ -273,6 +296,24 @@ export class Projects {
       return {};
     });
 
+    server.register("fs.search", async (params) => {
+      const active = this.requireActive();
+      return searchText(
+        {
+          query: params.query,
+          isRegex: params.isRegex,
+          caseSensitive: params.caseSensitive,
+          limit: params.limit,
+          ...(params.glob !== undefined && { glob: params.glob }),
+        },
+        {
+          workspace: active.workspace,
+          ripgrep: this.options.ripgrep,
+          files: () => active.index.list(),
+        },
+      );
+    });
+
     server.register("fs.quickOpen", (params) => {
       const active = this.requireActive();
       return {
@@ -285,14 +326,29 @@ export class Projects {
 
   /** Stops watching the active project (shutdown). */
   closeActive(): void {
-    this.active?.close();
+    const closing = this.active;
+    if (!closing) return;
+    for (const listener of this.closeListeners) {
+      try {
+        listener(closing.project.id);
+      } catch (error) {
+        this.options.log.error("a project close listener failed", { err: error });
+      }
+    }
+    closing.close();
     this.active = undefined;
   }
 
   private async activate(project: Project): Promise<void> {
     // Open the new project first, so a failure leaves the current one open.
     const next = await ActiveProject.open(project, this.options);
-    this.closeActive();
+    if (this.active?.project.id === project.id) {
+      // Reopening the same project (after a runtime restart, say) keeps its turns.
+      this.active.close();
+      this.active = undefined;
+    } else {
+      this.closeActive();
+    }
     this.active = next;
     this.options.log.info("project opened", { projectId: project.id });
   }

@@ -18,7 +18,9 @@ mod restart_policy;
 #[cfg(test)]
 mod tests;
 
+use std::future::Future;
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -31,7 +33,9 @@ use tokio::sync::{mpsc, watch};
 
 use crate::logging;
 use crate::rpc_relay::lines::{read_line_capped, Line};
-use crate::rpc_relay::{allowlist, unavailable, Connection, CODE_TIMEOUT, MAX_MESSAGE_BYTES};
+use crate::rpc_relay::{
+    allowlist, unavailable, Connection, ReverseHandler, CODE_TIMEOUT, MAX_MESSAGE_BYTES,
+};
 use restart_policy::{Decision, RestartPolicy};
 
 /// Longest runtime stderr line kept; Node stack traces fit easily.
@@ -57,6 +61,8 @@ const ENV_ALLOWLIST: &[&str] = &[
     "JESUTOBITS_RUNTIME_LOG",
     "JESUTOBITS_PROVIDER",
     "JESUTOBITS_CASSETTE",
+    // A local mock provider for tests; the runtime accepts loopback URLs only.
+    "JESUTOBITS_OPENROUTER_URL",
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -85,7 +91,15 @@ pub struct LaunchSpec {
     pub data_dir: PathBuf,
     /// Debug builds may disable the job object to show what it prevents (Spike S1).
     pub use_job_object: bool,
+    /// Answers the runtime's `host.*` calls; without one they are refused.
+    pub reverse_handler: Option<ReverseHandler>,
+    /// Runs after every successful handshake, before Ready is reported, so nothing the
+    /// Workbench sends can overtake it (the Host sends `runtime.configure` here).
+    pub on_ready: Option<OnReady>,
 }
+
+pub type OnReady =
+    Arc<dyn Fn(Arc<Connection>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
 
 /// Every lifecycle duration and limit. Production uses ADR-0002's values; tests shrink them.
 #[derive(Clone, Debug)]
@@ -439,13 +453,14 @@ async fn run_once(
     let stderr = child.stderr.take().expect("stderr is piped");
 
     let events = inner.clone();
-    let connection = Arc::new(
-        Connection::new(
-            Box::new(stdin),
-            Box::new(move |event| events.forward_event(event)),
-        )
-        .with_reverse_handler(crate::host_methods::reverse_handler()),
+    let mut connection = Connection::new(
+        Box::new(stdin),
+        Box::new(move |event| events.forward_event(event)),
     );
+    if let Some(handler) = &spec.reverse_handler {
+        connection = connection.with_reverse_handler(handler.clone());
+    }
+    let connection = Arc::new(connection);
     pump_stdout(connection.clone(), stdout);
     pump_stderr(stderr);
 
@@ -501,6 +516,9 @@ async fn run_once(
     }
 
     log_ready(started, spawn_ms, &result);
+    if let Some(on_ready) = &spec.on_ready {
+        on_ready(connection.clone()).await;
+    }
     *inner.connection.lock().unwrap() = Some(connection.clone());
     inner.set_status(RuntimeStatus::Ready, None);
 

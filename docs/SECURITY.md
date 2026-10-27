@@ -50,6 +50,7 @@ flowchart TB
 - The runtime fetches a key through `host.secrets.get` only when it needs to call the provider, keeps it in memory, and registers it with the `SecretRegistry` for redaction.
 - Keys never appear in: settings files, SQLite, logs, crash bundles, model context, child-process environments, event payloads, or diagnostic exports. **Canary test:** CI runs a session with a fake key `sk-or-CANARY-...` and fails if the string appears in any file under the app data directory or in any event.
 - On Linux without a Secret Service, the user enters the key per session; it lives only in runtime memory.
+- Implementation (Phase 2): `apps/desktop/src-tauri/src/secret_store.rs` with `keyring` 3.6.3. The service name is the bundle identifier (`dev.jesutobits.app`, `dev.jesutobits.app.dev` for development builds) and the account is the reference (`provider:openrouter:default`). Linux uses the kernel keyring (keyutils), which needs no D-Bus and keeps keys for the login session, matching the per-session fallback above; a Secret Service backend can follow when Linux packages are scheduled. The Host registers every value it stores or reads with its log redactor. The Workbench's commands are `secrets_set`, `secrets_delete` and `secrets_exists`; the runtime reads keys with `host.secrets.get`, which answers `{ value: null }` when none is stored.
 
 ## 4. Permission model
 
@@ -127,6 +128,8 @@ Rule constraints:
 - Approvals are persisted (with decision, scope and rule) **before** execution, so a crash cannot turn an "ask" into a silent replay.
 - `permissions.respond` accepts only a pending `permissionId` (random, single use, expires when the turn ends).
 - The Workbench is the only caller of `permissions.respond`. Its integrity therefore depends on Workbench hardening (section 8). This is a residual risk (section 16).
+
+Implementation (Phase 2): `packages/runtime/src/permissions/` holds the broker and the matrix (`policy.ts`, tested cell for cell against the table above), `prohibited.ts` (section 4.3's never-allowed places, checked on the real path) and `secret-patterns.ts` (section 6.2, including "Share with values hidden", `allow_redacted`). Each approval request lists the answers it accepts; `permissions.respond` refuses any other. Session rules match a tool (and, for `delete_path`, an exact path); "Always allow in this project" arrives with commands in Phase 3.
 
 ## 5. File system and command execution
 

@@ -77,6 +77,7 @@ Fixture projects (`fixtures/projects/*`) are separate pnpm roots with their own 
 | `JESUTOBITS_CONFIG_DIR=<path>` | Override the config folder (`settings.json`, `ui-state.json`) |
 | `JESUTOBITS_LOG_DIR=<path>` | Override the log folder (`host.jsonl`, `workbench.jsonl`, `runtime.jsonl`) |
 | `JESUTOBITS_HOST_LOG=debug` | Host log level (`trace` allowed only here and in `JESUTOBITS_RUNTIME_LOG`). Debug builds also echo every log line to stderr |
+| `JESUTOBITS_SECRET_STORE=memory` | Debug builds only: keep provider keys in Host memory instead of the OS credential store (desktop tests) |
 | `JESUTOBITS_SAFE_MODE=1` | Start with extensions disabled (same as `--safe-mode`) |
 
 Development builds use a different app identifier (`dev.jesutobits.app.dev`) so they never share data or credentials with an installed Jesutobits.

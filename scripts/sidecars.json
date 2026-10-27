@@ -1,5 +1,5 @@
 {
-  "$comment": "Pinned sidecar binaries (ADR-0002). sha256 is the archive hash from the official SHASUMS256.txt. Bump version, url and sha256 together.",
+  "$comment": "Pinned sidecar binaries (ADR-0002): Node for the runtime, ripgrep for search (ripgrep: MIT or Unlicense). sha256 is the archive hash from the official SHASUMS256.txt. Bump version, url and sha256 together.",
   "node": {
     "version": "26.12.0",
     "binaryName": "jesutobits-node",
@@ -18,6 +18,27 @@
         "url": "https://nodejs.org/dist/v26.12.0/node-v26.12.0-darwin-arm64.tar.gz",
         "sha256": "2a154d4a5458930e0a2d6a1ecf64eddf5a2b3e1c13636b609c2ecb042e8c4553",
         "member": "node-v26.12.0-darwin-arm64/bin/node"
+      }
+    }
+  },
+  "ripgrep": {
+    "version": "15.2.0",
+    "binaryName": "jesutobits-rg",
+    "targets": {
+      "x86_64-pc-windows-msvc": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-pc-windows-msvc.zip",
+        "sha256": "71b2fef860abe467217a538ff31de02f5258807c0129f771846f87bd029aafc5",
+        "member": "ripgrep-15.2.0-x86_64-pc-windows-msvc/rg.exe"
+      },
+      "x86_64-unknown-linux-gnu": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-x86_64-unknown-linux-musl.tar.gz",
+        "sha256": "33e15bcf1624b25cdd2a55813a47a2f95dbe126268203e76aa6a585d1e7b149c",
+        "member": "ripgrep-15.2.0-x86_64-unknown-linux-musl/rg"
+      },
+      "aarch64-apple-darwin": {
+        "url": "https://github.com/BurntSushi/ripgrep/releases/download/15.2.0/ripgrep-15.2.0-aarch64-apple-darwin.tar.gz",
+        "sha256": "3750b2e93f37e0c692657da574d7019a101c0084da05a790c83fd335bad973e4",
+        "member": "ripgrep-15.2.0-aarch64-apple-darwin/rg"
       }
     }
   }

@@ -650,7 +650,28 @@ Assembled by `ContextBuilder` from versioned templates in `packages/runtime/src/
 
 Templates are tested with snapshot tests and versioned (`prompt_version` stored on each turn) so behaviour changes are traceable.
 
-## 10. Testing hooks
+## 10. Implementation notes (Phase 2)
+
+Where the design above lives in `packages/runtime/src/`, and the choices made while building it:
+
+| Part | Module | Notes |
+|---|---|---|
+| Provider contract, OpenRouter, scripted | `providers/` | `keepalive` stream event for SSE comments (resets the idle timer). ADR-0005 notes |
+| ProviderCaller | `providers/provider-caller.ts` | Section 2.5 policy. An error after content (including a stream cut off without `finish`) discards the step and retries it once at once; backoff applies only before content. A provider that ignores its abort signal cannot hold up a cancel |
+| Credentials | `providers/credentials.ts` | `host.secrets.get` once, cached for the runtime's life, registered with the `SecretRegistry`; dropped after a 401 and before `models.testConnection`. The key profile is read at startup |
+| Tools | `tools/` | One folder per family (`files/`, `search/`, `interaction/`); shared code in `tools/common/` (the tool contract is `tools/common/types.ts`). Phase 2 tools: `list_directory`, `read_file`, `search_files`, `search_text`, `write_file`, `edit_file`, `move_path`, `delete_path`, `update_plan`, `ask_user` |
+| ToolRunner | `tools/runner.ts` | Validate (unknown tool, bad JSON, schema) → classify → broker → execute with the tool's timeout. After a cancel a tool gets 2 s to stop, then it is abandoned with a `cancelled` result and a log line. `modelText` over 16 KB is cut with a note. `tool_calls` rows are written before execution |
+| PermissionBroker | `permissions/broker.ts`, `policy.ts`, `prohibited.ts`, `secret-patterns.ts` | Grants are frozen objects bound to the call ID and the SHA-256 of the canonical input; the runner refuses a mismatch. Session rules in Phase 2 match a tool, optionally limited to paths (`delete_path` rules are per path); they never apply to secret-pattern reads, which always ask. Prohibited places (Jesutobits' data, config and log dirs, `~/.ssh`, cloud CLI credentials, browser profiles, password-manager data) are refused by real path even inside a project |
+| Checkpoints | `checkpoints/checkpoints.ts`, `storage/blob-store.ts` | Pre-image before the first change per turn and path; the after-image is kept too, for diffs. Blobs in `<data dir>/checkpoints/<2 hex>/<sha256>`. Revert writes exact bytes (`WorkspaceService.writeBytes`), removes files the turn created, and records the pre-image as current, so reverting twice changes nothing |
+| `delete_path` | `tools/files/write-tools.ts` | Checkpoints every file below the path, then removes it for good (`WorkspaceService.remove`); Revert turn restores it. Folders that were left empty are not recreated |
+| Sessions | `sessions/session-store.ts` | Messages hold what the model saw (with the tool name, summary and session-wide step index for elision); events hold what the Workbench shows. At startup live turns become `interrupted` and their pending approvals `withdrawn` |
+| ContextBuilder | `context/` | Instructions are capped at 40,000 characters in total, then by the 6% budget; the project map (two levels and `package.json`) is rebuilt after 20 changes. Tool calls left without a result (an interrupted step) get one saying the call did not finish, because providers reject unpaired calls. Ask mode sends no tools |
+| AgentTurn, AgentService | `agent/` | One live turn per session. Limits ask "Continue / Stop"; Stop ends the turn `cancelled` with reason `limit`. The loop guard's questions work the same way. A reply cut off by the output limit is continued once. A model the provider's list does not know is assumed to have a 64,000-token window and tools |
+| Search | `packages/services/src/search/text-search.ts` | The bundled `jesutobits-rg` (ripgrep 15.2.0, passed as `--ripgrep`) with `--hidden --no-require-git`, the built-in ignores and `.jesutobitsignore`; without it, a JS scan of the quick-open index's files (up to 1 MB each) |
+
+The cost of a step is the provider's reported cost, else the model's pricing times tokens. A turn that changed files is labelled `unverified` until checks exist (Phase 3).
+
+## 11. Testing hooks
 
 - `ScriptedProvider` replays recorded `ModelStreamEvent` sequences ("cassettes"), keyed by step index, to drive the full loop deterministically.
 - `FakeClock` controls timeouts and budgets in tests.

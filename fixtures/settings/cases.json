@@ -11,7 +11,10 @@
     { "name": "an editor font size", "settings": { "appearance": { "editorFontSize": 14 } } },
     { "name": "light theme without following the OS", "settings": { "appearance": { "theme": "builtin.jesutobits-themes/light", "followOsTheme": false } } },
     { "name": "a section from a newer version is tolerated", "settings": { "companion": { "enabled": true } } },
-    { "name": "an unknown field inside a section is tolerated", "settings": { "appearance": { "density": "compact" } } }
+    { "name": "an unknown field inside a section is tolerated", "settings": { "appearance": { "density": "compact" } } },
+    { "name": "a default model and another key profile", "settings": { "providers": { "openrouter": { "defaultModel": "anthropic/claude-sonnet-x", "profile": "work-2" } } } },
+    { "name": "OpenRouter routing options", "settings": { "providers": { "openrouter": { "options": { "provider": { "order": ["anthropic"], "allow_fallbacks": false, "data_collection": "allow" }, "models": ["openai/gpt-x"] } } } } },
+    { "name": "the autonomous preset and raised limits", "settings": { "agent": { "defaultPolicyPreset": "autonomous", "limits": { "stepsPerTurn": 100, "costPerTurnUsd": 2.5 } } } }
   ],
   "invalid": [
     { "name": "UI scale above 150%", "settings": { "appearance": { "uiScale": 2 } } },
@@ -22,6 +25,13 @@
     { "name": "empty workspace folder", "settings": { "workspace": { "defaultFolder": "" } } },
     { "name": "a flag as a string", "settings": { "appearance": { "followOsTheme": "yes" } } },
     { "name": "a section that is not an object", "settings": { "workspace": "C:\\projects" } },
-    { "name": "an unknown schema version", "settings": { "schemaVersion": 2 } }
+    { "name": "an unknown schema version", "settings": { "schemaVersion": 2 } },
+    { "name": "an empty default model", "settings": { "providers": { "openrouter": { "defaultModel": "" } } } },
+    { "name": "a key profile with spaces", "settings": { "providers": { "openrouter": { "profile": "my key" } } } },
+    { "name": "an unknown data collection choice", "settings": { "providers": { "openrouter": { "options": { "provider": { "data_collection": "sometimes" } } } } } },
+    { "name": "an unknown policy preset", "settings": { "agent": { "defaultPolicyPreset": "reckless" } } },
+    { "name": "zero steps per turn", "settings": { "agent": { "limits": { "stepsPerTurn": 0 } } } },
+    { "name": "a free turn budget", "settings": { "agent": { "limits": { "costPerTurnUsd": 0 } } } },
+    { "name": "fractional tool calls", "settings": { "agent": { "limits": { "toolCallsPerTurn": 1.5 } } } }
   ]
 }

@@ -22,16 +22,19 @@ export const test = base.extend<{
   tempDir: string;
   /** Start past first-run onboarding (default); onboarding journeys set it to false. */
   onboarded: boolean;
+  /** The runtime's extra environment, e.g. the scripted provider and its cassette. */
+  relayEnv: Record<string, string>;
 }>({
   onboarded: [true, { option: true }],
+  relayEnv: [{}, { option: true }],
   tempDir: async ({}, use) => {
     const dir = realpathSync.native(mkdtempSync(join(tmpdir(), "jesutobits-e2e-")));
     await use(dir);
     rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   },
-  relay: async ({}, use) => {
+  relay: async ({ relayEnv }, use) => {
     const dataDir = mkdtempSync(join(tmpdir(), "jesutobits-e2e-data-"));
-    const relay = await startRelay({ dataDir, origin: E2E_ORIGIN, quiet: true });
+    const relay = await startRelay({ dataDir, origin: E2E_ORIGIN, quiet: true, env: relayEnv });
     await use(relay);
     await relay.close();
     rmSync(dataDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });

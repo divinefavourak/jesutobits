@@ -1,4 +1,10 @@
-import { ErrorCodes, JesutobitsError, type Project } from "@jesutobits/protocol";
+import {
+  ErrorCodes,
+  JesutobitsError,
+  PolicyPresetSchema,
+  type PolicyPreset,
+  type Project,
+} from "@jesutobits/protocol";
 import { newId } from "@jesutobits/shared";
 import type { Database } from "../storage/database.js";
 
@@ -107,6 +113,22 @@ export class ProjectStore {
       [path, name, id],
     );
     return this.require(id);
+  }
+
+  /** The project's policy preset (SECURITY.md section 4.2); `balanced` if unreadable. */
+  policyPreset(id: string): PolicyPreset {
+    const row = this.db.get<{ policy_preset: string }>(
+      "SELECT policy_preset FROM projects WHERE id = ?",
+      [id],
+    );
+    const parsed = PolicyPresetSchema.safeParse(row?.policy_preset);
+    return parsed.success ? parsed.data : "balanced";
+  }
+
+  setPolicyPreset(id: string, preset: PolicyPreset): void {
+    this.writable();
+    this.require(id);
+    this.db.run("UPDATE projects SET policy_preset = ? WHERE id = ?", [preset, id]);
   }
 
   remove(id: string): void {

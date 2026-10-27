@@ -62,7 +62,10 @@ test("the workspace folder and a project's trust are changed in settings (J-03, 
   await expect(page.getByRole("main")).toContainText(projects);
 
   await page.getByRole("button", { name: "This project" }).click();
-  await page.getByRole("radio", { name: /^Trusted/ }).check();
+  // The radio follows the runtime's answer, so wait for it rather than expect it at once.
+  const trusted = page.getByRole("radio", { name: /^Trusted/ });
+  await trusted.click();
+  await expect(trusted).toBeChecked();
   await expectAccessible(page);
   await page.getByRole("button", { name: "Close settings" }).click();
   await expect(page.getByRole("banner").getByText("Trusted")).toBeVisible();

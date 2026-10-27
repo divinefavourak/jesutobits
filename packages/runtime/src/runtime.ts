@@ -7,7 +7,10 @@ import {
   PROTOCOL_VERSION,
 } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
+import { AgentService, type AgentEnvironment } from "./agent/agent-service.js";
+import { RuntimeConfig } from "./config.js";
 import { EventBus } from "./events/event-bus.js";
+import { SecretRegistry } from "./log/secret-registry.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
 import { Projects } from "./projects/projects.js";
 import { RpcServer } from "./rpc/server.js";
@@ -26,6 +29,10 @@ export interface RuntimeIo {
   startupMarks(): { nodeBootstrapMs: number; mainStartMs: number };
   /** The app data dir from `--data-dir`; without it the database lives in memory. */
   dataDir: string | undefined;
+  /** The registry the logger masks with; events and model requests use it too. */
+  secrets?: SecretRegistry;
+  /** Provider and search settings from the environment and arguments. */
+  agent?: AgentEnvironment;
 }
 
 export interface Runtime {
@@ -35,6 +42,8 @@ export interface Runtime {
   endOfInput(): void;
   /** Where services emit runtime events. */
   readonly events: EventBus;
+  /** The settings from the Host's latest `runtime.configure`. */
+  readonly config: RuntimeConfig;
 }
 
 type LifecycleState = "awaiting_initialize" | "ready" | "shutting_down";
@@ -53,7 +62,8 @@ export function createRuntime(io: RuntimeIo): Runtime {
   const log = io.log.child({ module: "runtime" });
 
   const shutdown = (): void => {
-    // Later phases also cancel the active turn and stop managed processes here.
+    // Later phases also stop managed processes here.
+    agent.stopAll();
     try {
       projects.closeActive();
       storage?.close();
@@ -110,14 +120,23 @@ export function createRuntime(io: RuntimeIo): Runtime {
     };
   });
 
+  const config = new RuntimeConfig();
+  server.register("runtime.configure", (params) => {
+    config.update(params);
+    log.info("settings received", { appDirs: params.appDirs.length });
+    return {};
+  });
+
   server.register("runtime.ping", (params) => ({
     uptimeMs: io.uptimeMs(),
     ...(params.echo !== undefined && { echo: params.echo }),
   }));
 
+  const secrets = io.secrets ?? new SecretRegistry();
   const events = new EventBus({
     send: (event) => server.notify(EVENT_NOTIFICATION_METHOD, event),
     log: io.log.child({ module: "events" }),
+    mask: (value) => secrets.maskValue(value),
   });
   server.register("events.replay", (params) => events.replay(params.afterSeq));
 
@@ -131,8 +150,22 @@ export function createRuntime(io: RuntimeIo): Runtime {
     events,
     log: io.log.child({ module: "projects" }),
     storage: () => storageReady,
+    ripgrep: io.agent?.ripgrep,
   });
   projects.register(server);
+
+  const agent = new AgentService({
+    events,
+    projects,
+    storage: () => storageReady,
+    config,
+    secrets,
+    fetchSecret: async (ref) => (await server.request("host.secrets.get", { ref })).value,
+    log: io.log.child({ module: "agent" }),
+    dataDir: io.dataDir,
+    env: io.agent ?? {},
+  });
+  agent.register(server);
 
   /** Opens the database; problems become events the Workbench shows (DATA_AND_PERSISTENCE.md 6.1). */
   function startStorage(): void {
@@ -153,6 +186,9 @@ export function createRuntime(io: RuntimeIo): Runtime {
     for (const notice of storage.notices) {
       events.emit("runtime.warning", { message: notice.message, code: notice.code });
     }
+    agent.recover().catch((error: unknown) => {
+      log.error("could not recover interrupted turns", { err: error });
+    });
   }
 
   server.register("runtime.shutdown", () => {
@@ -171,6 +207,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
 
   return {
     events,
+    config,
     receive: (chunk) => splitter.push(chunk),
     endOfInput() {
       splitter.end();

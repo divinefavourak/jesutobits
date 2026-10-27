@@ -10,6 +10,7 @@ import {
   type MethodResult,
   type RuntimeEventBase,
   type RuntimeStatusUpdate,
+  type SecretRef,
   type SettingsPatch,
   type UiState,
   type WorkbenchMethod,
@@ -176,6 +177,32 @@ export class MockHostBridge implements HostBridge {
   async requestClose(): Promise<boolean> {
     return this.closeHandler ? this.closeHandler() : true;
   }
+
+  /** Kept in memory only, never in `storage`: like the OS store, nothing a page can read. */
+  private readonly storedSecrets = new Map<SecretRef, string>();
+
+  readonly secrets = {
+    set: async (ref: SecretRef, value: string): Promise<void> => {
+      const trimmed = value.trim();
+      // The Host's rules (secret_store.rs).
+      if (trimmed === "" || [...trimmed].some((char) => char < " " || char === "\u007f")) {
+        throw new JesutobitsError(
+          ErrorCodes.rpcInvalidParams,
+          "The secret is empty or has line breaks",
+        );
+      }
+      this.storedSecrets.set(ref, trimmed);
+      await this.secretStored(ref, trimmed);
+    },
+    delete: async (ref: SecretRef): Promise<void> => {
+      this.storedSecrets.delete(ref);
+      await this.secretStored(ref, null);
+    },
+    exists: async (ref: SecretRef): Promise<boolean> => this.storedSecrets.has(ref),
+  };
+
+  /** Where a subclass passes secrets on (the relay gives them to its runtime). */
+  protected async secretStored(_ref: SecretRef, _value: string | null): Promise<void> {}
 
   async notices(): Promise<HostNotice[]> {
     return this.pendingNotices;

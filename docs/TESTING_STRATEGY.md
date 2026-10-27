@@ -58,6 +58,7 @@ Cassettes are JSONL files in `packages/runtime/test/cassettes/`. One line per mo
 - `expect` assertions check what the harness sent, so cassettes test context building too.
 - Special events simulate failures: `{"type":"stall","ms":95000}`, `{"type":"http_error","status":429,"retryAfterMs":2000}`, `{"type":"error","afterContent":true,...}`.
 - `RecordingProvider` wraps a real adapter to record new cassettes during development, with the `SecretRegistry` redacting keys.
+- Implementation (Phase 2, `packages/runtime/src/providers/scripted/`): one line per model **request**, in order, so a retried step has its own line; `step` counts requests from 0 and must be consecutive. `expect` fields: `lastUserTextIncludes`, `lastToolResultIncludes`, `lastToolResultIsError`, `systemIncludes`, `anyMessageIncludes`, `noMessageIncludes` (canaries, elision), `toolsInclude`, `toolsExclude`, `model`, `messageCount`. A failed expectation, or a request beyond the cassette, ends that stream with an `invalid_request` error and is listed in `ScriptedProvider.failures`, so a test can assert none occurred. `stall` waits on the injected `Clock` (`FakeClock` in tests, `packages/runtime/src/clock.ts`). Example: `packages/runtime/test/cassettes/read-then-answer.jsonl`.
 
 ### 3.2 Fakes and fixtures
 

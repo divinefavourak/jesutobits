@@ -1,5 +1,6 @@
 import { t } from "../../i18n";
-import { useEditor, useProjects } from "../../state/workbench-context";
+import { useAgent, useEditor, useProjects } from "../../state/workbench-context";
+import { liveTurn } from "../agent/timeline-reducer";
 import { TrustBadge } from "../projects/TrustBadge";
 
 /** Cursor, line endings and encoding of the active editor tab. */
@@ -22,9 +23,28 @@ function EditorStatus() {
   );
 }
 
+/** The live turn's state in words; "Agent idle" when nothing runs (never invented). */
+function AgentStatus() {
+  const state = useAgent((agent) => liveTurn(agent.timeline)?.state);
+  const session = useAgent((agent) =>
+    agent.sessions?.find((candidate) => candidate.id === agent.activeSessionId),
+  );
+  return (
+    <span className="flex gap-3">
+      <span>{state ? t(`agent.state.${state}`) : t("agent.idle")}</span>
+      {session && (
+        <span title={session.modelId}>
+          {session.modelId} · {t("agent.session.cost", { cost: session.costUsd.toFixed(2) })}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /**
- * The status bar (UX_AND_INTERFACE.md section 6.6). Phase 1 shows the runtime status and the
- * project's trust; agent state, model, cost, preview and branch arrive with their features.
+ * The status bar (UX_AND_INTERFACE.md section 6.6): runtime status, the agent's state as the
+ * runtime reports it, the session's model and cost, and the project's trust. Preview and
+ * branch arrive with their features.
  */
 export function StatusBar() {
   const runtime = useProjects((state) => state.runtime);
@@ -36,6 +56,7 @@ export function StatusBar() {
         {t(`runtime.status.${runtime.status}`)}
         {runtime.detail ? ` (${runtime.detail})` : ""}
       </span>
+      {hasProject && <AgentStatus />}
       {trust && <TrustBadge trust={trust} />}
       {hasProject && <EditorStatus />}
     </footer>

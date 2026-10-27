@@ -1,5 +1,5 @@
-//! Reverse calls the Host answers for the runtime (ADR-0014). Only methods declared in
-//! packages/protocol (the generated `REVERSE_METHODS`) reach this module.
+//! Reverse calls the Host answers for the runtime (ADR-0003, ADR-0014). Only methods declared
+//! in packages/protocol (the generated `REVERSE_METHODS`) reach this module.
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -10,6 +10,7 @@ use crate::logging;
 use crate::rpc_relay::{
     rpc_error, ReverseHandler, APPLICATION_ERROR, CODE_METHOD_NOT_FOUND, METHOD_NOT_FOUND,
 };
+use crate::secret_store::{self, SecretStore};
 
 const MODULE: &str = "host_methods";
 const INVALID_PARAMS: i64 = -32602;
@@ -18,8 +19,28 @@ pub const CODE_REVEAL_FAILED: &str = "fs.reveal_failed";
 pub const CODE_INVALID_PATH: &str = "fs.invalid_path";
 pub const CODE_NOT_FOUND: &str = "fs.not_found";
 
-pub fn reverse_handler() -> ReverseHandler {
-    Arc::new(|method, params| Box::pin(async move { handle(&method, params).await }))
+pub fn reverse_handler(secrets: Arc<SecretStore>) -> ReverseHandler {
+    Arc::new(move |method, params| {
+        let secrets = secrets.clone();
+        Box::pin(async move {
+            if method == "host.secrets.get" {
+                // The credential store can block for a moment; keep it off the relay's tasks.
+                return tokio::task::spawn_blocking(move || {
+                    secret_store::answer_get(&secrets, &params)
+                })
+                .await
+                .unwrap_or_else(|error| {
+                    Err(rpc_error(
+                        APPLICATION_ERROR,
+                        secret_store::CODE_UNAVAILABLE,
+                        &format!("The credential store call failed: {error}"),
+                        false,
+                    ))
+                });
+            }
+            handle(&method, params).await
+        })
+    })
 }
 
 async fn handle(method: &str, params: Value) -> Result<Value, Value> {

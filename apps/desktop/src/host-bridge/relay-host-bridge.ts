@@ -7,6 +7,7 @@ import {
   type MethodResult,
   type RuntimeEventBase,
   type RuntimeStatusUpdate,
+  type SecretRef,
   type WorkbenchMethod,
 } from "@jesutobits/protocol";
 import { Listeners } from "./listeners";
@@ -70,6 +71,15 @@ export class RelayHostBridge extends MockHostBridge {
       throw toJesutobitsError({ code: -32603, message: `Invalid result for ${method}` });
     }
     return result.data as MethodResult<M>;
+  }
+
+  /** The relay plays the Host's credential store for its runtime (`host.secrets.get`). */
+  protected override async secretStored(ref: SecretRef, value: string | null): Promise<void> {
+    await this.fetchImpl(`${this.url}/secrets`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-jesutobits-token": this.token },
+      body: JSON.stringify({ ref, value }),
+    });
   }
 
   override onRuntimeEvent(handler: (event: RuntimeEventBase) => void): Unsubscribe {

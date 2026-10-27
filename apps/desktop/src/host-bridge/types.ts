@@ -6,6 +6,7 @@ import type {
   MethodResult,
   RuntimeEventBase,
   RuntimeStatusUpdate,
+  SecretRef,
   SettingsPatch,
   UiState,
   WorkbenchMethod,
@@ -45,6 +46,16 @@ export interface HostBridge {
     get(): Promise<UiState>;
     /** Replaces the given top-level keys; `null` removes one. */
     update(patch: Record<string, unknown>): Promise<UiState>;
+  };
+  /**
+   * The OS credential store (SECURITY.md section 3). Write-only: there is no way to read a
+   * secret back; only the runtime reads keys, from the Host, when it calls the provider.
+   */
+  secrets: {
+    /** Rejects with `rpc.invalid_params` for an empty or multi-line value. */
+    set(ref: SecretRef, value: string): Promise<void>;
+    delete(ref: SecretRef): Promise<void>;
+    exists(ref: SecretRef): Promise<boolean>;
   };
   /** Startup notices about the settings files, shown once. */
   notices(): Promise<HostNotice[]>;

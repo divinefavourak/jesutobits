@@ -1,5 +1,15 @@
 import { createHash } from "node:crypto";
-import { lstat, mkdir, readdir, readFile, realpath, rename, stat } from "node:fs/promises";
+import {
+  lstat,
+  mkdir,
+  readdir,
+  readFile,
+  realpath,
+  rename,
+  rm,
+  rmdir,
+  stat,
+} from "node:fs/promises";
 import path from "node:path";
 import { ErrorCodes, JesutobitsError } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
@@ -54,6 +64,16 @@ export interface WriteResult {
   size: number;
   changeCounter: number;
 }
+
+/** A file's exact bytes, for checkpoints (ADR-0012). */
+export interface Snapshot {
+  path: string;
+  bytes: Buffer;
+  hash: string;
+}
+
+/** Checkpoints keep files up to this size; larger ones are refused rather than half-kept. */
+export const MAX_SNAPSHOT_BYTES = 20 * 1024 * 1024;
 
 export interface WriteOptions {
   /**
@@ -309,7 +329,121 @@ export class WorkspaceService {
     const resolved = await this.resolve(input);
     const { relative } = resolved;
     const existing = await this.readExisting(resolved);
+    this.checkExpected(relative, existing, options);
 
+    let format: TextFormat | undefined;
+    if (existing) {
+      const decoded = decodeText(existing.bytes);
+      if (decoded.binary) {
+        throw new JesutobitsError(ErrorCodes.fsBinary, `${display(relative)} is not a text file`, {
+          details: { path: relative },
+        });
+      }
+      format = decoded.format;
+    }
+    return this.writeResolved(resolved, encodeText(text, format));
+  }
+
+  /**
+   * Writes exact bytes atomically, with no line-ending or BOM handling: restoring a
+   * checkpoint byte for byte (ADR-0012). `expectedHash` works as for `writeText`.
+   */
+  async writeBytes(
+    input: string,
+    bytes: Uint8Array,
+    options: WriteOptions = {},
+  ): Promise<WriteResult> {
+    const resolved = await this.resolve(input);
+    const existing = await this.readExisting(resolved);
+    this.checkExpected(resolved.relative, existing, options);
+    return this.writeResolved(resolved, Buffer.from(bytes));
+  }
+
+  /**
+   * A file's exact bytes and hash, or null when nothing is at the path. Used to keep a
+   * pre-image before the agent changes a file (ADR-0012).
+   */
+  async snapshot(input: string, maxBytes = MAX_SNAPSHOT_BYTES): Promise<Snapshot | null> {
+    const resolved = await this.resolve(input);
+    try {
+      await lstat(resolved.absolute);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw fsError(error, resolved.relative);
+    }
+    const bytes = await this.readBytes(resolved, maxBytes);
+    return { path: resolved.relative, bytes, hash: hashBytes(bytes) };
+  }
+
+  /**
+   * Removes a file, or a folder with `recursive`, for good. Only after its contents were
+   * checkpointed (the agent's `delete_path`) or to undo a file the agent created; the
+   * explorer moves things to the OS trash instead. A link is removed, not its target.
+   */
+  async remove(input: string, options: { recursive?: boolean } = {}): Promise<void> {
+    const resolved = await this.resolve(input);
+    if (resolved.relative === "") {
+      throw new JesutobitsError(ErrorCodes.fsInvalidPath, "The project folder cannot be removed", {
+        details: { path: "" },
+      });
+    }
+    await this.ownChange([resolved.relative], async () => {
+      try {
+        const info = await lstat(resolved.absolute);
+        if (info.isDirectory()) {
+          if (options.recursive) await rm(resolved.absolute, { recursive: true });
+          else await rmdir(resolved.absolute);
+        } else {
+          await rm(resolved.absolute);
+        }
+      } catch (error) {
+        throw fsError(error, resolved.relative);
+      }
+      await this.markSelf(resolved.relative, resolved.absolute, true);
+    });
+    this.counter++;
+    this.log.debug("removed", { path: resolved.relative });
+  }
+
+  /**
+   * Every file under a folder (or the file itself), project-relative and sorted. Links are
+   * listed but never followed. Throws `fs.too_large` beyond `maxFiles`.
+   */
+  async listFiles(input: string, maxFiles = 10_000): Promise<string[]> {
+    const resolved = await this.resolve(input);
+    const files: string[] = [];
+    const walk = async (real: string, relative: string): Promise<void> => {
+      let info;
+      try {
+        info = await lstat(real);
+      } catch (error) {
+        throw fsError(error, relative);
+      }
+      if (!info.isDirectory()) {
+        files.push(relative);
+        if (files.length > maxFiles) {
+          throw new JesutobitsError(
+            ErrorCodes.fsTooLarge,
+            `${display(resolved.relative)} has more than ${maxFiles} files`,
+            { details: { path: resolved.relative, maxFiles } },
+          );
+        }
+        return;
+      }
+      const names = (await readdir(real)).sort();
+      for (const name of names) {
+        await walk(path.join(real, name), relative === "" ? name : `${relative}/${name}`);
+      }
+    };
+    await walk(resolved.real, resolved.relative);
+    return files;
+  }
+
+  private checkExpected(
+    relative: string,
+    existing: { bytes: Buffer } | undefined,
+    options: WriteOptions,
+  ): void {
     if (options.expectedHash === null && existing) {
       throw new JesutobitsError(ErrorCodes.fsAlreadyExists, `${display(relative)} already exists`, {
         details: { path: relative },
@@ -324,18 +458,10 @@ export class WorkspaceService {
         });
       }
     }
+  }
 
-    let format: TextFormat | undefined;
-    if (existing) {
-      const decoded = decodeText(existing.bytes);
-      if (decoded.binary) {
-        throw new JesutobitsError(ErrorCodes.fsBinary, `${display(relative)} is not a text file`, {
-          details: { path: relative },
-        });
-      }
-      format = decoded.format;
-    }
-    const bytes = encodeText(text, format);
+  private async writeResolved(resolved: ResolvedPath, bytes: Buffer): Promise<WriteResult> {
+    const { relative } = resolved;
     await this.ownChange([relative], async () => {
       try {
         await mkdir(path.dirname(resolved.real), { recursive: true });

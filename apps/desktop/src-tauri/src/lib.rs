@@ -5,19 +5,21 @@ mod host_methods;
 mod logging;
 mod rpc_relay;
 mod runtime_supervisor;
+mod secret_store;
 mod settings_store;
 
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use tauri::ipc::Channel;
 use tauri::{Manager, RunEvent, State};
 
-use rpc_relay::{allowlist, rpc_error, CODE_METHOD_NOT_ALLOWED, METHOD_NOT_FOUND};
+use rpc_relay::{allowlist, rpc_error, Connection, CODE_METHOD_NOT_ALLOWED, METHOD_NOT_FOUND};
 use runtime_supervisor::{LaunchSpec, StatusUpdate, Supervisor};
+use secret_store::SecretStore;
 use settings_store::{commands as settings, SettingsStore};
 
 /// When the Host started, for startup timing (NFR-001).
@@ -25,6 +27,8 @@ static HOST_STARTED: OnceLock<Instant> = OnceLock::new();
 
 /// How long a Workbench call may wait for the runtime. Long work streams events instead.
 const WORKBENCH_CALL_TIMEOUT: Duration = Duration::from_secs(60);
+/// `runtime.configure` only stores the settings; it answers at once.
+const CONFIGURE_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Relays a Workbench call to the runtime if the method is on the allowlist (ADR-0003).
 /// `Err` is a JSON-RPC error object whose `data` is a JesutobitsError.
@@ -117,7 +121,43 @@ fn log_dir(app: &tauri::AppHandle) -> Result<PathBuf, tauri::Error> {
     }
 }
 
-fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error::Error>> {
+/// `runtime.configure`'s params: the settings sections the runtime acts on, and Jesutobits'
+/// own folders that agent tools must never touch.
+fn runtime_config(app: &tauri::AppHandle, settings: &Value) -> Value {
+    let dirs: Vec<String> = [config_dir(app), log_dir(app)]
+        .into_iter()
+        .filter_map(Result::ok)
+        .map(|dir| dir.to_string_lossy().into_owned())
+        .collect();
+    json!({
+        "settings": {
+            "providers": settings["providers"],
+            "agent": settings["agent"],
+            "privacy": settings["privacy"],
+        },
+        "appDirs": dirs,
+    })
+}
+
+async fn configure(connection: Arc<Connection>, params: Value) {
+    if let Err(error) = connection
+        .call("runtime.configure", params, CONFIGURE_TIMEOUT)
+        .await
+    {
+        logging::warn(
+            "runtime",
+            format!(
+                "the runtime did not take the settings: {}",
+                error["message"].as_str().unwrap_or("unknown error")
+            ),
+        );
+    }
+}
+
+fn launch_spec(
+    app: &tauri::AppHandle,
+    secrets: Arc<SecretStore>,
+) -> Result<LaunchSpec, Box<dyn std::error::Error>> {
     // Tauri copies sidecars next to the executable, without the target-triple suffix.
     let exe_dir = std::env::current_exe()?
         .parent()
@@ -128,6 +168,20 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
     } else {
         "jesutobits-node"
     });
+    // Text search (FR-074); without it the runtime falls back to a slower JS scan.
+    let ripgrep = exe_dir.join(if cfg!(windows) {
+        "jesutobits-rg.exe"
+    } else {
+        "jesutobits-rg"
+    });
+    let entry_args = if ripgrep.is_file() {
+        vec![
+            "--ripgrep".to_owned(),
+            ripgrep.to_string_lossy().into_owned(),
+        ]
+    } else {
+        Vec::new()
+    };
 
     let mut entry = app.path().resource_dir()?.join("runtime").join("main.mjs");
     let mut use_job_object = true;
@@ -147,12 +201,19 @@ fn launch_spec(app: &tauri::AppHandle) -> Result<LaunchSpec, Box<dyn std::error:
     };
     std::fs::create_dir_all(&data_dir)?;
 
+    let handle = app.clone();
     Ok(LaunchSpec {
         node,
         entry,
-        entry_args: Vec::new(),
+        entry_args,
         data_dir,
         use_job_object,
+        reverse_handler: Some(host_methods::reverse_handler(secrets)),
+        on_ready: Some(Arc::new(move |connection| {
+            let settings = handle.state::<SettingsStore>().settings();
+            let params = runtime_config(&handle, &settings);
+            Box::pin(configure(connection, params))
+        })),
     })
 }
 
@@ -162,9 +223,18 @@ pub fn run() {
         .setup(|app| {
             logging::init(&log_dir(app.handle())?);
             app.manage(SettingsStore::load(&config_dir(app.handle())?));
+            let secrets = Arc::new(SecretStore::for_app(&app.config().identifier));
+            app.manage(secrets.clone());
             let supervisor = Supervisor::new();
-            supervisor.start(launch_spec(app.handle())?);
+            supervisor.start(launch_spec(app.handle(), secrets)?);
             app.manage(supervisor);
+            let handle = app.handle().clone();
+            app.state::<SettingsStore>().on_change(move |settings| {
+                if let Some(connection) = handle.state::<Supervisor>().connection() {
+                    let params = runtime_config(&handle, settings);
+                    tauri::async_runtime::spawn(configure(connection, params));
+                }
+            });
             if let Some(window) = app.get_webview_window("main") {
                 settings_store::window::restore_and_track(&window);
             }
@@ -182,7 +252,10 @@ pub fn run() {
             settings::ui_state_get,
             settings::ui_state_update,
             settings::host_notices,
-            dialogs::dialog_pick_folder
+            dialogs::dialog_pick_folder,
+            secret_store::secrets_set,
+            secret_store::secrets_delete,
+            secret_store::secrets_exists
         ])
         .build(tauri::generate_context!())
         .expect("failed to build the Jesutobits Host");

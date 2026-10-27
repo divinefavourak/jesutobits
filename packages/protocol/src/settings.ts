@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PolicyPresetSchema } from "./agent.js";
 
 /**
  * `settings.json` (DATA_AND_PERSISTENCE.md section 5). The Host is its only writer and
@@ -11,6 +12,60 @@ import { z } from "zod";
  * No field may hold a secret (a test checks the names).
  */
 export const SETTINGS_SCHEMA_VERSION = 1;
+
+/**
+ * OpenRouter's own request options (AGENT_HARNESS.md section 2.2), in OpenRouter's field
+ * names. Privacy first: providers that keep or train on prompts are excluded by default.
+ */
+export const OpenRouterOptionsSchema = z.object({
+  provider: z
+    .object({
+      order: z.array(z.string().min(1)).max(20).optional(),
+      allow_fallbacks: z.boolean().default(true),
+      data_collection: z.enum(["allow", "deny"]).default("deny"),
+    })
+    .prefault({}),
+  /** Fallback models OpenRouter may use when the chosen one is unavailable. */
+  models: z.array(z.string().min(1)).max(10).optional(),
+});
+export type OpenRouterOptions = z.output<typeof OpenRouterOptionsSchema>;
+
+export const ProvidersSettingsSchema = z.object({
+  openrouter: z
+    .object({
+      enabled: z.boolean().default(true),
+      /** Which stored key to use: `provider:openrouter:<profile>` (never the key itself). */
+      profile: z
+        .string()
+        .regex(/^[a-z0-9-]{1,32}$/)
+        .default("default"),
+      /** Used for new sessions; null until the user picks one (onboarding step 5). */
+      defaultModel: z.string().min(1).nullable().default(null),
+      options: OpenRouterOptionsSchema.prefault({}),
+    })
+    .prefault({}),
+});
+
+/** AGENT_HARNESS.md section 3.4; every limit is a setting (FR-033). */
+export const AgentSettingsSchema = z.object({
+  /** For projects without a preset of their own (SECURITY.md section 4.2). */
+  defaultPolicyPreset: PolicyPresetSchema.default("balanced"),
+  limits: z
+    .object({
+      stepsPerTurn: z.number().int().min(1).max(1000).default(40),
+      toolCallsPerTurn: z.number().int().min(1).max(5000).default(150),
+      turnMinutes: z.number().int().min(1).max(600).default(30),
+      costPerTurnUsd: z.number().min(0.01).max(1000).default(1),
+      costPerSessionUsd: z.number().min(0.01).max(10_000).default(5),
+      fixAttempts: z.number().int().min(1).max(10).default(3),
+    })
+    .prefault({}),
+});
+
+export const PrivacySettingsSchema = z.object({
+  logModelTraffic: z.boolean().default(false),
+  providerAttributionHeaders: z.boolean().default(false),
+});
 
 export const AppSettingsSchema = z.object({
   schemaVersion: z.literal(SETTINGS_SCHEMA_VERSION).default(SETTINGS_SCHEMA_VERSION),
@@ -37,12 +92,9 @@ export const AppSettingsSchema = z.object({
       shell: z.string().min(1).default("auto"),
     })
     .prefault({}),
-  privacy: z
-    .object({
-      logModelTraffic: z.boolean().default(false),
-      providerAttributionHeaders: z.boolean().default(false),
-    })
-    .prefault({}),
+  providers: ProvidersSettingsSchema.prefault({}),
+  agent: AgentSettingsSchema.prefault({}),
+  privacy: PrivacySettingsSchema.prefault({}),
   developer: z
     .object({
       extensionDeveloperMode: z.boolean().default(false),
@@ -51,9 +103,24 @@ export const AppSettingsSchema = z.object({
 });
 export type AppSettings = z.output<typeof AppSettingsSchema>;
 
-/** A partial update, merged into the current settings by the Host. */
+/** The settings the runtime acts on, sent by the Host in `runtime.configure`. */
+export const RuntimeSettingsSchema = AppSettingsSchema.pick({
+  providers: true,
+  agent: true,
+  privacy: true,
+});
+export type RuntimeSettings = z.output<typeof RuntimeSettingsSchema>;
+
+/** Objects become optional at every level; arrays and values are replaced whole. */
+type DeepPartial<T> = T extends readonly unknown[]
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
+
+/** A partial update, merged into the current settings by the Host at every level. */
 export type SettingsPatch = {
-  [K in Exclude<keyof AppSettings, "schemaVersion">]?: Partial<AppSettings[K]>;
+  [K in Exclude<keyof AppSettings, "schemaVersion">]?: DeepPartial<AppSettings[K]>;
 };
 
 export const WindowStateSchema = z.object({

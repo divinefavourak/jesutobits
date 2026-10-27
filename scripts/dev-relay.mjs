@@ -9,20 +9,33 @@
 //   POST /rpc     {"method", "params"} -> {"result"} or {"error"} (a JSON-RPC error object)
 //   GET  /events  NDJSON stream: {"kind":"status",...} and {"kind":"event","event":{...}}
 //
+//   POST /secrets {"ref", "value"} keeps a secret in memory for the runtime (null deletes it)
+//
 // It also plays the Host's part in reverse calls (ADR-0014) without touching the OS:
-// `host.fs.trash` moves the path into <data-dir>/trash/, and `host.os.reveal` only records
-// the path in `revealed`. Other reverse calls are refused at once.
+// `host.fs.trash` moves the path into <data-dir>/trash/, `host.os.reveal` only records the
+// path in `revealed`, and `host.secrets.get` answers from POST /secrets, never the OS
+// credential store. Other reverse calls are refused at once.
 //
 //   node scripts/dev-relay.mjs [--port 1421] [--data-dir <dir>] [--origin http://127.0.0.1:1420]
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync } from "node:fs";
 import { createServer } from "node:http";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const BUNDLE = join(root, "packages", "runtime", "dist", "bundle", "runtime.mjs");
+const BINARIES = join(root, "apps", "desktop", "src-tauri", "binaries");
+
+/** The fetched ripgrep sidecar for this machine, if `pnpm fetch:sidecars` has run. */
+function ripgrepSidecar() {
+  if (!existsSync(BINARIES)) return undefined;
+  const name = readdirSync(BINARIES).find(
+    (file) => file.startsWith("jesutobits-rg-") && !file.endsWith(".sha256"),
+  );
+  return name ? join(BINARIES, name) : undefined;
+}
 const MAX_BODY_BYTES = 4 * 1024 * 1024;
 const CALL_TIMEOUT_MS = 60_000;
 
@@ -47,17 +60,33 @@ export async function startRelay({
   origin = "http://127.0.0.1:1420",
   token = randomBytes(24).toString("hex"),
   quiet = false,
+  env = {},
 } = {}) {
   const { workbench, protocolVersion } = readAllowlist();
   mkdirSync(dataDir, { recursive: true });
 
-  const child = spawn(process.execPath, [BUNDLE, "--stdio", "--data-dir", dataDir], {
-    stdio: ["pipe", "pipe", "pipe"],
-  });
+  const child = spawn(
+    process.execPath,
+    [
+      BUNDLE,
+      "--stdio",
+      "--data-dir",
+      dataDir,
+      ...(ripgrepSidecar() ? ["--ripgrep", ripgrepSidecar()] : []),
+    ],
+    {
+      stdio: ["pipe", "pipe", "pipe"],
+      // For tests: the scripted provider (JESUTOBITS_PROVIDER, JESUTOBITS_CASSETTE) or a mock
+      // OpenRouter (JESUTOBITS_OPENROUTER_URL).
+      env: { ...process.env, ...env },
+    },
+  );
   const pending = new Map();
   const listeners = new Set();
   const revealed = [];
   let trashed = 0;
+  /** The Host's credential store, in memory: refs to values set through POST /secrets. */
+  const secrets = new Map();
   let nextId = 1;
   let status = { status: "starting" };
   let buffer = "";
@@ -128,6 +157,9 @@ export async function startRelay({
       revealed.push(params.path);
       return {};
     }
+    if (method === "host.secrets.get") {
+      return { value: secrets.get(params.ref) ?? null };
+    }
     throw Object.assign(
       new Error(`${method} needs the desktop app; it is not available in dev:web`),
       { code: "rpc.method_not_found" },
@@ -186,6 +218,21 @@ export async function startRelay({
       response.write(`${JSON.stringify({ kind: "status", ...status })}\n`);
       listeners.add(response);
       request.on("close", () => listeners.delete(response));
+      return;
+    }
+    if (request.method === "POST" && request.url === "/secrets") {
+      const chunks = [];
+      request.on("data", (chunk) => chunks.push(chunk));
+      request.on("end", () => {
+        try {
+          const { ref, value } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          if (typeof value === "string") secrets.set(ref, value);
+          else secrets.delete(ref);
+          send(200, { result: {} });
+        } catch {
+          send(400, { error: rpcError(-32700, "rpc.parse_error", "Invalid JSON") });
+        }
+      });
       return;
     }
     if (request.method === "POST" && request.url === "/rpc") {

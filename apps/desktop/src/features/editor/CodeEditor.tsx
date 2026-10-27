@@ -1,5 +1,6 @@
 import type * as Monaco from "monaco-editor";
 import { useEffect, useRef } from "react";
+import { useStore } from "zustand";
 import { t } from "../../i18n";
 import { editorFont } from "../../state/appearance-store";
 import { useAppearance, useWorkbench } from "../../state/workbench-context";
@@ -119,6 +120,17 @@ export default function CodeEditor({
   useEffect(() => {
     editorRef.current?.updateOptions({ fontFamily, fontSize });
   }, [fontFamily, fontSize]);
+
+  // A search result asked to show a position in this file.
+  const reveal = useStore(store, (state) => state.revealRequest);
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor || !reveal || reveal.path !== path) return;
+    const position = { lineNumber: reveal.cursor.line, column: reveal.cursor.column };
+    editor.setPosition(position);
+    editor.revealPositionInCenter(position);
+    editor.focus();
+  }, [reveal, path]);
 
   return <div ref={containerRef} className="h-full w-full" data-testid="code-editor" />;
 }

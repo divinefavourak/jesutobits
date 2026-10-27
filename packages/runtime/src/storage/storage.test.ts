@@ -60,7 +60,19 @@ describe("openStorage", () => {
     const storage = start(dir);
     expect(storage.mode).toBe("read_write");
     expect(storage.notices).toEqual([]);
-    expect(tableNames(storage)).toEqual(["projects", "schema_migrations"]);
+    expect(tableNames(storage)).toEqual([
+      "checkpoints",
+      "events",
+      "messages",
+      "model_cache",
+      "permission_requests",
+      "permission_rules",
+      "projects",
+      "schema_migrations",
+      "sessions",
+      "tool_calls",
+      "turns",
+    ]);
     expect(storage.db.get("PRAGMA user_version")).toEqual({ user_version: MIGRATIONS.length });
     expect(storage.db.get("PRAGMA journal_mode")).toEqual({ journal_mode: "wal" });
     expect(storage.db.get("PRAGMA foreign_keys")).toEqual({ foreign_keys: 1 });
@@ -204,6 +216,7 @@ describe("migrations", () => {
   // adding a migration; never change an existing one.
   const PINNED: Record<string, string> = {
     "0001_projects.sql": "a3b07c3d9ffa44a534c02ed3810ba7c72bfff254d17ea09ea6d3233127ccc37a",
+    "0002_agent.sql": "123bfb4a9b9ddec07aa29bbc8e48fdec018ae62a4e9b5a8dc3d2bcb2698237ed",
   };
 
   it("are numbered consecutively and pinned", () => {

@@ -6,6 +6,16 @@ pub const PROTOCOL_VERSION: &str = "0.1.0";
 
 /// Runtime methods the Workbench may call through the relay. Anything else is rejected.
 pub const WORKBENCH_METHODS: &[&str] = &[
+    "agent.answerQuestion",
+    "agent.cancelTurn",
+    "agent.pauseTurn",
+    "agent.resumeTurn",
+    "agent.retryTurn",
+    "agent.sendMessage",
+    "agent.setModel",
+    "checkpoints.listForTurn",
+    "checkpoints.revertFile",
+    "checkpoints.revertTurn",
     "events.replay",
     "fs.createDirectory",
     "fs.createFile",
@@ -14,9 +24,17 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "fs.readFile",
     "fs.rename",
     "fs.reveal",
+    "fs.search",
     "fs.stat",
     "fs.trash",
     "fs.writeFile",
+    "models.list",
+    "models.testConnection",
+    "permissions.getPolicy",
+    "permissions.listRules",
+    "permissions.removeRule",
+    "permissions.respond",
+    "permissions.setPolicy",
     "projects.close",
     "projects.create",
     "projects.detect",
@@ -27,11 +45,19 @@ pub const WORKBENCH_METHODS: &[&str] = &[
     "projects.remove",
     "projects.setTrust",
     "runtime.ping",
+    "sessions.archive",
+    "sessions.create",
+    "sessions.delete",
+    "sessions.get",
+    "sessions.history",
+    "sessions.list",
+    "sessions.rename",
     "toolchain.detect",
 ];
 
 /// Runtime methods the Host itself sends.
 pub const HOST_METHODS: &[&str] = &[
+    "runtime.configure",
     "runtime.initialize",
     "runtime.ping",
     "runtime.shutdown",
@@ -41,6 +67,7 @@ pub const HOST_METHODS: &[&str] = &[
 pub const REVERSE_METHODS: &[&str] = &[
     "host.fs.trash",
     "host.os.reveal",
+    "host.secrets.get",
 ];
 
 pub fn is_workbench_method(method: &str) -> bool {

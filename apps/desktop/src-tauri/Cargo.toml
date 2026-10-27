@@ -1,6 +1,6 @@
 [package]
 name = "jesutobits-desktop"
-version = "0.1.0"
+version = "0.2.0"
 description = "Jesutobits Host: window, runtime supervision and the Workbench <-> runtime relay"
 edition = "2021"
 rust-version = "1.90"
@@ -24,6 +24,9 @@ serde_json = "1.0.154"
 rfd = { version = "0.17.2", default-features = false, features = ["gtk3"] }
 # Delete to the OS trash for the runtime (host_methods.rs, ADR-0014).
 trash = "5.2.9"
+# Provider keys in the OS credential store (secret_store.rs, ADR-0008). Linux uses the
+# kernel keyring (keyutils): no D-Bus build dependency, and keys last for the login session.
+keyring = { version = "3.6.3", default-features = false, features = ["windows-native", "apple-native", "linux-native"] }
 # Log redaction patterns (logging/redact.rs); already in the tree through Tauri.
 regex = "1.13.1"
 tokio = { version = "1.53.3", features = ["io-util", "macros", "process", "rt", "sync", "time"] }

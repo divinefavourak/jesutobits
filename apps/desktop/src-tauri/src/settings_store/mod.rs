@@ -83,7 +83,11 @@ struct State {
     ui_state: Value,
     notices: Vec<Notice>,
     subscribers: Vec<Channel<Value>>,
+    /// The Host's own listeners (telling the runtime), called after every change.
+    listeners: Vec<Listener>,
 }
+
+type Listener = Box<dyn Fn(&Value) + Send>;
 
 pub struct SettingsStore {
     dir: PathBuf,
@@ -109,6 +113,7 @@ impl SettingsStore {
                 ui_state,
                 notices,
                 subscribers: Vec::new(),
+                listeners: Vec::new(),
             }),
         }
     }
@@ -142,7 +147,19 @@ impl SettingsStore {
         state
             .subscribers
             .retain(|channel| channel.send(value.clone()).is_ok());
+        for listener in &state.listeners {
+            listener(&value);
+        }
         Ok(value)
+    }
+
+    /// Calls `listener` with the new settings after every change. It must not block.
+    pub fn on_change(&self, listener: impl Fn(&Value) + Send + 'static) {
+        self.state
+            .lock()
+            .unwrap()
+            .listeners
+            .push(Box::new(listener));
     }
 
     /// Adds a channel told about every settings change (a Workbench reload adds a new one).
@@ -359,6 +376,27 @@ mod tests {
         assert_eq!(store.settings(), Settings::default().to_value());
         assert!(!dir.join(SETTINGS_FILE).exists());
         assert!(store.notices().is_empty());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn tells_listeners_about_saved_changes_only() {
+        let dir = temp_dir("listeners");
+        let store = SettingsStore::load(&dir);
+        let seen = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let sink = seen.clone();
+        store.on_change(move |settings| {
+            sink.lock()
+                .unwrap()
+                .push(settings["agent"]["limits"]["stepsPerTurn"].clone())
+        });
+        store
+            .update(&json!({ "agent": { "limits": { "stepsPerTurn": 60 } } }))
+            .unwrap();
+        store
+            .update(&json!({ "agent": { "limits": { "stepsPerTurn": 0 } } }))
+            .unwrap_err();
+        assert_eq!(*seen.lock().unwrap(), vec![json!(60)]);
         fs::remove_dir_all(dir).unwrap();
     }
 

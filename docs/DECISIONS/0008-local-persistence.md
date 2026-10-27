@@ -48,6 +48,8 @@ Rules:
 
 - Phase 1 (2026-10-20) implemented the `Database` interface (`storage/database.ts`) and its `node:sqlite` backend (`storage/node-sqlite.ts`), the migration runner with backups and recovery (DATA_AND_PERSISTENCE.md section 6.1), and the first migration (`projects`). The Host now passes the **local** app data dir (`%LOCALAPPDATA%`) as `--data-dir`; Spike S1 had passed the roaming one.
 
+- Phase 2 (2026-10-22) added the credential store (`secret_store.rs`, `keyring` 3.6.3; SECURITY.md section 3). On Linux it uses the kernel keyring rather than the Secret Service for now: no D-Bus build dependency, and keys last for the login session, which is the documented fallback.
+
 ## Revisit when
 
 `node:sqlite` causes a data-loss bug, or we need cross-device sync (which would require a different design and an explicit privacy decision).

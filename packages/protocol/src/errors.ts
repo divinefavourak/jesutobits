@@ -60,6 +60,10 @@ export const ErrorCodes = {
   /** The file changed since it was read; the write was refused (HARNESS 6, FR-052). */
   fsConflict: "fs.conflict",
   fsTooLarge: "fs.too_large",
+  /** A search pattern is not a valid regular expression. */
+  fsInvalidQuery: "fs.invalid_query",
+  /** A folder that is not empty cannot be removed without `recursive`. */
+  fsNotEmpty: "fs.not_empty",
   /** The file is not text, so it cannot be read or written as text. */
   fsBinary: "fs.binary",
   fsPermissionDenied: "fs.permission_denied",
@@ -99,6 +103,47 @@ export const ErrorCodes = {
   storageSettingsCorrupt: "storage.settings_corrupt",
   /** A write was refused because the database is open read-only. */
   storageReadOnly: "storage.read_only",
+  /** No session with that ID in the active project. */
+  runtimeSessionNotFound: "runtime.session_not_found",
+  /** No turn with that ID, or it belongs to another project. */
+  runtimeTurnNotFound: "runtime.turn_not_found",
+  /** The session already has a turn running; one turn at a time per session. */
+  runtimeTurnActive: "runtime.turn_active",
+  /** The request does not fit the turn's state, for example resuming a turn not paused. */
+  runtimeTurnState: "runtime.turn_state",
+  /** No open question with that ID (answered, or closed with its turn). */
+  runtimeQuestionNotPending: "runtime.question_not_pending",
+  /** A limit from AGENT_HARNESS.md section 3.4 ended the turn. */
+  runtimeLimitReached: "runtime.limit_reached",
+  /** The loop guard stopped the turn (AGENT_HARNESS.md section 3.6). */
+  runtimeLoopDetected: "runtime.loop_detected",
+  /** No pending approval with that ID: answered, expired or never issued (SECURITY.md 4.5). */
+  permissionNotPending: "permission.not_pending",
+  /** The answer is not one the request offered. */
+  permissionInvalidDecision: "permission.invalid_decision",
+  /** No rule with that ID in the active project. */
+  permissionRuleNotFound: "permission.rule_not_found",
+  /** The provider rejected the key (HTTP 401), also after fetching it again. */
+  providerAuth: "provider.auth",
+  /** No key is stored for the provider. */
+  providerNoCredentials: "provider.no_credentials",
+  providerInsufficientCredits: "provider.insufficient_credits",
+  providerRateLimited: "provider.rate_limited",
+  providerContextLength: "provider.context_length",
+  providerInvalidRequest: "provider.invalid_request",
+  providerContentFilter: "provider.content_filter",
+  providerUnavailable: "provider.unavailable",
+  providerTimeout: "provider.timeout",
+  providerNetwork: "provider.network",
+  providerUnknown: "provider.unknown",
+  /** No model was chosen and settings name no default. */
+  providerNoModel: "provider.no_model",
+  /** The model cannot call tools, so it can only be used in Ask mode (HARNESS 2.3). */
+  providerModelUnsupported: "provider.model_unsupported",
+  /** A checkpoint's stored copy is missing, so the file cannot be restored. */
+  storageCheckpointMissing: "storage.checkpoint_missing",
+  /** The OS credential store is not available (DATA_AND_PERSISTENCE.md section 2). */
+  storageSecretsUnavailable: "storage.secrets_unavailable",
   /** No JSX element starts at the requested location (the file changed, or a bad loc). */
   visualElementNotFound: "visual.element_not_found",
   /** The property cannot be edited statically, for example a computed className. */

@@ -9,6 +9,7 @@ import { Onboarding } from "./features/onboarding/Onboarding";
 import { CommandPalette } from "./features/search/CommandPalette";
 import { SettingsView } from "./features/settings/SettingsView";
 import { QuickOpen } from "./features/search/QuickOpen";
+import { TextSearch } from "./features/search/TextSearch";
 import type { Command } from "./state/commands";
 import { ProjectView } from "./features/layout/ProjectView";
 import { RuntimeBanner } from "./features/layout/RuntimeBanner";
@@ -64,11 +65,12 @@ export function App({ workbench }: { workbench: Workbench }) {
   );
 }
 
-/** Quick open or the command palette, mounted only while shown. */
+/** Quick open, project search or the command palette, mounted only while shown. */
 function Overlay({ commands }: { commands: readonly Command[] }) {
   const overlay = useUi((state) => state.overlay);
   if (overlay === "files") return <QuickOpen />;
   if (overlay === "commands") return <CommandPalette commands={commands} />;
+  if (overlay === "search") return <TextSearch />;
   return null;
 }
 

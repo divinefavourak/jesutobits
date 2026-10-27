@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RuntimeSettingsSchema } from "../settings.js";
 import { SEMVER_PATTERN } from "../version.js";
 import { defineMethod } from "./define.js";
 
@@ -39,6 +40,27 @@ export const runtimeInitialize = defineMethod({
       })
       .optional(),
   }),
+});
+
+/**
+ * The settings the runtime acts on (agent limits, the provider's default model and options,
+ * privacy). The Host owns settings.json (ADR-0008), so it sends them after every handshake,
+ * before reporting Ready, and again after every change. Until the first one arrives the
+ * runtime uses the defaults.
+ */
+export const runtimeConfigure = defineMethod({
+  name: "runtime.configure",
+  description: "Settings the runtime acts on; sent by the Host on start and on every change.",
+  callers: ["host"],
+  params: z.object({
+    settings: RuntimeSettingsSchema,
+    /**
+     * Jesutobits' own folders besides the data dir (config, logs). Agent tools may never
+     * read or write them, even inside a project (SECURITY.md section 4.3).
+     */
+    appDirs: z.array(z.string().min(1)).max(10).default([]),
+  }),
+  result: z.object({}),
 });
 
 /** Health check. The Host pings every 5 s; the Workbench may ping to measure relay latency. */

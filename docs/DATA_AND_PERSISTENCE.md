@@ -198,6 +198,8 @@ CREATE TABLE model_cache (
 );
 ```
 
+Phase 2 (migration `0002_agent.sql`) created the agent tables as above, with these differences: `turns` also has `mode` (`agent` or `ask`), `model_id`, `retry_of` (the failed or interrupted turn a retry continues) and `error_json`; `events.session_id` is required and cascades with its session; `permission_rules` has a `description` (the rule in words, as the approval card showed it); `checkpoints` has one row per turn and path (`UNIQUE (owner_id, path)`), with `after_hash` null for a removed file. `evidence` and `managed_processes` arrive with Phase 3. `messages` hold what the model sees; `events` hold what the Workbench shows.
+
 Write patterns: text deltas are streamed to the UI but persisted only as the final assistant message per step. Tool, permission, check and state-change events are persisted as they happen, in short transactions. Bursts (for example many `tool.output_delta` events) are grouped into one transaction per flush rather than one per event: Spike S1 measured about 0.2 ms per single-row commit with WAL and `synchronous=NORMAL`, so 10,000 autocommitted rows took 2.1 to 2.5 s, against 0.2 to 0.9 s in transactions (`docs/spikes/S1.md`).
 
 ## 5. Settings files
@@ -227,7 +229,7 @@ Write patterns: text deltas are streamed to the UI but persisted only as the fin
 
 No field in either file may contain a secret. A unit test scans the settings schema for field names like `key`, `token`, `secret` and fails unless the field is on an explicit allowlist (for example `profile`).
 
-Implementation (Phase 1): the Host's `settings_store/` and the Zod schema `packages/protocol/src/settings.ts` define the sections in use so far (`workspace`, `appearance`, `terminal`, `privacy`, `developer`); later phases add theirs with defaults, which needs no version bump. `workspace.defaultFolder` is `null` until onboarding asks. Sections the Host does not know (from a newer version) are kept when it writes. Both sides run `fixtures/settings/cases.json`, and a Rust test compares the serde defaults with `packages/protocol/generated/settings.defaults.json`, generated from the Zod schema. Nothing is written until the first change. A settings file with a higher `schemaVersion` is read leniently and never written (`storage.settings_newer` notice), so a downgrade cannot destroy it.
+Implementation (Phase 1): the Host's `settings_store/` and the Zod schema `packages/protocol/src/settings.ts` define the sections in use so far (`workspace`, `appearance`, `terminal`, `privacy`, `developer`; Phase 2 added `providers` and `agent` as shown above, with `providers.openrouter.defaultModel` null until the user picks one); later phases add theirs with defaults, which needs no version bump. `workspace.defaultFolder` is `null` until onboarding asks. Sections the Host does not know (from a newer version) are kept when it writes. Both sides run `fixtures/settings/cases.json`, and a Rust test compares the serde defaults with `packages/protocol/generated/settings.defaults.json`, generated from the Zod schema. Nothing is written until the first change. A settings file with a higher `schemaVersion` is read leniently and never written (`storage.settings_newer` notice), so a downgrade cannot destroy it.
 
 `ui-state.json` holds window bounds, per-project layout (keyed by `prj_` ID), open tabs and cursor positions, collapsed panels, onboarding step, last safe-mode marker.
 
