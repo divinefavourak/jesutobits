@@ -538,6 +538,21 @@ export const en = {
   "preview.inspector.applied": "Saved to {path}.",
   "preview.inspector.unchanged": "Nothing to change.",
   "preview.inspector.failed": "Could not change it: {reason}",
+  "companion.idle": "Ready",
+  "companion.thinking": "Thinking",
+  "companion.planning": "Planning",
+  "companion.reading": "Reading files",
+  "companion.editing": "Editing files",
+  "companion.running": "Running a command",
+  "companion.testing": "Checking",
+  "companion.waiting_permission": "Waiting for your approval",
+  "companion.asking": "Waiting for your answer",
+  "companion.paused": "Paused",
+  "companion.error": "Something needs attention",
+  "companion.completed": "Done",
+  "companion.cancelled": "Stopped",
+  "companion.preview_ready": "Preview is ready",
+  "companion.unavailable": "Restarting",
 } as const;
 
 export type Messages = typeof en;

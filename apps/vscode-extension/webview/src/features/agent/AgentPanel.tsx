@@ -5,6 +5,8 @@ import { useAgent, useUi, useWorkbench } from "../../state/workbench-context";
 import { Badge } from "../../ui/Badge";
 import { Button } from "../../ui/Button";
 import { Markdown } from "../../ui/markdown/Markdown";
+import { Companion } from "../companion/Companion";
+import { OPENROUTER_REF } from "./agent-store";
 import { ApprovalCard, ResolvedApproval } from "./ApprovalCard";
 import { PlanChecklist, QuestionCard, ToolRow, TurnSummaryCard } from "./TurnParts";
 import { liveTurn, type TimelineItem, type TurnView } from "./timeline-reducer";
@@ -19,7 +21,7 @@ type Tab = "chat" | "timeline";
 export function AgentPanel() {
   const [tab, setTab] = useState<Tab>("chat");
   const hasKey = useAgent((state) => state.hasKey);
-  const { agent, ui } = useWorkbench();
+  const { agent, bridge } = useWorkbench();
   const chatTabId = useId();
   const timelineTabId = useId();
 
@@ -29,11 +31,14 @@ export function AgentPanel() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b border-border px-3 py-1.5">
+        <Companion />
+      </div>
       <AgentHeader />
       {hasKey === false && (
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-warning-subtle px-3 py-2">
           <span className="flex-1">{t("agent.key.missing")}</span>
-          <Button onClick={() => ui.getState().openSettings("providers")}>
+          <Button onClick={() => void bridge.secrets.prompt(OPENROUTER_REF).catch(() => undefined)}>
             {t("agent.key.add")}
           </Button>
         </div>

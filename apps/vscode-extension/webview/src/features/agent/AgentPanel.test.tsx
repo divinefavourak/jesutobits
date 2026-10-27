@@ -186,13 +186,15 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
     expect(cancels[0]).toEqual({ turnId: TURN_ID });
   });
 
-  it("points at settings when no OpenRouter key is stored", async () => {
+  it("asks for the key in the extension's password box when none is stored", async () => {
     const { bridge } = await setupPanel({ withKey: false });
+    bridge.nextPromptedKey = "sk-or-test-not-real";
 
     expect(await screen.findByText(/No OpenRouter API key is stored/)).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "Add API key" }));
 
-    await waitFor(() => expect(bridge.openedSettings).toEqual(["providers"]));
+    await waitFor(async () => expect(await bridge.secrets.exists(OPENROUTER_REF)).toBe(true));
+    expect(document.body.textContent).not.toContain("sk-or-test-not-real");
   });
 
   it("switches the store's mode from the Agent/Ask radio group", async () => {
