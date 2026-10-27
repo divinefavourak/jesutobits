@@ -49,6 +49,7 @@ export class WebviewHostBridge implements HostBridge {
   readonly #settings = new Listeners<AppSettings>(false);
   readonly #secretsChanged = new Listeners<void>(false);
   readonly #compose = new Listeners<string>(false);
+  readonly #openLook = new Listeners<void>(false);
   #nextId = 1;
 
   constructor(vscode: VsCodeApi, target: Pick<Window, "addEventListener"> = window) {
@@ -121,6 +122,9 @@ export class WebviewHostBridge implements HostBridge {
       case "secretsChanged":
         this.#secretsChanged.emit();
         return;
+      case "openLook":
+        this.#openLook.emit();
+        return;
       case "compose":
         this.#compose.emit(message.text);
     }
@@ -164,6 +168,10 @@ export class WebviewHostBridge implements HostBridge {
 
   onCompose(handler: (text: string) => void): Unsubscribe {
     return this.#compose.add(handler);
+  }
+
+  onOpenLook(handler: () => void): Unsubscribe {
+    return this.#openLook.add(handler);
   }
 
   readonly look = {

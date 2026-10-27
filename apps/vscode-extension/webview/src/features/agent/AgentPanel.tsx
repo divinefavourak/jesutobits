@@ -35,6 +35,7 @@ export function AgentPanel() {
   const { agent, bridge, ui } = useWorkbench();
   const tabIds = { chat: useId(), timeline: useId(), learn: useId() };
   const closeLook = useCallback(() => setLookOpen(false), []);
+  useEffect(() => bridge.onOpenLook(() => setLookOpen(true)), [bridge]);
 
   useEffect(() => {
     void agent.getState().checkKey();

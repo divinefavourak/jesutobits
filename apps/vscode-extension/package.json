@@ -87,6 +87,23 @@
         "command": "jesutobits.compose",
         "title": "Put a Task in the Agent's Message Box",
         "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.newProject",
+        "title": "New Project…",
+        "category": "Jesutobits",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "jesutobits.choosePolicyPreset",
+        "title": "Choose Permission Level",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.changeLook",
+        "title": "Change the Look",
+        "category": "Jesutobits",
+        "icon": "$(symbol-color)"
       }
     ],
     "walkthroughs": [
@@ -320,6 +337,12 @@
         {
           "command": "jesutobits.compose",
           "when": "false"
+        }
+      ],
+      "file/newFile": [
+        {
+          "command": "jesutobits.newProject",
+          "group": "file"
         }
       ]
     }

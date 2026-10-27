@@ -16,6 +16,8 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
   #view: vscode.WebviewView | undefined;
   /** Text to compose once the view has loaded (it may not have been opened yet). */
   #pendingCompose: string | undefined;
+  /** The theme picker was asked for before the view loaded. */
+  #pendingLook = false;
 
   constructor(
     extensionUri: vscode.Uri,
@@ -49,6 +51,10 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
         this.post({ kind: "compose", text: this.#pendingCompose });
         this.#pendingCompose = undefined;
       }
+      if (this.#pendingLook) {
+        this.post({ kind: "openLook" });
+        this.#pendingLook = false;
+      }
     });
     view.onDidDispose(() => {
       if (this.#view === view) this.#view = undefined;
@@ -56,6 +62,11 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
   }
 
   /** Fills the message box, now or as soon as the view has loaded. */
+  openLook(): void {
+    if (this.#view) this.post({ kind: "openLook" });
+    else this.#pendingLook = true;
+  }
+
   compose(text: string): void {
     if (this.#view) this.post({ kind: "compose", text });
     else this.#pendingCompose = text;

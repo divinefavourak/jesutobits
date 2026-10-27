@@ -48,6 +48,8 @@ export interface HostBridge {
   compose(text: string): Promise<void>;
   /** Text the extension asks the agent panel to put in its message box. */
   onCompose(handler: (text: string) => void): Unsubscribe;
+  /** The extension asks the panel to open its theme picker. */
+  onOpenLook(handler: () => void): Unsubscribe;
 
   /** The `jesutobits.*` VS Code settings, in the `settings.json` shape the panel knows. */
   settings: {

@@ -29,6 +29,7 @@ import { RpcCallError } from "./runtime/connection.js";
 import { RuntimeSupervisor } from "./runtime/supervisor.js";
 import { AGENT_VIEW_ID, AgentViewProvider } from "./vscode/agent-view.js";
 import { PreviewPanel } from "./vscode/preview-panel.js";
+import { registerPresetStatus } from "./vscode/studio-commands.js";
 
 /** globalState key for the panel's remembered state (active session per project). */
 const UI_STATE_KEY = "jesutobits.uiState";
@@ -219,6 +220,7 @@ export function activate(context: vscode.ExtensionContext): void {
     0,
   );
   status.name = "Jesutobits Runtime";
+  registerPresetStatus(context);
   context.subscriptions.push(
     output,
     status,
@@ -267,6 +269,10 @@ export function activate(context: vscode.ExtensionContext): void {
     ),
     vscode.commands.registerCommand("jesutobits.openPreview", startPreview),
     vscode.commands.registerCommand("jesutobits.getStarted", getStarted),
+    vscode.commands.registerCommand("jesutobits.changeLook", async () => {
+      await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
+      panel.openLook();
+    }),
     vscode.commands.registerCommand("jesutobits.chooseModel", () =>
       chooseModel(call, services.setDefaultModel, log),
     ),

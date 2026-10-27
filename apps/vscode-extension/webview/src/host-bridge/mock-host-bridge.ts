@@ -122,6 +122,17 @@ export class MockHostBridge implements HostBridge {
     return this.composeRequests.add(handler);
   }
 
+  private readonly lookRequests = new Listeners<void>(false);
+
+  onOpenLook(handler: () => void): Unsubscribe {
+    return this.lookRequests.add(handler);
+  }
+
+  /** The extension asks this panel to open its theme picker. */
+  requestOpenLook(): void {
+    this.lookRequests.emit();
+  }
+
   /** The extension asks this panel to compose `text`. */
   requestCompose(text: string): void {
     this.composeRequests.emit(text);

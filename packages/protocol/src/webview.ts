@@ -190,5 +190,7 @@ export const HostToWebviewSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("secretsChanged") }).strict(),
   /** Text for the agent panel's message box (`agent.compose`); the user sends it. */
   z.object({ kind: z.literal("compose"), text: z.string().max(8000) }).strict(),
+  /** Open the theme picker (Jesutobits: Change the Look). */
+  z.object({ kind: z.literal("openLook") }).strict(),
 ]);
 export type HostToWebview = z.infer<typeof HostToWebviewSchema>;
