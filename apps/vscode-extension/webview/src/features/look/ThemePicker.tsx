@@ -221,7 +221,7 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
               <h3 className="m-0 font-medium">{t("look.remixTitle")}</h3>
               <p className="m-0 text-text-muted">{t("look.remixBody")}</p>
             </div>
-            <span className="rounded-full bg-accent-subtle px-2 py-0.5 text-xs text-accent">
+            <span className="shrink-0 rounded-full bg-accent-subtle px-2 py-0.5 text-xs whitespace-nowrap text-accent">
               {remixed ? t("look.custom") : t("look.tryIt")}
             </span>
           </div>

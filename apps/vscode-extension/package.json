@@ -92,7 +92,7 @@
     "walkthroughs": [
       {
         "id": "jesutobits.start",
-        "title": "Get started with Jesutobits",
+        "title": "Set up your co-builder",
         "description": "Connect a model provider and give the agent its first task.",
         "steps": [
           {
