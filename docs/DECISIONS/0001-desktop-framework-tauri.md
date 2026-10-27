@@ -1,6 +1,6 @@
 # ADR-0001: Desktop framework: Tauri 2 over Electron
 
-- **Status:** Accepted (provisional)
+- **Status:** Superseded by ADR-0015 (2026-10-27)
 - **Date:** 2026-10-19
 - **Related:** ADR-0002, ADR-0003, ADR-0010, RN-01 to RN-09
 

@@ -1,6 +1,6 @@
 # ADR-0004: Code editor: Monaco
 
-- **Status:** Accepted (provisional)
+- **Status:** Accepted (provisional); amended by ADR-0015 (see its Consequences)
 - **Date:** 2026-10-19
 - **Related:** RN-32, docs/UX_AND_INTERFACE.md section 5
 

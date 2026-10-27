@@ -1,7 +1,7 @@
 # Roadmap
 
 > Status: Agreed plan. Durations are rough planning ranges for one to two developers working with coding agents, not commitments.
-> Version scheme: phases ship internal builds `0.<phase>`; the MVP release is **1.0** after Phase 7.
+> Version scheme: Phases 1 and 2 shipped `0.1` and `0.2`; the Code-OSS pivot (ADR-0015) ships `0.3`, and Phases 3 to 6 ship `0.4` to `0.7`. The MVP release is **1.0** after Phase 7.
 
 ## 1. Changes from the suggested sequence
 
@@ -16,7 +16,8 @@ The suggested phase order is kept, with four adjustments driven by risk:
 flowchart LR
     P0["Phase 0<br/>Foundations + spikes"] --> P1["Phase 1<br/>Desktop shell"]
     P1 --> P2["Phase 2<br/>Minimal harness"]
-    P2 --> P3["Phase 3<br/>Coding workspace<br/>+ verification"]
+    P2 --> PV["Pivot<br/>Code-OSS fork"]
+    PV --> P3["Phase 3<br/>Coding workspace<br/>+ verification"]
     P3 --> P4["Phase 4<br/>Live previews"]
     P4 --> P5["Phase 5<br/>Visual editing"]
     P3 --> P6["Phase 6<br/>Companion + Stage 1 extensions"]
@@ -188,18 +189,37 @@ Found and fixed during the phase: user messages and session titles were stored w
 - Phase 2 session rules: per tool, and per path for `delete_path`; secret-file reads always ask. "Always allow in this project" arrives with commands (Phase 3).
 - Tests and small self-contained modules were drafted with opencode (GLM and DeepSeek models) from written briefs and reviewed before commit; the reviews found and fixed a stored-secret leak (user messages and session titles were saved unmasked) and several wrong expectations.
 
-### Phase 3: Coding workspace and verification (4 to 6 weeks) → 0.3
+### Pivot: Code-OSS fork (3 to 4 weeks) → 0.3
+
+ADR-0015 moves Jesutobits from the Tauri shell to a Code-OSS fork. Phase 2's runtime carries over unchanged; the Workbench's IDE features are replaced by VS Code's. Phases 3 to 7 below are restated for the fork, and their version numbers move up by one.
+
+**Included**
+- A. Archive the Tauri shell (tag `tauri-final`, branch `archive/tauri`); ADR-0015; AGENTS.md invariants and gates; this roadmap.
+- B. `apps/vscode-extension`: runtime supervisor on `ELECTRON_RUN_AS_NODE` (handshake, restart with backoff, kill on deactivate, PID ledger for NFR-010); reverse methods on `SecretStorage`, `workspace.fs` trash and `revealFileInOS`; workspace folder as the project; `jesutobits.*` settings to `runtime.configure`; `WebviewHostBridge` (CSP, nonce, schema checks, method allowlist); the Phase 2 agent panel in a webview styled with `--vscode-*` variables; approvals and reverts through `vscode.diff`; status bar agent state; onboarding walkthrough and "Set OpenRouter API key" command.
+- C. `jesutobits-ide`: fork of `microsoft/vscode` at a stable tag; `product.json` branding, icons and Open VSX gallery; telemetry and updates off; the extension as a built-in; default layout (agent in the secondary side bar) and welcome page as patches listed in `PATCHES.md`; Windows installer; CI; `UPSTREAM.md` merge procedure.
+- D. Delete `apps/desktop`, the Rust Host and the Node sidecar scripts; update README, ARCHITECTURE, PROJECT_STRUCTURE, SECURITY and UX_AND_INTERFACE.
+
+**Deliverables:** the branded app installs on Windows and runs a Phase 2 J-06 turn (scripted provider) from the agent panel.
+
+**Acceptance criteria**
+- Extension integration tests (`@vscode/test-electron`, ScriptedProvider): handshake, secret round-trip, a turn with approval and byte-exact revert, cancel under 2 s, key canary absent from webview messages and logs.
+- NFR-001, NFR-004 and NFR-006 measured against the same Code-OSS build without the extension.
+- The installed app uses its own name, data folder and Open VSX; no request goes to Microsoft telemetry or update endpoints.
+
+**Risks:** first fork build on the development machine (RN-43); upstream merge cost (ADR-0015 revisit triggers).
+
+### Phase 3: Coding workspace and verification (4 to 6 weeks) → 0.4
 
 **Objectives:** the agent can run commands safely, the user has a real IDE toolset, and completion claims are backed by evidence.
 
 **Included**
 - ProcessSupervisor (argv spawning, Windows shims, env allowlist, timeouts, tree kill, orphan ledger); tools `run_command`, `start_process`, `list_processes`, `read_process_output`, `stop_process`.
 - Command classifier; full policy matrix; approval cards; session and project rules with script fingerprints; prohibited list; audit view.
-- Restricted mode enforcement.
-- Terminal panel with Host PTYs (`portable-pty`).
-- GitService and tools (`git_status`, `git_diff`, `git_log`, `git_commit`); minimal Git panel.
-- Check profiles, `run_check`, verification ledger, turn summary with labels, Problems panel with parsers.
-- Full timeline (categories, durations, expandable details, filters); multi-file diff review.
+- Restricted mode enforcement, mapped to VS Code Workspace Trust.
+- Agent process output in VS Code output channels or read-only pseudoterminals (interactive terminals are VS Code's).
+- GitService and tools (`git_status`, `git_diff`, `git_log`, `git_commit`); the Git UI is VS Code's.
+- Check profiles, `run_check`, verification ledger, turn summary with labels, check problems published as VS Code diagnostics.
+- Full timeline (categories, durations, expandable details, filters); multi-file diff review in VS Code's diff editor.
 - Command side-effect detection in checkpoints.
 
 **Excluded:** previews, visual editing, companion visuals.
@@ -211,23 +231,23 @@ Found and fixed during the phase: user messages and session titles were stored w
 **Acceptance criteria**
 - Every row of the SECURITY.md policy matrix and prohibited list has a passing test.
 - Editing a package script invalidates its session rule (T4).
-- No orphan processes after 20 forced Host kills on Windows (NFR-010).
+- No orphan processes after 20 forced extension-host kills on Windows (NFR-010).
 - A turn that changes files without fresh passing checks is never labelled Verified (property test).
 - J-07, J-14, J-15 pass in E2E.
 
-**Tests:** process supervisor (Windows and Linux), permission tables, journeys, desktop PTY smoke.
+**Tests:** process supervisor (Windows and Linux), permission tables, journeys, extension integration tests.
 
 **Risks:** Windows quoting edge cases for `cmd.exe`; noisy check output parsing (fallback to exit codes).
 
 **Definition of done:** acceptance criteria met; security review of the broker and classifier by a second person.
 
-### Phase 4: Live previews (3 to 4 weeks) → 0.4
+### Phase 4: Live previews (3 to 4 weeks) → 0.5
 
 **Objectives:** reliable in-app previews for any project with a dev script, and agent-side preview verification.
 
 **Included**
 - PreviewManager with `generic` and `vite-react` adapters (launcher without instrumentation first), port allocation, readiness, logs, lifecycle, project-switch behaviour, orphan reaping.
-- Preview panel: toolbar, viewport presets, logs tab, open in browser, crash states, LAN-binding warning.
+- Preview panel as a VS Code webview panel hosting the preview iframe: toolbar, viewport presets, logs tab, open in browser, crash states, LAN-binding warning. Re-check Spike S3's iframe findings (RN-37, RN-38) inside VS Code webviews first.
 - Preview tools for the agent; `check_preview` with headless Chromium-family browser via `playwright-core` (system Edge/Chrome, on-demand download fallback).
 - Bridge script v0 (hello, page errors, route changes) with origin and nonce checks.
 - Verification includes preview checks for UI-affecting changes.
@@ -243,7 +263,7 @@ Found and fixed during the phase: user messages and session titles were stored w
 - Busy preferred port is handled (port-hog test) with a visible notice.
 - Crashed dev server shows last error lines within 1 s of exit.
 - `check_preview` reports console errors from a fixture page that throws.
-- Frame cannot invoke Tauri IPC (desktop test).
+- Frame cannot reach the webview's `HostBridge` or any VS Code API (extension test).
 
 **Tests:** preview manager suite, real-Vite nightly, journeys J-04, J-08.
 
@@ -251,7 +271,7 @@ Found and fixed during the phase: user messages and session titles were stored w
 
 **Definition of done:** acceptance criteria met; ADR-0010 confirmed.
 
-### Phase 5: Visual editing (5 to 7 weeks) → 0.5
+### Phase 5: Visual editing (5 to 7 weeks) → 0.6
 
 **Objectives:** the defining feature: select, inspect, draft and apply real source edits for the supported React subset.
 
@@ -283,13 +303,13 @@ Found and fixed during the phase: user messages and session titles were stored w
 
 **Definition of done:** acceptance criteria met; usability test with at least 5 users (2 beginners, 3 frontend developers) with no blocking issues.
 
-### Phase 6: Companion and Stage 1 customisation (3 to 5 weeks) → 0.6
+### Phase 6: Companion and Stage 1 customisation (3 to 5 weeks) → 0.7
 
 **Objectives:** the companion and the first extension ecosystem layer.
 
 **Included**
 - CompanionController (states, priorities, dwell, reactions), StaticRenderer, LottieRenderer (self-hosted WASM), built-in skins Ember, Dot, Pip; settings; accessibility.
-- `packages/extension-schema` validator; Host archive checks and `jesutobits-ext://` serving; install, update, enable, disable, switch, uninstall; registry; compatibility checks; safe mode.
+- `packages/extension-schema` validator; archive checks in the extension and pack assets served to webviews through `localResourceRoots`; install, update, enable, disable, switch, uninstall; registry; compatibility checks; safe mode. Theme packs compile to VS Code colour themes, so the editor and chrome follow them.
 - Theme and companion previews; Extensions settings UI; developer mode (load unpacked, live reload, token inspector, export theme).
 - `@jesutobits/extension-cli` (`init`, `validate`, `pack`); authoring guide.
 
@@ -320,7 +340,7 @@ Found and fixed during the phase: user messages and session titles were stored w
 - Security review against SECURITY.md; threat-model regression tests; Workbench CSP finalised; dependency audit; Node Permission Model evaluation for the runtime (RN-17).
 - Recovery: database and settings corruption paths, crash loops, interrupted turns.
 - Performance pass against all NFRs; memory and startup profiling.
-- Packaging: Windows installer, code signing (installer and sidecars), Tauri updater with signature verification; packaging tests.
+- Packaging: the fork's Windows installer, code signing, an update channel (none by default; decide Q13), packaging tests, an upstream merge to the latest stable VS Code.
 - Accessibility audit (NVDA), copy review, diagnostics page, export and reset.
 - Documentation: user guide, troubleshooting, extension authoring guide final.
 
@@ -354,9 +374,12 @@ Found and fixed during the phase: user messages and session titles were stored w
 | Q10 | General workspace file previews (Markdown, CSV, images) | Markdown and images only in 1.0 | Phase 4 |
 | Q11 | Extension signing scheme for a future repository | Decide with the repository design | Post-1.0 |
 | Q12 | Default for "Install without running scripts" | Off (most projects need scripts), visible on every install card | Phase 3 user testing |
+| Q13 | How the fork updates itself | No auto-update in 1.0; users download new installers. Revisit with code signing | Phase 7 |
+| Q14 | Which VS Code release the fork follows | Latest stable tag at fork time; merge each new stable within a month | Pivot step 13 |
+
 ## 5. Next implementation milestone
 
-**Phase 3** (section 3): the coding workspace and verification. Phase 2 is complete (0.2.0, acceptance above) except a run with a real OpenRouter key. Phase 0's record follows.
+**The Code-OSS pivot** (section 3, ADR-0015), then Phase 3 on the fork. Phase 2 is complete (0.2.0, acceptance above) except a run with a real OpenRouter key. The step plan: A (archive, ADR, docs) done 2026-10-27; B (the extension) next. Phase 0's record follows.
 
 **Phase 0**, in this order:
 

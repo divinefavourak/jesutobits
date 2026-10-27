@@ -1,6 +1,6 @@
 # ADR-0014: Deleting to the OS trash through the Host
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by ADR-0015 (see its Consequences)
 - **Date:** 2026-10-21
 - **Related:** ADR-0002, ADR-0003, ADR-0011, FR-072, docs/SECURITY.md section 5.2, docs/ARCHITECTURE.md section 6.3
 

@@ -13,7 +13,7 @@ Each ADR records one important decision: the context, the decision, the alternat
 
 | ADR | Title | Status |
 |---|---|---|
-| [0001](0001-desktop-framework-tauri.md) | Desktop framework: Tauri 2 over Electron | Accepted (provisional) |
+| [0001](0001-desktop-framework-tauri.md) | Desktop framework: Tauri 2 over Electron | Superseded by ADR-0015 |
 | [0002](0002-node-runtime-sidecar.md) | Agent runtime as a managed Node.js sidecar | Accepted |
 | [0003](0003-host-runtime-ipc.md) | Host to runtime IPC: JSON-RPC 2.0 over stdio | Accepted |
 | [0004](0004-code-editor-monaco.md) | Code editor: Monaco | Accepted (provisional) |
@@ -27,6 +27,7 @@ Each ADR records one important decision: the context, the decision, the alternat
 | [0012](0012-checkpoints-and-undo.md) | Checkpoints and undo for agent edits | Accepted |
 | [0013](0013-monorepo-tooling.md) | Monorepo and build tooling | Accepted |
 | [0014](0014-trash-through-host.md) | Deleting to the OS trash through the Host | Accepted |
+| [0015](0015-code-oss-fork.md) | Build Jesutobits on a Code-OSS fork | Accepted |
 
 ## Writing a new ADR
 

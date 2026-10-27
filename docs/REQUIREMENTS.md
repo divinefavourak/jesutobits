@@ -173,16 +173,16 @@ Reference machine: Windows 11, 4-core CPU, 8 GB RAM, SSD, no other heavy apps.
 
 | ID | Category | Requirement | Priority |
 |---|---|---|---|
-| NFR-001 | Performance | Cold start to interactive Workbench within 3 s on the reference machine (excluding first-run install). | MVP |
+| NFR-001 | Performance | Cold start to interactive window within 3 s on the reference machine (excluding first-run install); the Jesutobits extension adds under 500 ms to the same Code-OSS build's start (ADR-0015). | MVP |
 | NFR-002 | Performance | Runtime answers `initialize` within 2 s of spawn. | MVP |
 | NFR-003 | Performance | No Workbench main-thread task longer than 100 ms during token streaming, large logs (100k lines) or large timelines (5k events); long lists are virtualised. | MVP |
-| NFR-004 | Resources | Idle memory (Workbench + Host + runtime, one small project, no preview) under 400 MB. | MVP |
-| NFR-005 | Distribution | Windows installer under 130 MB including the bundled Node binary. | MVP |
-| NFR-006 | Performance | Host relay adds under 5 ms p95 latency per runtime message on the reference machine. | MVP |
+| NFR-004 | Resources | Idle memory Jesutobits adds (runtime + agent webview, one small project, no preview) under 200 MB over the same Code-OSS build without the extension (ADR-0015). | MVP |
+| NFR-005 | Distribution | Windows installer under 160 MB. | MVP |
+| NFR-006 | Performance | The extension's webview relay adds under 5 ms p95 latency per runtime message on the reference machine. | MVP |
 | NFR-007 | Security | Secrets never appear in plaintext on disk outside the OS store, in logs, in model context or in child environments. Verified by automated canary tests. | MVP |
-| NFR-008 | Security | The Workbench webview has only the Tauri capabilities it needs; it has no shell, generic file system or HTTP plugin access. | MVP |
+| NFR-008 | Security | Jesutobits webviews have no Node or VS Code API access; the extension accepts only allowlisted, schema-checked methods from them (ADR-0015). | MVP |
 | NFR-009 | Reliability | Runtime crashes auto-restart with backoff; no session data is corrupted (SQLite transactions, WAL); file writes are atomic (write temp then rename). | MVP |
-| NFR-010 | Reliability | No processes started by Jesutobits survive app exit or crash on Windows; on macOS/Linux, survivors are reaped on next start. | MVP |
+| NFR-010 | Reliability | No processes started by Jesutobits survive app exit; after a crash, survivors are reaped on next start (the runtime exits when its stdin closes). | MVP |
 | NFR-011 | Accessibility | App chrome meets WCAG 2.2 AA: keyboard operable, visible focus, labelled controls, contrast, reduced motion. | MVP |
 | NFR-012 | Portability | Windows 10 (22H2) and 11 x64 at MVP. No architectural change needed for macOS arm64 and Linux x64. | MVP |
 | NFR-013 | Availability | Without network, Jesutobits works as editor, terminal and preview tool, and states clearly that agent features need the provider. | MVP |

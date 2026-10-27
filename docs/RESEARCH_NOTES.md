@@ -90,6 +90,15 @@ Rules for this file:
 | RN-38 | In WebView2 155, an `https://tauri.localhost` page (`useHttpsScheme: true`) loads an `http://127.0.0.1:<port>` iframe and exchanges `postMessage` with it; no mixed-content blocking. Consistent with Chromium treating loopback origins as potentially trustworthy. | Spike S3, 20 October 2026 |
 | RN-39 | In `@vitejs/plugin-react` 6.1.2, the `vite:react-babel` plugin (`enforce: "pre"`) has no `transform` hook; it configures Vite core's Oxc JSX transform (`oxc.jsx`), so JSX is compiled after every `pre` plugin. The package does not export `./package.json`. | `node_modules/@vitejs/plugin-react/dist/index.js`, read in Spike S2, 20 October 2026 |
 
+## VS Code and Code-OSS
+
+| ID | Fact | Source |
+|---|---|---|
+| RN-40 | VS Code's `Code.exe` (Electron 43.7.7, Node 24.21.0) started with `ELECTRON_RUN_AS_NODE=1` runs as plain Node: `node:sqlite` opens (SQLite 3.53.4), and the unmodified runtime bundle (`packages/runtime/dist/bundle/runtime.mjs`, built for `node26`) answers `runtime.initialize` about 185 ms after start, migrates the database 0 → 2 and answers `projects.list`. | Local check on Windows 11, 27 October 2026 |
+| RN-41 | The `microsoft/vscode` repository (Code-OSS) is MIT-licensed. The Visual Studio Code product adds Microsoft branding, telemetry defaults and a product licence on top; forks must replace `product.json` branding and must not use the VS Code name or logo. | https://github.com/microsoft/vscode/wiki/Differences-between-the-repository-and-Visual-Studio-Code |
+| RN-42 | The Visual Studio Marketplace terms allow its extensions only in Microsoft's Visual Studio family of products. Code-OSS forks such as VSCodium point `extensionsGallery` at Open VSX instead. Several Microsoft extensions (Pylance, C# Dev Kit, Remote-SSH, Live Share) are proprietary and unavailable to forks. | https://aka.ms/vsmarketplace-ToU ; https://github.com/VSCodium/vscodium/blob/master/docs/index.md |
+| RN-43 | Building Code-OSS needs the Node version in the repository's `.nvmrc`, Python 3, and on Windows Visual Studio Build Tools with the C++ workload and Spectre-mitigated libraries (native modules are compiled with node-gyp). | https://github.com/microsoft/vscode/wiki/How-to-Contribute |
+
 ## Open verification items (owned by spikes)
 
 | Item | Owner | Needed before |

@@ -1,6 +1,6 @@
 # ADR-0002: Agent runtime as a managed Node.js sidecar
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by ADR-0015 (see its Consequences)
 - **Date:** 2026-10-19
 - **Related:** ADR-0001, ADR-0003, ADR-0011, RN-01, RN-02, RN-03, RN-11, RN-12, RN-14, RN-17
 

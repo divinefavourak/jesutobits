@@ -1,6 +1,6 @@
 # ADR-0007: Staged extension sandboxing
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by ADR-0015 (see its Consequences)
 - **Date:** 2026-10-19
 - **Related:** docs/EXTENSION_SYSTEM.md, docs/SECURITY.md, RN-06, RN-31, RN-34
 

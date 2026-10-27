@@ -1,6 +1,6 @@
 # ADR-0011: Process execution and terminals
 
-- **Status:** Accepted
+- **Status:** Accepted; amended by ADR-0015 (see its Consequences)
 - **Date:** 2026-10-19
 - **Related:** ADR-0002, RN-03, RN-16, docs/SECURITY.md section 5
 
