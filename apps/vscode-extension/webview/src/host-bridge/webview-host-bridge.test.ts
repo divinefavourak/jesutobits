@@ -288,6 +288,21 @@ describe("WebviewHostBridge", () => {
     expect(events).toEqual([warning(2)]);
   });
 
+  it("tells key subscribers that a secret changed, until they unsubscribe", () => {
+    const { bridge, deliver } = setup();
+    let first = 0;
+    let second = 0;
+    bridge.secrets.onChange(() => (first += 1));
+    const unsubscribe = bridge.secrets.onChange(() => (second += 1));
+
+    deliver({ kind: "secretsChanged" });
+    unsubscribe();
+    deliver({ kind: "secretsChanged" });
+
+    expect(first).toBe(2);
+    expect(second).toBe(1);
+  });
+
   it("ignores messages it cannot read", async () => {
     const { bridge, deliver } = setup();
 

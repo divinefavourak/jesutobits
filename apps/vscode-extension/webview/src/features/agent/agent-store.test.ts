@@ -417,4 +417,14 @@ describe("agent store", () => {
     await agentState(workbench).checkKey();
     expect(agentState(workbench).hasKey).toBe(true);
   });
+
+  it("checks the key again when it is set outside the panel", async () => {
+    const { bridge, workbench } = await setup();
+    await agentState(workbench).checkKey();
+    expect(agentState(workbench).hasKey).toBe(false);
+
+    bridge.storeSecretElsewhere(OPENROUTER_REF, "sk-or-test-not-real");
+
+    await vi.waitFor(() => expect(agentState(workbench).hasKey).toBe(true));
+  });
 });

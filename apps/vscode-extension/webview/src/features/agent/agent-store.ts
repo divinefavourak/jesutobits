@@ -289,6 +289,9 @@ export function createAgentStore(bridge: HostBridge, projects: ProjectStore): Ag
     store.setState((state) => ({ timeline: applyEvent(state.timeline, event) }));
   });
 
+  // The key was set or removed outside the panel (a command, the walkthrough).
+  bridge.secrets.onChange(() => void store.getState().checkKey());
+
   // A project opened (or reopened after a restart): its sessions, and its last session.
   let lastGeneration = -1;
   projects.subscribe((state) => {

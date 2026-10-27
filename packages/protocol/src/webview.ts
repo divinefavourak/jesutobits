@@ -117,5 +117,7 @@ export const HostToWebviewSchema = z.discriminatedUnion("kind", [
   /** The active project changed, or was opened again after a runtime restart. */
   z.object({ kind: z.literal("project"), project: ProjectSchema.nullable() }).strict(),
   z.object({ kind: z.literal("settings"), settings: AppSettingsSchema }).strict(),
+  /** A stored secret was set or removed (never which value): the panel checks again. */
+  z.object({ kind: z.literal("secretsChanged") }).strict(),
 ]);
 export type HostToWebview = z.infer<typeof HostToWebviewSchema>;

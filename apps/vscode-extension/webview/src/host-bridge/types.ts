@@ -62,5 +62,7 @@ export interface HostBridge {
     prompt(ref: SecretRef): Promise<boolean>;
     delete(ref: SecretRef): Promise<void>;
     exists(ref: SecretRef): Promise<boolean>;
+    /** A secret was set or removed anywhere (a command, another window): check again. */
+    onChange(handler: () => void): Unsubscribe;
   };
 }

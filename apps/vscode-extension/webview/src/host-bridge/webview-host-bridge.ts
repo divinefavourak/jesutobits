@@ -45,6 +45,7 @@ export class WebviewHostBridge implements HostBridge {
   readonly #status = new Listeners<RuntimeStatusUpdate>(true);
   readonly #projects = new Listeners<Project | null>(true);
   readonly #settings = new Listeners<AppSettings>(false);
+  readonly #secretsChanged = new Listeners<void>(false);
   #nextId = 1;
 
   constructor(vscode: VsCodeApi, target: Pick<Window, "addEventListener"> = window) {
@@ -113,6 +114,9 @@ export class WebviewHostBridge implements HostBridge {
         return;
       case "settings":
         this.#settings.emit(message.settings);
+        return;
+      case "secretsChanged":
+        this.#secretsChanged.emit();
     }
   }
 
@@ -166,5 +170,6 @@ export class WebviewHostBridge implements HostBridge {
     },
     exists: async (ref: SecretRef): Promise<boolean> =>
       (await this.#host("secrets.exists", { ref })).exists,
+    onChange: (handler: () => void): Unsubscribe => this.#secretsChanged.add(handler),
   };
 }

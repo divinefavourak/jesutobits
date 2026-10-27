@@ -10,8 +10,10 @@ import {
   UiStateSchema,
   type AppSettings,
   type LogLevel,
+  type ModelInfo,
   type Project,
   type RuntimeStatusUpdate,
+  type SecretRef,
   type UiState,
 } from "@jesutobits/protocol";
 import * as vscode from "vscode";
@@ -44,6 +46,8 @@ export function activate(context: vscode.ExtensionContext): void {
     return config;
   };
   const currentSettings = (): AppSettings => AppSettingsSchema.parse(currentConfig().settings);
+  const openRouterRef = (): SecretRef =>
+    `provider:openrouter:${currentSettings().providers.openrouter.profile}`;
 
   let project: Project | null = null;
   const openProject = async (call: RuntimeCall) => {
@@ -176,8 +180,18 @@ export function activate(context: vscode.ExtensionContext): void {
         if (parsed.success) panel.post({ kind: "event", event: parsed.data });
       }),
     },
+    context.secrets.onDidChange(() => panel.post({ kind: "secretsChanged" })),
     vscode.commands.registerCommand("jesutobits.restartRuntime", () => runtime.restart()),
     vscode.commands.registerCommand("jesutobits.showLog", () => output.show()),
+    vscode.commands.registerCommand("jesutobits.openAgent", async () => {
+      await vscode.commands.executeCommand(`${AGENT_VIEW_ID}.focus`);
+    }),
+    vscode.commands.registerCommand("jesutobits.setApiKey", async () => {
+      await services.secrets.prompt(openRouterRef());
+    }),
+    vscode.commands.registerCommand("jesutobits.chooseModel", () =>
+      chooseModel(call, services.setDefaultModel, log),
+    ),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (!event.affectsConfiguration("jesutobits")) return;
       runtime.call("runtime.configure", currentConfig()).catch((error: unknown) => {
@@ -222,4 +236,49 @@ function showStatus(item: vscode.StatusBarItem, update: RuntimeStatusUpdate): vo
   item.backgroundColor =
     update.status === "failed" ? new vscode.ThemeColor("statusBarItem.errorBackground") : undefined;
   item.show();
+}
+
+/** The default model (FR-022): tools-capable models first, the rest marked Ask-only. */
+async function chooseModel(
+  call: RuntimeCall,
+  save: (modelId: string) => Promise<void>,
+  log: (level: LogLevel, message: string) => void,
+): Promise<void> {
+  let models: ModelInfo[];
+  try {
+    ({ models } = (await call("models.list", { refresh: false })) as { models: ModelInfo[] });
+  } catch (error) {
+    log("warn", `could not list models: ${String(error)}`);
+    void vscode.window.showErrorMessage(
+      "Jesutobits could not list OpenRouter's models. Check the API key and the connection.",
+    );
+    return;
+  }
+  const byName = (a: ModelInfo, b: ModelInfo) => a.displayName.localeCompare(b.displayName);
+  const item = (model: ModelInfo): vscode.QuickPickItem & { id: string } => ({
+    id: model.id,
+    label: model.displayName,
+    description: model.id,
+    detail: [
+      `${model.contextWindow.toLocaleString("en")} tokens`,
+      model.pricing &&
+        `USD ${model.pricing.inputPerMTok} / ${model.pricing.outputPerMTok} per million`,
+      !model.capabilities.tools && "Ask mode only (no tools)",
+    ]
+      .filter(Boolean)
+      .join(" · "),
+  });
+  const withTools = models.filter((model) => model.capabilities.tools).sort(byName);
+  const without = models.filter((model) => !model.capabilities.tools).sort(byName);
+  const picked = await vscode.window.showQuickPick(
+    [
+      ...withTools.map(item),
+      ...(without.length > 0
+        ? [{ label: "Ask mode only", kind: vscode.QuickPickItemKind.Separator, id: "" }]
+        : []),
+      ...without.map(item),
+    ],
+    { title: "Default model for new sessions", matchOnDescription: true, matchOnDetail: true },
+  );
+  if (picked?.id) await save(picked.id);
 }

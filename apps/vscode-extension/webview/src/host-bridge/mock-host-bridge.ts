@@ -149,7 +149,10 @@ export class MockHostBridge implements HostBridge {
       this.storedSecrets.delete(ref);
     },
     exists: async (ref: SecretRef): Promise<boolean> => this.storedSecrets.has(ref),
+    onChange: (handler: () => void): Unsubscribe => this.secretChanges.add(handler),
   };
+
+  private readonly secretChanges = new Listeners<void>(false);
 
   /** Test helpers. */
   handle<M extends WorkbenchMethod>(method: M, handler: Handler<M>): void {
@@ -173,5 +176,11 @@ export class MockHostBridge implements HostBridge {
   /** Stores a key as if the user had typed it into the extension's password box. */
   storeSecret(ref: SecretRef, value: string): void {
     this.storedSecrets.set(ref, value);
+  }
+
+  /** Stores a key from outside the panel (the "Set API key" command), and says so. */
+  storeSecretElsewhere(ref: SecretRef, value: string): void {
+    this.storedSecrets.set(ref, value);
+    this.secretChanges.emit();
   }
 }

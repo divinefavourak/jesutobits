@@ -51,6 +51,63 @@
         "command": "jesutobits.showLog",
         "title": "Show Runtime Log",
         "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.openAgent",
+        "title": "Open Agent",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.setApiKey",
+        "title": "Set OpenRouter API Key",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.chooseModel",
+        "title": "Choose Default Model",
+        "category": "Jesutobits"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "jesutobits.start",
+        "title": "Get started with Jesutobits",
+        "description": "Connect a model provider and give the agent its first task.",
+        "steps": [
+          {
+            "id": "apiKey",
+            "title": "Add your OpenRouter API key",
+            "description": "Jesutobits calls models through OpenRouter. The key is typed into a password box and kept in your system's credential store; Jesutobits never shows it again.\n[Set API key](command:jesutobits.setApiKey)",
+            "media": {
+              "markdown": "media/walkthrough/api-key.md"
+            },
+            "completionEvents": [
+              "onCommand:jesutobits.setApiKey"
+            ]
+          },
+          {
+            "id": "model",
+            "title": "Choose a default model",
+            "description": "Pick the model new sessions use. Models that cannot use tools only work in Ask mode.\n[Choose model](command:jesutobits.chooseModel)",
+            "media": {
+              "markdown": "media/walkthrough/model.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:jesutobits.providers.openrouter.defaultModel"
+            ]
+          },
+          {
+            "id": "firstTask",
+            "title": "Give the agent a task",
+            "description": "Open a folder, then ask the agent to change something. You approve anything risky, every step shows in the timeline, and Revert turn undoes a turn's edits.\n[Open the agent](command:jesutobits.openAgent)",
+            "media": {
+              "markdown": "media/walkthrough/first-task.md"
+            },
+            "completionEvents": [
+              "onView:jesutobits.agent"
+            ]
+          }
+        ]
       }
     ],
     "configuration": {
