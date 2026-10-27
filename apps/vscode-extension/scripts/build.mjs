@@ -33,7 +33,25 @@ for (const file of ["runtime.mjs", "runtime.mjs.map"]) {
   copyFileSync(join(runtimeBundle, file), join(dist, "runtime", file));
 }
 
-await viteBuild({
-  configFile: join(extensionDir, "webview", "vite.config.mts"),
-  logLevel: "warn",
-});
+// The preview launcher and Vite plugin run with the user's Node inside their project
+// (VISUAL_EDITING.md section 4.8); the runtime gets their folder as --guest.
+const packages = join(extensionDir, "..", "..", "packages");
+const guest = [
+  [join(packages, "preview-launcher", "dist", "preview-launcher.js"), "preview-launcher.js"],
+  [join(packages, "vite-plugin", "dist", "bundle", "index.mjs"), "vite-plugin.mjs"],
+];
+mkdirSync(join(dist, "guest"), { recursive: true });
+for (const [from, to] of guest) {
+  if (!existsSync(from)) throw new Error(`${from} is missing; run pnpm build:packages`);
+  copyFileSync(from, join(dist, "guest", to));
+}
+
+// One bundle per webview, each a single script and stylesheet (no shared chunks to allow).
+for (const [index, entry] of ["main", "preview"].entries()) {
+  process.env.JESUTOBITS_WEBVIEW_ENTRY = entry;
+  await viteBuild({
+    configFile: join(extensionDir, "webview", "vite.config.mts"),
+    logLevel: "warn",
+    build: { emptyOutDir: index === 0 },
+  });
+}

@@ -67,6 +67,8 @@ export function launchSpec(options: LaunchOptions): LaunchSpec {
       "--data-dir",
       options.dataDir,
       ...(ripgrep ? ["--ripgrep", ripgrep] : []),
+      "--guest",
+      join(options.extensionPath, "dist", "guest"),
     ],
     env: runtimeEnv(options.env ?? process.env),
   };

@@ -12,6 +12,8 @@ import { RuntimeConfig } from "./config.js";
 import { EventBus } from "./events/event-bus.js";
 import { SecretRegistry } from "./log/secret-registry.js";
 import { LineSplitter } from "./rpc/line-splitter.js";
+import { PreviewManager } from "./preview/preview-manager.js";
+import { registerPreview } from "./preview/preview-rpc.js";
 import { Projects } from "./projects/projects.js";
 import { RpcServer } from "./rpc/server.js";
 import { openStorage, type Storage } from "./storage/storage.js";
@@ -62,17 +64,18 @@ export function createRuntime(io: RuntimeIo): Runtime {
   const log = io.log.child({ module: "runtime" });
 
   const shutdown = (): void => {
-    // Later phases also stop managed processes here.
     agent.stopAll();
-    try {
-      projects.closeActive();
-      storage?.close();
-    } catch (error) {
-      log.error("could not close the database", { err: error });
-    }
-    io.exit(0);
+    // The dev server goes with the runtime; exit only once it is stopped.
+    void previews.stop().finally(() => {
+      try {
+        projects.closeActive();
+        storage?.close();
+      } catch (error) {
+        log.error("could not close the database", { err: error });
+      }
+      io.exit(0);
+    });
   };
-
   const server = new RpcServer({
     send: (line) => io.write(`${line}\n`),
     log: io.log.child({ module: "rpc" }),
@@ -154,6 +157,15 @@ export function createRuntime(io: RuntimeIo): Runtime {
   });
   projects.register(server);
 
+  const previews = new PreviewManager({
+    guestDir: io.agent?.guest,
+    emit: (status) => events.emit("preview.status", { status }),
+    mask: (text) => secrets.mask(text),
+    log: io.log.child({ module: "preview" }),
+  });
+  registerPreview(server, projects, previews);
+  projects.onClose((projectId) => void previews.closeProject(projectId));
+
   const agent = new AgentService({
     events,
     projects,
@@ -164,6 +176,7 @@ export function createRuntime(io: RuntimeIo): Runtime {
     log: io.log.child({ module: "agent" }),
     dataDir: io.dataDir,
     env: io.agent ?? {},
+    previews,
   });
   agent.register(server);
 

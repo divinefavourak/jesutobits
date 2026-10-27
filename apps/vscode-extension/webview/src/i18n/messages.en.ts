@@ -510,6 +510,30 @@ export const en = {
     "Workbench to runtime and back, including the webview's own IPC. The Host relay's share is measured separately (docs/spikes/S1.md).",
   "diagnostics.roundTrip.run": "Measure 1,000 round trips (1 KB)",
   "diagnostics.roundTrip.running": "Measuring…",
+
+  "preview.title": "Preview",
+  "preview.start": "Start preview",
+  "preview.stop": "Stop",
+  "preview.reload": "Reload",
+  "preview.openExternal": "Open in browser",
+  "preview.inspect": "Inspect",
+  "preview.inspectHint":
+    "Click an element in the app to see where it comes from and edit its classes.",
+  "preview.stopped": "The preview is not running. Start it to see your app here.",
+  "preview.starting": "Starting the dev server…",
+  "preview.failed": "The preview could not start: {detail}",
+  "preview.genericNote": "Visual editing is off for this project: {reason}",
+  "preview.log": "Dev server output",
+  "preview.noProject": "Open a folder to preview it.",
+  "preview.inspector.title": "Selected element",
+  "preview.inspector.empty": "Turn on Inspect and click an element in the app.",
+  "preview.inspector.component": "Component",
+  "preview.inspector.source": "Source",
+  "preview.inspector.classes": "Classes",
+  "preview.inspector.apply": "Apply",
+  "preview.inspector.applied": "Saved to {path}.",
+  "preview.inspector.unchanged": "Nothing to change.",
+  "preview.inspector.failed": "Could not change it: {reason}",
 } as const;
 
 export type Messages = typeof en;

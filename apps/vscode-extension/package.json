@@ -66,6 +66,12 @@
         "command": "jesutobits.chooseModel",
         "title": "Choose Default Model",
         "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.openPreview",
+        "title": "Open Preview",
+        "category": "Jesutobits",
+        "icon": "$(open-preview)"
       }
     ],
     "walkthroughs": [

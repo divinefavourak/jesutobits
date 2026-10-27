@@ -80,6 +80,7 @@ function setup(
       openedSettings.push(section);
     },
     projectRoot: () => undefined,
+    openExternal: async () => undefined,
     openFile: async (path) => {
       openedFiles.push(path);
     },

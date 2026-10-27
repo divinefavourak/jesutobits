@@ -94,6 +94,8 @@ describe("launchSpec", () => {
         "--stdio",
         "--data-dir",
         dataDir,
+        "--guest",
+        join(extensionPath, "dist", "guest"),
       ],
       env: { PATH: "/bin", ELECTRON_RUN_AS_NODE: "1" },
     });
@@ -123,7 +125,7 @@ describe("launchSpec", () => {
       env: {},
     });
 
-    expect(spec.args.slice(-2)).toEqual(["--ripgrep", rg]);
+    expect(spec.args.slice(-4, -2)).toEqual(["--ripgrep", rg]);
   });
 
   it("leaves ripgrep out when VS Code has none", () => {

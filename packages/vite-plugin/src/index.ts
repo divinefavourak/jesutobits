@@ -22,13 +22,18 @@ export const BRIDGE_PATH = "/@jesutobits/bridge";
 const RESOLVED_BRIDGE = "\0jesutobits:bridge";
 
 /**
- * Spike S2 stand-in for `@jesutobits/visual-bridge`: records HMR updates and resolves an
- * element to its nearest instrumented ancestor, the same lookup the real bridge uses
- * (VISUAL_EDITING.md section 5.1). Phase 4 replaces it with the real bundle.
+ * The bridge inside the preview (VISUAL_EDITING.md sections 5 and 9, ADR-0010). It only
+ * reports: in inspect mode it outlines the instrumented element under the pointer and, on a
+ * click, tells the Jesutobits panel which element it was. It obeys one message, `inspect.set`
+ * from its parent window, and adopts that message's session nonce for everything it sends.
+ * `window.__jesutobits` keeps the lookup and HMR record Spike S2 measures with.
  */
-const BRIDGE_STUB = `
+const BRIDGE = `
+const PROTOCOL = 1;
+let nonce = null;
+let inspecting = false;
 const state = (window.__jesutobits = {
-  version: "s2-stub",
+  version: "1",
   hmrUpdates: [],
   resolve(element) {
     const host = element?.closest?.("[data-jesutobits-loc]");
@@ -45,6 +50,66 @@ if (import.meta.hot) {
     state.hmrUpdates.push({ at: Date.now(), files: payload.updates.map((u) => u.path) });
   });
 }
+
+const overlay = document.createElement("div");
+overlay.setAttribute("data-jesutobits-overlay", "");
+Object.assign(overlay.style, {
+  position: "fixed", pointerEvents: "none", zIndex: "2147483647", display: "none",
+  border: "2px solid #6366F1", background: "rgba(99, 102, 241, 0.12)", boxSizing: "border-box",
+});
+const attach = () => document.body && !overlay.isConnected && document.body.appendChild(overlay);
+
+function post(message) {
+  if (nonce && window.parent !== window) {
+    window.parent.postMessage({ jesutobits: PROTOCOL, nonce, ...message }, "*");
+  }
+}
+const hostOf = (target) => (target instanceof Element ? target.closest("[data-jesutobits-loc]") : null);
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window.parent) return;
+  const data = event.data;
+  if (!data || data.jesutobits !== PROTOCOL || data.type !== "inspect.set") return;
+  if (typeof data.nonce !== "string" || !/^[0-9a-f]{32}$/.test(data.nonce)) return;
+  if (typeof data.enabled !== "boolean") return;
+  const first = nonce === null;
+  nonce = data.nonce;
+  if (first) post({ type: "bridge.hello", version: state.version, url: location.href.slice(0, 2048) });
+  inspecting = data.enabled;
+  attach();
+  overlay.style.display = "none";
+  document.documentElement.style.cursor = inspecting ? "crosshair" : "";
+});
+
+document.addEventListener("mousemove", (event) => {
+  if (!inspecting) return;
+  const host = hostOf(event.target);
+  if (!host) {
+    overlay.style.display = "none";
+    return;
+  }
+  const rect = host.getBoundingClientRect();
+  Object.assign(overlay.style, {
+    display: "block", left: rect.left + "px", top: rect.top + "px",
+    width: rect.width + "px", height: rect.height + "px",
+  });
+}, true);
+
+document.addEventListener("click", (event) => {
+  if (!inspecting) return;
+  const host = hostOf(event.target);
+  if (!host) return;
+  event.preventDefault();
+  event.stopPropagation();
+  post({
+    type: "inspect.selected",
+    loc: host.getAttribute("data-jesutobits-loc"),
+    tag: host.tagName.toLowerCase(),
+    component: host.closest("[data-jesutobits-comp]")?.getAttribute("data-jesutobits-comp") ?? null,
+    className: (host.getAttribute("class") ?? "").slice(0, 4000),
+    text: (host.textContent ?? "").trim().replace(/\\s+/g, " ").slice(0, 200),
+  });
+}, true);
 `;
 
 /** Normalises Vite ids (`C:/x/y.tsx?v=1`) and returns the project-relative posix path. */
@@ -76,7 +141,7 @@ export function jesutobitsVisualEdit(options: VisualEditOptions): Plugin {
     },
 
     load(id) {
-      return id === RESOLVED_BRIDGE ? BRIDGE_STUB : undefined;
+      return id === RESOLVED_BRIDGE ? BRIDGE : undefined;
     },
 
     transformIndexHtml() {

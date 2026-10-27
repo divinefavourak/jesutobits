@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import {
   AppSettingsSchema,
   LogLevelSchema,
+  previewStatusEvent,
   RuntimeEventBaseSchema,
   UiStateSchema,
   type AppSettings,
@@ -22,8 +23,10 @@ import { createReverseHandler } from "./host/reverse-calls.js";
 import { runtimeConfig } from "./host/runtime-config.js";
 import { syncProject, type RuntimeCall } from "./host/workspace-project.js";
 import { launchSpec } from "./runtime/launch.js";
+import { RpcCallError } from "./runtime/connection.js";
 import { RuntimeSupervisor } from "./runtime/supervisor.js";
 import { AGENT_VIEW_ID, AgentViewProvider } from "./vscode/agent-view.js";
+import { PreviewPanel } from "./vscode/preview-panel.js";
 
 /** globalState key for the panel's remembered state (active session per project). */
 const UI_STATE_KEY = "jesutobits.uiState";
@@ -146,8 +149,15 @@ export function activate(context: vscode.ExtensionContext): void {
       await vscode.commands.executeCommand("workbench.action.openSettings", "jesutobits");
     },
     projectRoot: () => project?.path,
-    openFile: async (path) => {
-      await vscode.window.showTextDocument(vscode.Uri.file(path), { preview: true });
+    openFile: async (path, position) => {
+      const at = position && new vscode.Position(position.line - 1, position.column - 1);
+      await vscode.window.showTextDocument(vscode.Uri.file(path), {
+        preview: true,
+        ...(at && { selection: new vscode.Range(at, at) }),
+      });
+    },
+    openExternal: async (url) => {
+      await vscode.env.openExternal(vscode.Uri.parse(url));
     },
     log,
   };
@@ -155,6 +165,15 @@ export function activate(context: vscode.ExtensionContext): void {
     status: runtime.status,
     project,
   }));
+  const preview = new PreviewPanel(context.extensionUri, services, () => runtime.status);
+  const startPreview = async () => {
+    preview.show();
+    try {
+      await runtime.call("preview.start", {}, 150_000);
+    } catch (error) {
+      void vscode.window.showErrorMessage(`The preview could not start: ${errorText(error)}`);
+    }
+  };
 
   const status = vscode.window.createStatusBarItem(
     "jesutobits.runtime",
@@ -172,12 +191,20 @@ export function activate(context: vscode.ExtensionContext): void {
       dispose: runtime.onStatus((update) => {
         showStatus(status, update);
         panel.post({ kind: "status", update });
+        preview.post({ kind: "status", update });
       }),
     },
     {
       dispose: runtime.onEvent((event) => {
         const parsed = RuntimeEventBaseSchema.loose().safeParse(event);
-        if (parsed.success) panel.post({ kind: "event", event: parsed.data });
+        if (!parsed.success) return;
+        panel.post({ kind: "event", event: parsed.data });
+        preview.post({ kind: "event", event: parsed.data });
+        // The agent started a preview: show it.
+        const started = previewStatusEvent.payload.safeParse(parsed.data);
+        if (started.success && started.data.status.state === "starting" && !preview.isOpen) {
+          preview.show();
+        }
       }),
     },
     context.secrets.onDidChange(() => panel.post({ kind: "secretsChanged" })),
@@ -189,6 +216,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("jesutobits.setApiKey", async () => {
       await services.secrets.prompt(openRouterRef());
     }),
+    vscode.commands.registerCommand("jesutobits.openPreview", startPreview),
     vscode.commands.registerCommand("jesutobits.chooseModel", () =>
       chooseModel(call, services.setDefaultModel, log),
     ),
@@ -281,4 +309,9 @@ async function chooseModel(
     { title: "Default model for new sessions", matchOnDescription: true, matchOnDetail: true },
   );
   if (picked?.id) await save(picked.id);
+}
+
+function errorText(error: unknown): string {
+  if (error instanceof RpcCallError) return error.error.message;
+  return error instanceof Error ? error.message : String(error);
 }

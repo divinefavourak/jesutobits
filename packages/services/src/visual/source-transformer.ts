@@ -66,11 +66,22 @@ function findOpeningElement(code: string, typescript: boolean, at: SourceLocatio
   );
 }
 
+/**
+ * Removes and adds classes; an added class takes the place of a removed one, so changing
+ * `bg-indigo-600` to `bg-emerald-600` keeps the order and the diff minimal. Extra additions
+ * go at the end.
+ */
 function applyToClassList(current: string, edit: ClassEdit): string {
   const remove = new Set(edit.remove);
-  const kept = current.split(/\s+/).filter((name) => name !== "" && !remove.has(name));
-  for (const name of edit.add) if (!kept.includes(name)) kept.push(name);
-  return kept.join(" ");
+  const names = current.split(/\s+/).filter((name) => name !== "");
+  const adds = edit.add.filter((name) => !names.includes(name) || remove.has(name));
+  const result: string[] = [];
+  for (const name of names) {
+    if (!remove.has(name)) result.push(name);
+    else if (adds.length > 0) result.push(adds.shift()!);
+  }
+  for (const name of adds) if (!result.includes(name)) result.push(name);
+  return result.join(" ");
 }
 
 /** Edits the class list of the JSX element starting at `loc`. */

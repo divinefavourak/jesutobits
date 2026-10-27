@@ -103,6 +103,12 @@ export class MockHostBridge implements HostBridge {
     this.openedFiles.push(path);
   }
 
+  readonly openedUrls: string[] = [];
+
+  async openExternal(url: string): Promise<void> {
+    this.openedUrls.push(url);
+  }
+
   readonly settings = {
     get: async (): Promise<AppSettings> => structuredClone(this.currentSettings),
     update: async (patch: WebviewHostParams<"settings.update">): Promise<AppSettings> => {

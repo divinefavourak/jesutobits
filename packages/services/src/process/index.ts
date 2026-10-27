@@ -9,3 +9,4 @@ export {
 } from "./environment.js";
 export { DEFAULT_TIMEOUT_MS, runCommand, type RunOptions, type RunResult } from "./run-command.js";
 export { detectToolchain, TOOLS, type ToolName, type ToolStatus } from "./toolchain.js";
+export { startProcess, type ProcessHandle, type StartOptions } from "./start-process.js";

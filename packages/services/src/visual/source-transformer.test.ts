@@ -25,10 +25,10 @@ const changedLines = (a: string, b: string) => {
 };
 
 describe("applyClassEdit", () => {
-  it("swaps one class and changes nothing else", () => {
+  it("swaps one class in place and changes nothing else", () => {
     const result = edit(4, 7, ["text-4xl"], ["text-6xl"]);
     expect(changedLines(hero, result.code)).toEqual([
-      '      <h1 className="font-bold text-6xl">Track habits</h1>',
+      '      <h1 className="text-6xl font-bold">Track habits</h1>',
     ]);
     expect(result.loc).toEqual({ line: 4, column: 7 });
   });

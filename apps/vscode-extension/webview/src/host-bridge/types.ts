@@ -38,8 +38,10 @@ export interface HostBridge {
   log(level: LogLevel, message: string): void;
   /** Opens VS Code's Settings editor on Jesutobits' settings. */
   openSettings(section?: string): Promise<void>;
-  /** Opens a project file (path relative to the project) in VS Code's editor. */
-  openFile(path: string): Promise<void>;
+  /** Opens a project file (path relative to the project) in VS Code's editor, at a position. */
+  openFile(path: string, position?: { line: number; column: number }): Promise<void>;
+  /** Opens a running preview (a loopback URL) in the user's browser. */
+  openExternal(url: string): Promise<void>;
 
   /** The `jesutobits.*` VS Code settings, in the `settings.json` shape the panel knows. */
   settings: {

@@ -3,10 +3,12 @@ import type { ToolSpec } from "../providers/types.js";
 import { listDirectory, readFile, searchFiles } from "./files/read-tools.js";
 import { deletePath, editFile, movePath, writeFile } from "./files/write-tools.js";
 import { askUser, updatePlan } from "./interaction/interaction-tools.js";
+import { runCommand } from "./process/run-command.js";
+import { startPreview } from "./process/start-preview.js";
 import { searchText } from "./search/search-text.js";
 import type { AnyTool } from "./common/types.js";
 
-/** Phase 2's built-in tools (ROADMAP.md Phase 2); commands, Git and previews come later. */
+/** The built-in tools; Git and previews come later. */
 export const BUILTIN_TOOLS: readonly AnyTool[] = [
   listDirectory,
   readFile,
@@ -16,6 +18,8 @@ export const BUILTIN_TOOLS: readonly AnyTool[] = [
   editFile,
   movePath,
   deletePath,
+  runCommand,
+  startPreview,
   updatePlan,
   askUser,
 ] as unknown as readonly AnyTool[];

@@ -162,6 +162,7 @@ export async function openToolTestProject(
     turnId: TURN_ID,
     callId: "call_1",
     workspace,
+    projectRoot: workspace.root,
     prohibited,
     files: index,
     reads,

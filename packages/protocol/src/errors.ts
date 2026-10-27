@@ -148,6 +148,12 @@ export const ErrorCodes = {
   visualElementNotFound: "visual.element_not_found",
   /** The property cannot be edited statically, for example a computed className. */
   visualNotEditable: "visual.not_editable",
+  /** The project has nothing to preview: no Vite, no dev or start script. */
+  previewUnavailable: "preview.unavailable",
+  /** The dev server exited or never answered; the status carries its last lines. */
+  previewStartFailed: "preview.start_failed",
+  /** The folder is in Restricted Mode, so its dev server may not run (FR-006). */
+  previewRestricted: "preview.restricted",
 } as const satisfies Record<string, JesutobitsErrorCode>;
 
 export const UserActionSchema = z.enum([

@@ -3,6 +3,7 @@ import type {
   FileChange,
   PermissionAction,
   PlanItem,
+  PreviewStatus,
   RiskClass,
   ToolError,
 } from "@jesutobits/protocol";
@@ -99,6 +100,27 @@ export interface ToolContext {
   askUser(question: string, options: string[]): string;
   /** Text search over the project (`search_text`): ripgrep, or the JS fallback. */
   searchText?(query: TextSearchQuery, signal: AbortSignal): Promise<TextSearchResult>;
+  /** The project folder, absolute; tools confine their working folders to it. */
+  projectRoot: string;
+  /** Runs a program without a shell (`run_command`); `cwd` is already inside the project. */
+  runCommand?(argv: string[], options: CommandOptions): Promise<CommandResult>;
+  /** Starts (or joins) the project's preview and resolves once it is ready or failed. */
+  startPreview?(): Promise<PreviewStatus>;
+}
+
+export interface CommandOptions {
+  cwd: string;
+  timeoutMs: number;
+  signal: AbortSignal;
+}
+
+export interface CommandResult {
+  /** Null when the process was ended by a signal. */
+  exitCode: number | null;
+  stdout: string;
+  stderr: string;
+  truncated: boolean;
+  durationMs: number;
 }
 
 /** Content hashes the session saw, by project-relative path. */

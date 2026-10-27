@@ -16,6 +16,7 @@ const { values: args } = parseArgs({
     stdio: { type: "boolean" },
     "data-dir": { type: "string" },
     ripgrep: { type: "string" },
+    guest: { type: "string" },
   },
   strict: false,
 });
@@ -40,6 +41,7 @@ const runtime = createRuntime({
     cassette: process.env.JESUTOBITS_CASSETTE,
     openRouterUrl: process.env.JESUTOBITS_OPENROUTER_URL,
     ripgrep: typeof args.ripgrep === "string" ? args.ripgrep : undefined,
+    guest: typeof args.guest === "string" ? args.guest : undefined,
   },
   exit: (code) => process.exit(code),
   uptimeMs: () => performance.now(),

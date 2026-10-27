@@ -29,7 +29,10 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
     this.#view = view;
     const root = vscode.Uri.joinPath(this.#extensionUri, "dist", "webview");
     view.webview.options = { enableScripts: true, localResourceRoots: [root] };
-    view.webview.html = panelHtml(view.webview, root);
+    view.webview.html = webviewHtml(view.webview, root, {
+      entry: "main",
+      title: "Jesutobits Agent",
+    });
     view.webview.onDidReceiveMessage(async (data: unknown) => {
       const outcome = await handlePanelMessage(data, this.#services);
       if (!outcome) return;
@@ -52,16 +55,25 @@ export class AgentViewProvider implements vscode.WebviewViewProvider {
   }
 }
 
-function panelHtml(webview: vscode.Webview, root: vscode.Uri): string {
+/**
+ * The HTML of a Jesutobits webview: one script (by nonce) and one stylesheet from `root`, and
+ * nothing else. `frames` adds frame sources, for the preview's loopback dev server only.
+ */
+export function webviewHtml(
+  webview: vscode.Webview,
+  root: vscode.Uri,
+  options: { entry: string; title: string; frames?: string[] },
+): string {
   const nonce = randomBytes(18).toString("base64");
-  const script = webview.asWebviewUri(vscode.Uri.joinPath(root, "main.js"));
-  const style = webview.asWebviewUri(vscode.Uri.joinPath(root, "main.css"));
+  const script = webview.asWebviewUri(vscode.Uri.joinPath(root, `${options.entry}.js`));
+  const style = webview.asWebviewUri(vscode.Uri.joinPath(root, `${options.entry}.css`));
   const csp = [
     "default-src 'none'",
     `style-src ${webview.cspSource}`,
     `font-src ${webview.cspSource}`,
     `img-src ${webview.cspSource}`,
     `script-src 'nonce-${nonce}'`,
+    ...(options.frames ? [`frame-src ${options.frames.join(" ")}`] : []),
   ].join("; ");
   return `<!doctype html>
 <html lang="en">
@@ -70,7 +82,7 @@ function panelHtml(webview: vscode.Webview, root: vscode.Uri): string {
 <meta http-equiv="Content-Security-Policy" content="${csp}">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="${style.toString()}">
-<title>Jesutobits Agent</title>
+<title>${options.title}</title>
 </head>
 <body>
 <div id="root"></div>

@@ -7,6 +7,7 @@ import {
   type EventType,
   type ModelInfo,
   type PlanItem,
+  type PreviewStatus,
   type RuntimeSettings,
   type TurnMode,
   type TurnState,
@@ -32,6 +33,8 @@ import type { ModelRequest, ToolCall } from "../providers/types.js";
 import type { SessionStore } from "../sessions/session-store.js";
 import type {
   ReadTracker,
+  CommandOptions,
+  CommandResult,
   TextSearchQuery,
   TextSearchResult,
   ToolContext,
@@ -79,6 +82,8 @@ export interface TurnDeps {
   touched: Set<string>;
   projectMap(): Promise<string | undefined>;
   searchText?(query: TextSearchQuery, signal: AbortSignal): Promise<TextSearchResult>;
+  runCommand?(argv: string[], options: CommandOptions): Promise<CommandResult>;
+  startPreview?(): Promise<PreviewStatus>;
 }
 
 /** The turn was cancelled; the reason travels as the abort reason. */
@@ -425,6 +430,9 @@ export class AgentTurn {
       setPlan: (items: PlanItem[]) => this.deps.emit("plan.updated", { items }, this.correlation),
       askUser: (question, options) => this.ask(question, options, "agent"),
       ...(deps.searchText && { searchText: deps.searchText }),
+      projectRoot: deps.project.root,
+      ...(deps.runCommand && { runCommand: deps.runCommand }),
+      ...(deps.startPreview && { startPreview: deps.startPreview }),
     };
   }
 

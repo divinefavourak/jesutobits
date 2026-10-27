@@ -171,7 +171,7 @@ function capture(stream: NodeJS.ReadableStream | null, max: number) {
 }
 
 /** Stops the process and everything it started. */
-function killTree(child: ChildProcess, hard: boolean): void {
+export function killTree(child: ChildProcess, hard: boolean): void {
   if (child.exitCode !== null || child.signalCode !== null || child.pid === undefined) return;
   if (process.platform === "win32") {
     // A job object owns the runtime's tree (ADR-0011); a single command's tree uses taskkill.

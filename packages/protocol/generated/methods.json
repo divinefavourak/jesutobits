@@ -21,6 +21,9 @@
     "permission.invalid_decision",
     "permission.not_pending",
     "permission.rule_not_found",
+    "preview.restricted",
+    "preview.start_failed",
+    "preview.unavailable",
     "process.cancelled",
     "process.invalid_command",
     "process.not_found",
@@ -104,6 +107,9 @@
     "permissions.removeRule",
     "permissions.respond",
     "permissions.setPolicy",
+    "preview.get",
+    "preview.start",
+    "preview.stop",
     "projects.close",
     "projects.create",
     "projects.detect",
@@ -121,7 +127,8 @@
     "sessions.history",
     "sessions.list",
     "sessions.rename",
-    "toolchain.detect"
+    "toolchain.detect",
+    "visual.setClasses"
   ],
   "host": [
     "runtime.configure",

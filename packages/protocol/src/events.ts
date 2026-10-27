@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PreviewStatusSchema } from "./methods/preview.js";
 import {
   ActivityCategorySchema,
   FileChangeSchema,
@@ -335,7 +336,15 @@ export const questionAnsweredEvent = defineEvent({
   }),
 });
 
+/** The active project's preview changed state (ROADMAP Phase 4). */
+export const previewStatusEvent = defineEvent({
+  type: "preview.status",
+  description: "The preview started, became ready, failed or stopped.",
+  payload: z.object({ status: PreviewStatusSchema }),
+});
+
 export const EVENTS = {
+  [previewStatusEvent.type]: previewStatusEvent,
   [runtimeWarningEvent.type]: runtimeWarningEvent,
   [runtimeErrorEvent.type]: runtimeErrorEvent,
   [fsChangedEvent.type]: fsChangedEvent,

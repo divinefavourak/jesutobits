@@ -51,6 +51,7 @@ import {
   projectsRemove,
   projectsSetTrust,
 } from "./projects.js";
+import { previewGet, previewStart, previewStop, visualSetClasses } from "./preview.js";
 import { toolchainDetect } from "./toolchain.js";
 import { runtimeConfigure, runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
 
@@ -59,6 +60,7 @@ export { eventsReplay } from "./events.js";
 export * from "./agent.js";
 export * from "./fs.js";
 export * from "./projects.js";
+export * from "./preview.js";
 export * from "./toolchain.js";
 export type { Caller, MethodDefinition } from "./define.js";
 export { runtimeConfigure, runtimeInitialize, runtimePing, runtimeShutdown } from "./runtime.js";
@@ -80,6 +82,10 @@ export const METHODS = {
   [projectsDetect.name]: projectsDetect,
   [projectsPrepareWorkspaceFolder.name]: projectsPrepareWorkspaceFolder,
   [toolchainDetect.name]: toolchainDetect,
+  [previewStart.name]: previewStart,
+  [previewStop.name]: previewStop,
+  [previewGet.name]: previewGet,
+  [visualSetClasses.name]: visualSetClasses,
   [fsListDir.name]: fsListDir,
   [fsStat.name]: fsStat,
   [fsReadFile.name]: fsReadFile,

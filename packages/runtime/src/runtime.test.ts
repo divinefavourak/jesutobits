@@ -161,10 +161,10 @@ describe("runtime lifecycle", () => {
     await vi.waitFor(() => expect(io.exit).toHaveBeenCalledWith(0));
   });
 
-  it("exits when stdin ends", () => {
+  it("exits when stdin ends, once the preview has stopped", async () => {
     const { io, runtime } = setup();
     runtime.endOfInput();
-    expect(io.exit).toHaveBeenCalledWith(0);
+    await vi.waitFor(() => expect(io.exit).toHaveBeenCalledWith(0));
   });
 });
 

@@ -60,7 +60,26 @@ export const WEBVIEW_HOST_OPS = {
    * the extension refuses anything that resolves outside it.
    */
   "ui.openFile": {
-    params: z.object({ path: z.string().min(1).max(4096) }).strict(),
+    params: z
+      .object({
+        path: z.string().min(1).max(4096),
+        /** 1-based; the editor reveals it when set. */
+        line: z.number().int().min(1).optional(),
+        column: z.number().int().min(1).optional(),
+      })
+      .strict(),
+    result: z.object({}),
+  },
+  /** Opens a running preview in the user's browser; loopback http URLs only. */
+  "ui.openExternal": {
+    params: z
+      .object({
+        url: z
+          .string()
+          .max(2048)
+          .regex(/^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):\d{1,5}(\/|$)/),
+      })
+      .strict(),
     result: z.object({}),
   },
   /** Opens VS Code's Settings editor filtered to Jesutobits' settings. */

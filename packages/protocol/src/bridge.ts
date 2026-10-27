@@ -21,8 +21,28 @@ export const BridgeHelloSchema = z.object({
   url: z.string().max(2048),
 });
 
+/**
+ * The user clicked an element in inspect mode (VISUAL_EDITING.md section 5). Only a report:
+ * the inspector shows it, and edits need the user's own action in Jesutobits (invariant 8).
+ */
+export const BridgeSelectedSchema = z.object({
+  ...envelope,
+  type: z.literal("inspect.selected"),
+  /** The nearest instrumented element's `data-jesutobits-loc`, `src/Hero.tsx:24:7`. */
+  loc: z.string().min(5).max(1024),
+  tag: z.string().min(1).max(100),
+  component: z.string().max(200).nullable(),
+  /** The element's class attribute as rendered. */
+  className: z.string().max(4000),
+  /** The start of its text, for recognising it. */
+  text: z.string().max(200),
+});
+
 /** Messages the bridge may send. All of them only report; none can request an action. */
-export const BridgeToWorkbenchMessageSchema = z.discriminatedUnion("type", [BridgeHelloSchema]);
+export const BridgeToWorkbenchMessageSchema = z.discriminatedUnion("type", [
+  BridgeHelloSchema,
+  BridgeSelectedSchema,
+]);
 export type BridgeToWorkbenchMessage = z.infer<typeof BridgeToWorkbenchMessageSchema>;
 
 export const InspectSetSchema = z.object({

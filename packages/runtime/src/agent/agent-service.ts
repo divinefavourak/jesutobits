@@ -12,7 +12,7 @@ import {
   type Session,
   type SecretRef,
 } from "@jesutobits/protocol";
-import { searchText, type WorkspaceService } from "@jesutobits/services";
+import { runCommand, searchText, type WorkspaceService } from "@jesutobits/services";
 import type { Logger } from "@jesutobits/shared";
 import { Checkpoints } from "../checkpoints/checkpoints.js";
 import { systemClock, type Clock } from "../clock.js";
@@ -30,6 +30,7 @@ import { ProviderCaller } from "../providers/provider-caller.js";
 import { readCassetteFile } from "../providers/scripted/cassette-file.js";
 import { SCRIPTED_MODEL, ScriptedProvider } from "../providers/scripted/scripted-provider.js";
 import type { ModelProvider } from "../providers/types.js";
+import type { PreviewManager } from "../preview/preview-manager.js";
 import type { ActiveContext, Projects } from "../projects/projects.js";
 import { ProjectStore } from "../projects/project-store.js";
 import type { RpcServer } from "../rpc/server.js";
@@ -50,6 +51,8 @@ export interface AgentEnvironment {
   openRouterUrl?: string | undefined;
   /** The bundled ripgrep (`--ripgrep`); without it text search uses the JS fallback. */
   ripgrep?: string | undefined;
+  /** The preview launcher and Vite plugin (`--guest`); without them previews run the dev script. */
+  guest?: string | undefined;
 }
 
 export interface AgentServiceOptions {
@@ -64,6 +67,8 @@ export interface AgentServiceOptions {
   /** Where checkpoint blobs go; in memory without one. */
   dataDir: string | undefined;
   env: AgentEnvironment;
+  /** The project's preview, for `start_preview`. */
+  previews?: PreviewManager;
   clock?: Clock;
   /** Tests inject a provider directly. */
   provider?: ModelProvider;
@@ -447,6 +452,23 @@ export class AgentService {
             files: () => context.index.list(),
             signal,
           }),
+        runCommand: (argv, options) =>
+          runCommand(argv, {
+            cwd: options.cwd,
+            timeoutMs: options.timeoutMs,
+            signal: options.signal,
+            maxOutputBytes: 1_000_000,
+          }),
+        ...(this.options.previews && {
+          startPreview: () =>
+            this.options.previews!.start({
+              id: project.id,
+              root: project.path,
+              trusted: project.trust === "trusted",
+              workspace: context.workspace,
+              index: context.index,
+            }),
+        }),
       },
       turnId,
       session.id,

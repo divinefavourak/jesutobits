@@ -144,8 +144,12 @@ export class WebviewHostBridge implements HostBridge {
     await this.#host("ui.openSettings", section === undefined ? {} : { section });
   }
 
-  async openFile(path: string): Promise<void> {
-    await this.#host("ui.openFile", { path });
+  async openFile(path: string, position?: { line: number; column: number }): Promise<void> {
+    await this.#host("ui.openFile", { path, ...position });
+  }
+
+  async openExternal(url: string): Promise<void> {
+    await this.#host("ui.openExternal", { url });
   }
 
   readonly settings = {

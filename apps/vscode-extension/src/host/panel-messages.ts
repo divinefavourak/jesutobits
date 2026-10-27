@@ -37,7 +37,9 @@ export interface PanelServices {
   /** The active project's folder; undefined with none open. */
   projectRoot(): string | undefined;
   /** Shows an absolute path, already confined to the project, in VS Code's editor. */
-  openFile(path: string): Promise<void>;
+  openFile(path: string, position?: { line: number; column: number }): Promise<void>;
+  /** Opens an already-checked loopback URL in the user's browser. */
+  openExternal(url: string): Promise<void>;
   log(level: LogLevel, message: string): void;
 }
 
@@ -136,9 +138,18 @@ async function hostOp(op: string, params: unknown, services: PanelServices): Pro
       if (root === undefined) {
         throw new JesutobitsError(ErrorCodes.fsNoProject, "No project is open");
       }
-      await services.openFile(confine(root, input.path as string));
+      const line = input.line as number | undefined;
+      await services.openFile(
+        confine(root, input.path as string),
+        line === undefined
+          ? undefined
+          : { line, column: (input.column as number | undefined) ?? 1 },
+      );
       return {};
     }
+    case "ui.openExternal":
+      await services.openExternal(input.url as string);
+      return {};
     case "log":
       services.log(input.level as LogLevel, `[panel] ${String(input.message)}`);
       return {};
