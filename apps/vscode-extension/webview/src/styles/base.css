@@ -24,10 +24,14 @@ body {
   line-height: 1.5;
 }
 
-/* The focus ring is never removed (UX_AND_INTERFACE.md section 10). */
-:focus-visible {
-  outline: 1px solid var(--jesutobits-color-focus);
-  outline-offset: 1px;
+/* The focus ring is never removed (UX_AND_INTERFACE.md section 10). In the base layer so that
+   an element whose container shows the focus instead (the composer card) can turn it off with
+   `outline-none`; unlayered, this rule would beat every utility. */
+@layer base {
+  :focus-visible {
+    outline: 1px solid var(--jesutobits-color-focus);
+    outline-offset: 1px;
+  }
 }
 
 ::selection {
