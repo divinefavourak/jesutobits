@@ -2,7 +2,7 @@
   "name": "jesutobits",
   "displayName": "Jesutobits",
   "description": "The Jesutobits agent: plans, edits, runs and verifies your project, with every action shown and permissioned.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "jesutobits",
   "private": true,
   "engines": {
