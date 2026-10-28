@@ -306,7 +306,7 @@ Phase 1 has the palette (commands that cannot run right now are not listed), qui
 
 ## 11. UI copy guidelines
 
-Every visible string lives in `apps/desktop/src/i18n/messages.en.ts` and is read with `t(key, params)` (NFR-020); plurals use `Intl.PluralRules` categories and numbers are formatted for the locale.
+Every visible string lives in `apps/vscode-extension/webview/src/i18n/messages.en.ts` (the fork's popups use VS Code's `localize`) and is read with `t(key, params)` (NFR-020); plurals use `Intl.PluralRules` categories and numbers are formatted for the locale.
 
 - Short, plain sentences. Say what happened, then what the user can do.
 - Name real things: "npm install failed (exit 1)", not "Something went wrong".

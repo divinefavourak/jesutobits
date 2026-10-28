@@ -14,17 +14,19 @@
 
 ## 2. Where things live
 
-Paths come from Tauri's path API. Examples use the proposed bundle identifier `dev.jesutobits.app` (ROADMAP open question Q1).
+Since 0.3.0 Jesutobits keeps its data in the app's (VS Code's) own folders. The data folder is named after the product (`Jesutobits`, ROADMAP Q1); the examples are Windows, with Linux and macOS in the last column.
 
-| Directory (Tauri name) | Windows example | Contents |
-|---|---|---|
-| App config dir | `%APPDATA%\dev.jesutobits.app\` | `settings.json`, `ui-state.json`, backups of both |
-| App local data dir | `%LOCALAPPDATA%\dev.jesutobits.app\` | `jesutobits.db` (+ WAL), `checkpoints/`, `extensions/`, `backups/`, `cache/` (model list, Playwright browser if downloaded) |
-| App log dir | `%LOCALAPPDATA%\dev.jesutobits.app\logs\` | `host.jsonl`, `runtime.jsonl`, `workbench.jsonl` and rotations |
-| OS credential store | Windows Credential Manager | Entries with service `dev.jesutobits.app`, account `provider:openrouter:default` etc. |
-| App resources (read-only) | Install directory | Runtime bundle, Node sidecar, ripgrep sidecar, preview launcher, Vite plugin bundle, bridge, built-in themes and skins, templates |
+| What | Windows | Linux / macOS | Contents |
+|---|---|---|---|
+| Settings | `%APPDATA%\Jesutobits\User\settings.json` | `~/.config/Jesutobits/User/` / `~/Library/Application Support/Jesutobits/User/` | `jesutobits.*` settings beside VS Code's, written through VS Code's settings |
+| Extension state | the same folder's `globalStorage/state.vscdb` | the same | The panel's UI state, the profile picture (global state) |
+| Runtime data | `%APPDATA%\Jesutobits\User\globalStorage\jesutobits.jesutobits\` | the same under the folders above | `jesutobits.db` (+ WAL), `checkpoints/` |
+| Logs | `%APPDATA%\Jesutobits\logs\<session>\window<n>\exthost\jesutobits.jesutobits\Jesutobits.log` | the same under the folders above | The extension's and the runtime's log, secrets masked |
+| Credentials | Windows Credential Manager | GNOME Keyring or KWallet / Keychain | Through VS Code SecretStorage, keyed `provider:openrouter:<profile>` |
+| User extensions, CLI data | `~\.jesutobits\` | `~/.jesutobits/` | Open VSX extensions, `argv.json` |
+| App resources (read-only) | The install folder | `/usr/share/jesutobits/` / `Jesutobits.app` | The built-in Jesutobits extension: runtime bundle, preview launcher, Vite plugin, bridge, built-in themes and skins |
 
-Large and machine-specific data (database, checkpoints) goes in the **local** data dir, not the roaming one.
+The Tauri app used `%APPDATA%\dev.jesutobits.app\` and `%LOCALAPPDATA%\dev.jesutobits.app\`; nothing is migrated from there.
 
 ### 2.1 What belongs where
 

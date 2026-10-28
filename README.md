@@ -6,7 +6,7 @@ Jesutobits is a code editor with a co-builder in it. You describe what you want 
 
 It is built on VS Code (a Code-OSS fork), so the editor, terminal, Git and extensions are the ones you know. Jesutobits adds the agent, the live preview, visual editing, a companion, and a calmer "Studio" look for people who are new to code.
 
-> **Status: early, pre-1.0 (0.2.0).** It works end to end on Windows, which is where it is tested by hand. Linux builds are tested under WSL; macOS builds are produced by CI but have not yet been opened on a real Mac.
+> **Status: early, pre-1.0 (0.3.0).** It works end to end on Windows, which is where it is tested by hand. Linux builds are tested under WSL; macOS builds are produced by CI but have not yet been opened on a real Mac.
 
 ## What you can do with it
 
@@ -22,18 +22,18 @@ It is built on VS Code (a Code-OSS fork), so the editor, terminal, Git and exten
 
 ## Download
 
-Builds come from the [jesutobits-ide](https://github.com/divinefavourak/jesutobits-ide) repository. Each package is its own download on a build's page under [Actions](https://github.com/divinefavourak/jesutobits-ide/actions) (you need to be signed in to GitHub):
+**[Download the latest release](https://github.com/divinefavourak/jesutobits-ide/releases/latest)** (0.3.0) and pick the file for your computer:
 
-| Platform | Download | Install |
+| Your computer | File | Install |
 |---|---|---|
-| Windows 10/11 (x64) | `jesutobits-windows-x64-setup` | Run the installer; it installs for your user, no admin needed |
-| Linux x64: Debian, Ubuntu | `jesutobits-linux-x64-deb` | `sudo apt install ./jesutobits-linux-x64-*.deb` |
-| Linux x64: Fedora, openSUSE | `jesutobits-linux-x64-rpm` | `sudo dnf install ./jesutobits-linux-x64-*.rpm` |
-| Linux x64: any distribution | `jesutobits-linux-x64-tar` | Unpack and run `Jesutobits-linux-x64/jesutobits` |
-| macOS, Apple Silicon | `jesutobits-darwin-arm64-dmg` (or `-zip`) | Open the disk image and drag Jesutobits to Applications |
-| macOS, Intel | `jesutobits-darwin-x64-dmg` (or `-zip`) | The same |
+| Windows 10/11 (x64) | `JesutobitsSetup-<version>-windows-x64.exe` | Run it; it installs for your user, no admin needed |
+| Ubuntu, Debian | `jesutobits-<version>-linux-x64.deb` | `sudo apt install ./jesutobits-<version>-linux-x64.deb` |
+| Fedora, openSUSE | `jesutobits-<version>-linux-x64.rpm` | `sudo dnf install ./jesutobits-<version>-linux-x64.rpm` |
+| Any Linux (x64) | `jesutobits-<version>-linux-x64.tar.gz` | Unpack and run `Jesutobits-linux-x64/jesutobits` |
+| Mac with Apple Silicon | `Jesutobits-<version>-macos-arm64.dmg` (or `.zip`) | Open the disk image and drag Jesutobits to Applications |
+| Mac with Intel | `Jesutobits-<version>-macos-x64.dmg` (or `.zip`) | The same |
 
-**On a Mac, the first open is blocked.** The app is not yet signed with an Apple Developer ID, so macOS says it cannot check it. Open **System Settings > Privacy & Security** and choose **Open Anyway** for Jesutobits (once). **On Linux,** saved keys use your desktop's keyring (GNOME Keyring or KWallet). Under WSL, use the Windows app instead.
+Builds newer than the latest release are under the fork's [Actions](https://github.com/divinefavourak/jesutobits-ide/actions). **On Windows,** SmartScreen may warn about an unsigned app: choose **More info**, then **Run anyway**. **On a Mac, the first open is blocked.** The app is not yet signed with an Apple Developer ID, so macOS says it cannot check it. Open **System Settings > Privacy & Security** and choose **Open Anyway** for Jesutobits (once). **On Linux,** saved keys use your desktop's keyring (GNOME Keyring or KWallet). Under WSL, use the Windows app instead.
 
 ## Privacy and safety
 

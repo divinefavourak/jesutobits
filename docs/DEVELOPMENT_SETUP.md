@@ -16,15 +16,15 @@
 
 Also enable Windows long paths (Group Policy or registry `LongPathsEnabled=1`) because `node_modules` paths in fixtures can exceed 260 characters.
 
-Building the fork itself (`jesutobits-ide`) needs more: the Node version in that repository's `.nvmrc`, Python 3, Visual Studio Build Tools with the C++ workload and Spectre-mitigated libraries, and about 16 GB of RAM (RN-43). See that repository's README.
+Building the fork itself (`jesutobits-ide`) needs more: the Node version in that repository's `.nvmrc`, Python 3, about 16 GB of RAM (RN-43), and per platform Visual Studio Build Tools with the C++ workload and Spectre-mitigated libraries (Windows), the build packages listed in its README (Linux) or Xcode's command line tools (macOS). Its CI builds all four targets, so a local fork build is rarely needed. See that repository's README.
 
 ### 1.2 Linux (CI and secondary)
 
 Node 26 and pnpm as above. `ripgrep` from the package manager for the ripgrep half of the search tests.
 
-### 1.3 macOS (later)
+### 1.3 macOS
 
-Node 26 and pnpm.
+Node 26 and pnpm. The extension, runtime and tests work as on Linux; the app's macOS packages come from the fork's CI (no hand test on a Mac yet).
 
 ## 2. First-time setup
 

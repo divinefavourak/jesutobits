@@ -26,9 +26,10 @@ jesutobits/
 │       ├── src/
 │       │   ├── extension.ts       # activate/deactivate: wires everything to the VS Code API
 │       │   ├── runtime/           # RuntimeSupervisor, RuntimeConnection, RestartPolicy, launch spec
-│       │   ├── host/              # reverse calls, runtime.configure, workspace project, panel messages
+│       │   ├── host/              # reverse calls, runtime.configure, workspace project, panel messages,
+│       │   │                      # Sign in with OpenRouter, profile, theme remix, new project
 │       │   └── vscode/            # webview views and other VS Code API adapters
-│       └── webview/               # AGENT PANEL (React + TS + Tailwind on --vscode-* variables)
+│       └── webview/               # AGENT PANEL, PREVIEW, STUDIO, LEARNING CENTRE (React + TS + Tailwind on --vscode-* variables)
 │           ├── vite.config.mts
 │           └── src/
 │               ├── main.tsx
@@ -52,19 +53,22 @@ jesutobits/
 │   │   ├── src/providers/         # types.ts, openrouter/, scripted/, model-cache
 │   │   ├── src/tools/             # registry + one folder per tool family
 │   │   ├── src/permissions/       # broker, policy, classifier, rules, fingerprints
-│   │   ├── src/verify/            # ledger, check profiles, output parsers
+│   │   ├── src/verify/            # ledger, check profiles, output parsers (Phase 3: not yet)
+│   │   ├── src/preview/           # PreviewManager (vite-react, generic, static, command), preview.* RPC
+│   │   ├── src/projects/          # projects.* RPC, ProjectStore (trust, preset, saved start command)
+│   │   ├── src/checkpoints/       # pre-images for revert (ADR-0012)
 │   │   ├── src/events/
 │   │   ├── src/storage/           # Database interface, node-sqlite impl, migrations/NNNN_*.sql
-│   │   ├── src/extensions/        # extensions.validate RPC (uses extension-schema)
+│   │   ├── src/extensions/        # extensions.validate RPC (uses extension-schema; Phase 6: not yet)
 │   │   ├── src/log/               # logger, SecretRegistry masker
 │   │   └── test/                  # cassettes/, harness/
 │   ├── services/                  # PREVIEW AND EXECUTION SERVICES (boundary D)
 │   │   ├── src/workspace/         # WorkspaceService, path guard, watcher, ignore, checkpoints
 │   │   ├── src/process/           # ProcessSupervisor, spawner (Windows shims), orphan ledger
-│   │   ├── src/preview/           # PreviewManager, adapters/{generic,vite-react}, ports, readiness
-│   │   ├── src/git/               # GitService (CLI wrapper + parsers)
+│   │   ├── src/preview/           # project detection (preview strategy), ports, readiness, static-site server
+│   │   ├── src/git/               # GitService (CLI wrapper + parsers), Phase 3: not yet
 │   │   ├── src/visual/            # editability analysis, SourceTransformer, tailwind mapping
-│   │   └── src/headless/          # playwright-core driver for check_preview
+│   │   └── src/headless/          # playwright-core driver for check_preview, Phase 3: not yet
 │   ├── preview-launcher/          # preview-launcher.mjs, runs with the user's Node (VISUAL_EDITING.md 4.8)
 │   ├── vite-plugin/               # @jesutobits/vite-plugin: JSX instrumentation + bridge injection (self-contained bundle)
 │   ├── visual-bridge/             # bridge script injected into previews (IIFE, < 30 KB)

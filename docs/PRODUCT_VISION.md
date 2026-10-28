@@ -74,7 +74,7 @@ These are the tie-breakers when two good ideas conflict.
 
 **In the MVP** (see ROADMAP.md for detail):
 
-- Windows desktop app (architecture ready for macOS and Linux).
+- A desktop app built on VS Code (Code-OSS) for Windows, with Linux and macOS packages from the same build (0.3.0); Windows is the primary, hand-tested platform.
 - OpenRouter models with tool calling.
 - Coding agent with file, search, command, preview, Git (read and commit) and verification tools.
 - Workbench: explorer, Monaco editor, terminal, timeline, chat, diagnostics, Git panel (minimal).

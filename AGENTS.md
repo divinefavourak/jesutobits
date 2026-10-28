@@ -15,7 +15,7 @@ Instructions for AI coding agents working on the **Jesutobits** repository. Huma
 
 Jesutobits is an AI coding workspace built on a **Code-OSS fork** (ADR-0015). This repository holds the Jesutobits logic: a Node.js **Runtime** (agent harness, tools, permissions, sessions, previews) that speaks JSON-RPC over stdio, and the VS Code extension `apps/vscode-extension`, which is the **Host**. It spawns the runtime on VS Code's Electron (`ELECTRON_RUN_AS_NODE`) and shows Jesutobits UI in webviews. The fork itself (branding, `product.json`, built-in extension, core patches) lives in the separate `jesutobits-ide` repository.
 
-The pivot is in progress (`docs/ROADMAP.md` section 5). The Tauri shell that came before is archived at tag `tauri-final` (branch `archive/tauri`) and removed from this branch.
+The pivot shipped in 0.3.0 (2026-10-28), with packages for Windows, Linux and macOS; what is next is in `docs/ROADMAP.md` section 5. The Tauri shell that came before is archived at tag `tauri-final` (branch `archive/tauri`) and removed from this branch.
 
 ## Read before changing anything
 

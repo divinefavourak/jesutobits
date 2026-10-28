@@ -184,7 +184,7 @@ Reference machine: Windows 11, 4-core CPU, 8 GB RAM, SSD, no other heavy apps.
 | NFR-009 | Reliability | Runtime crashes auto-restart with backoff; no session data is corrupted (SQLite transactions, WAL); file writes are atomic (write temp then rename). | MVP |
 | NFR-010 | Reliability | No processes started by Jesutobits survive app exit; after a crash, survivors are reaped on next start (the runtime exits when its stdin closes). | MVP |
 | NFR-011 | Accessibility | App chrome meets WCAG 2.2 AA: keyboard operable, visible focus, labelled controls, contrast, reduced motion. | MVP |
-| NFR-012 | Portability | Windows 10 (22H2) and 11 x64 at MVP. No architectural change needed for macOS arm64 and Linux x64. | MVP |
+| NFR-012 | Portability | Windows 10 (22H2) and 11 x64 at MVP, hand-tested. Linux x64 (glibc 2.28 and later) and macOS 12+ on Apple Silicon and Intel are built and packaged from the same source since 0.3.0. | MVP |
 | NFR-013 | Availability | Without network, Jesutobits works as editor, terminal and preview tool, and states clearly that agent features need the provider. | MVP |
 | NFR-014 | Observability | Structured JSON logs with correlation IDs (session, turn, call, process), local only, rotated (10 files × 10 MB per component). | MVP |
 | NFR-015 | Privacy | No data leaves the machine except requests to the configured model provider and actions the user approves. No telemetry by default. | MVP |

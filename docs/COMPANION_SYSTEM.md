@@ -90,7 +90,9 @@ waiting_permission > asking > error > paused > unavailable
 ## 4. Renderer interface
 
 ```ts
-// apps/desktop/src/features/companion/renderer.ts
+// Design for the skin packs of Phase 6. 0.3.0 draws its three built-in skins (buddy, mark,
+// dot) in apps/vscode-extension/webview/src/features/companion/Companion.tsx from
+// companion-state.ts, without this interface.
 export interface CompanionRenderer {
   readonly kind: "static" | "lottie" | "rive";
   mount(container: HTMLElement, skin: ResolvedCompanionSkin, opts: RenderOptions): Promise<void>;

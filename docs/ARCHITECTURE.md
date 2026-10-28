@@ -2,28 +2,30 @@
 
 > Status: Agreed baseline. Decisions are recorded in `docs/DECISIONS/`. Facts are referenced as `RN-xx` (see RESEARCH_NOTES.md).
 
-> **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
+> **Since ADR-0015 (0.3.0):** Jesutobits is a Code-OSS fork. Sections 1 to 5 and 11 describe the fork. Later sections still name some Tauri-era parts when they explain a contract that carried over; read "Host" as the Jesutobits extension (`apps/vscode-extension/src`), "Workbench" as VS Code's window plus the Jesutobits webviews (`apps/vscode-extension/webview`), "Tauri IPC" as webview `postMessage` checked against `packages/protocol/src/webview.ts`, and "Node sidecar" as the runtime process on VS Code's Electron. The Tauri app is archived at tag `tauri-final`.
 
 ## 1. Goals and shape
 
-Jesutobits is a desktop application made of **three processes and two kinds of guest content**:
+Jesutobits is a desktop application built on Code-OSS (ADR-0015), made of **three parts and two kinds of guest content**:
 
-| Process | Technology | Role |
+| Part | Technology | Role |
 |---|---|---|
-| **Host** | Tauri 2, Rust | Window, OS integration, credential store, process lifecycle, PTYs, extension file serving, IPC relay and allowlist |
-| **Workbench** | React + TypeScript + Tailwind in the OS webview | Everything the user sees and touches |
-| **Runtime** | Node.js sidecar (bundled), TypeScript | Agent harness, tools, permissions, sessions, workspace I/O, processes, previews |
+| **App** | Code-OSS 1.143.1 with Jesutobits' patches and branding (the `jesutobits-ide` repository) | Window, editor, explorer, terminal, Git, settings, colour themes, the welcome and account popups, the Studio layout |
+| **Host** | The Jesutobits VS Code extension (`apps/vscode-extension/src`), built in | Supervises the runtime, credentials (VS Code SecretStorage), settings, the webview relay and its allowlist, Sign in with OpenRouter |
+| **Runtime** | A Node process on VS Code's Electron (`ELECTRON_RUN_AS_NODE`), TypeScript | Agent harness, tools, permissions, sessions, workspace I/O, processes, previews |
+
+The Jesutobits UI the user sees (agent panel, preview panel, Studio section, Learning Centre) is React in VS Code webviews (`apps/vscode-extension/webview`).
 
 | Guest content | Where it runs | Trust |
 |---|---|---|
-| **User project app** (preview) | Dev server child process + cross-origin iframe | Untrusted |
-| **Extensions** | Declarative files (Stage 1); sandboxed iframes (Stage 2, later); separate MCP processes (Stage 3, later) | Untrusted |
+| **User project app** (preview) | Dev server child process or Jesutobits' static server + cross-origin iframe | Untrusted |
+| **Extensions** | VS Code extensions from Open VSX (VS Code's mechanism); Jesutobits packs are declarative files (Stage 1) | Untrusted |
 
 Design goals, in priority order:
 
 1. **Enforced boundaries**: the model, the preview and extensions can only act through code paths that check permissions.
-2. **Replaceable edges**: shell (Tauri), provider (OpenRouter), editor (Monaco), animation renderer and preview adapters sit behind interfaces.
-3. **Few moving parts**: three processes, one database, no local web servers of our own, no microservices.
+2. **Replaceable edges**: provider (OpenRouter), animation renderer and preview strategies sit behind interfaces; the runtime never depends on VS Code, so another shell could host it.
+3. **Few moving parts**: one runtime process, one database, no microservices. The only local servers of our own are loopback-only: the static-site preview and the one-off Sign in with OpenRouter callback.
 4. **Honest UI**: the Workbench renders runtime events; it does not simulate activity.
 
 ## 2. System context
@@ -61,11 +63,11 @@ The only outbound connections Jesutobits itself makes are to the configured mode
 
 | Boundary | Lives in | Owns | Must never |
 |---|---|---|---|
-| **A. Desktop application** | Host + Workbench | Windows, layout, rendering, user input, approvals UI, settings UI, credential storage (Host), PTYs (Host), extension loading | Execute tools, call model providers, read project files directly |
+| **A. Desktop application** | The app (VS Code), the Host extension and its webviews | Windows, layout, rendering, user input, approvals UI, settings, credential storage (Host, SecretStorage), terminals (VS Code) | Execute tools, call model providers for the agent, read project files directly from a webview |
 | **B. Agent harness / runtime** | `packages/runtime`: `agent/`, `providers/`, `tools/`, `permissions/`, `context/`, `sessions/`, `verify/` | Model calls, agent loop, tool registry, permission decisions, context, verification, session persistence | Render UI, hold credentials on disk, bypass the permission broker |
 | **C. User projects** | Ordinary folders anywhere | Their own code, config, Git history | Be modified except via Workspace Service writes (tools or user actions) or approved commands |
-| **D. Preview and execution services** | `packages/services`: `workspace/`, `process/`, `preview/`, `git/`, `visual/`, `headless/`; Host: `pty_manager`; guest-side packages `preview-launcher`, `vite-plugin`, `visual-bridge` | File I/O with checkpoints, managed processes, dev servers, readiness, logs, headless checks, Git CLI wrapper, terminals | Decide permissions (they ask the broker or are called by tools that did) |
-| **E. Extension ecosystem** | Host (install, file serving), Workbench (theme engine, companion, extension manager); Runtime (Stage 3 later) | Packages, validation, enable state, permissions, theme tokens, skins | Reach secrets, files, terminal or network without a granted permission |
+| **D. Preview and execution services** | `packages/services`: `workspace/`, `process/`, `preview/` (detection, readiness, static server), `visual/`; guest-side packages `preview-launcher`, `vite-plugin`, `visual-bridge` | File I/O with checkpoints, managed processes, dev servers, the static-site server, readiness, logs (Git and headless checks: Phase 3) | Decide permissions (they ask the broker or are called by tools that did) |
+| **E. Extension ecosystem** | VS Code extensions: VS Code's own mechanism (ADR-0015). Jesutobits packs: themes and companion skins as data (Stage 1) | Packs, validation, theme tokens, skins | Execute pack content; reach secrets, files, terminal or network through Jesutobits |
 
 B and D share one process in the MVP (the runtime) but are **separate packages** with a one-way dependency: `agent` depends on `services` through narrow interfaces; services never import agent code. If stability requires it later, services can move to a second sidecar without changing the agent (section 12).
 
@@ -73,52 +75,48 @@ B and D share one process in the MVP (the runtime) but are **separate packages**
 
 ```mermaid
 flowchart TB
-    subgraph host["Host (Rust, Tauri 2)"]
-        H1["RuntimeSupervisor<br/>spawn, job object, restart"]
-        H2["RpcRelay + MethodAllowlist"]
-        H3["SecretStore<br/>keyring"]
-        H4["PtyManager<br/>portable-pty"]
-        H5["ExtensionStore + jesutobits-ext protocol"]
-        H6["SettingsStore<br/>settings.json, ui-state.json"]
-        H7["Dialogs, window, updater"]
+    subgraph app["App (Code-OSS fork, jesutobits-ide)"]
+        A1["Workbench: editor, explorer,<br/>terminal, Git, settings"]
+        A2["Welcome and account popups,<br/>title-bar avatar (patches 003-006)"]
     end
 
-    subgraph wb["Workbench (React in OS webview)"]
-        W0["HostBridge<br/>only module using Tauri APIs"]
-        W1["Layout and docking"]
-        W2["Explorer, Editor (Monaco), Git panel"]
-        W3["Agent chat + Timeline + Approvals"]
-        W4["Terminal (xterm.js)"]
-        W5["Preview panel + Inspector + Overlay"]
-        W6["CompanionController + Renderers"]
-        W7["ThemeEngine + ExtensionManager UI"]
-        W8["EventStore<br/>client-side state from runtime events"]
+    subgraph host["Host (Jesutobits extension)"]
+        H1["RuntimeSupervisor<br/>spawn, handshake, restart"]
+        H2["Panel messages<br/>allowlist + schema checks"]
+        H3["Secrets<br/>VS Code SecretStorage"]
+        H4["Sign in with OpenRouter<br/>OAuth PKCE"]
+        H5["Settings, profile, commands"]
     end
 
-    subgraph rt["Runtime (Node sidecar)"]
+    subgraph web["Webviews (React)"]
+        W0["HostBridge<br/>postMessage only"]
+        W1["Agent panel: chat, timeline,<br/>approvals, companion"]
+        W2["Preview panel + Inspector"]
+        W3["Studio section, Learning Centre"]
+    end
+
+    subgraph rt["Runtime (Node on VS Code's Electron)"]
         R0["RpcServer<br/>stdio JSON-RPC"]
         subgraph harness["Agent harness (B)"]
             R1["SessionManager"]
             R2["AgentLoop"]
             R3["ContextBuilder"]
-            R4["ProviderRegistry + OpenRouterAdapter"]
+            R4["OpenRouterProvider"]
             R5["ToolRegistry"]
             R6["PermissionBroker + PolicyEngine"]
-            R7["VerificationLedger"]
         end
         subgraph services["Services (D)"]
             S1["WorkspaceService<br/>files, watcher, checkpoints"]
-            S2["ProcessSupervisor"]
-            S3["PreviewManager + adapters"]
-            S4["GitService"]
-            S5["CheckRunner + HeadlessBrowser"]
-            S6["SourceTransformer<br/>visual edits"]
+            S2["Process runner"]
+            S3["PreviewManager<br/>vite-react, generic, static, command"]
+            S6["Visual source edits"]
         end
         R8["EventBus"]
         R9[("SQLite jesutobits.db")]
     end
 
-    W0 <-->|invoke + Channel| H2
+    A2 -->|jesutobits.* commands| H5
+    W0 <-->|postMessage| H2
     H2 <-->|NDJSON JSON-RPC over stdio| R0
     H1 -.->|lifecycle| rt
     R0 --> R1
@@ -130,47 +128,40 @@ flowchart TB
     R5 --> S1
     R5 --> S2
     R5 --> S3
-    R5 --> S4
-    R5 --> S5
     R5 --> S6
-    R2 --> R7
     R8 --> R0
     R1 --> R9
     R4 -->|host.secrets.get| H3
-    W4 <--> H4
-    W7 <--> H5
-    W1 <--> H6
+    H4 --> H3
 ```
 
 ## 5. Module responsibilities
 
-### 5.1 Host (`apps/desktop/src-tauri`)
+### 5.1 Host (`apps/vscode-extension/src`)
 
 | Module | Responsibility | Key rules |
 |---|---|---|
-| `runtime_supervisor` | Start the Node sidecar (ADR-0002), assign to a Windows Job Object before `initialize`, health pings every 5 s, restart with backoff, graceful shutdown | Only module that spawns the runtime |
-| `rpc_relay` | Forward Workbench calls to the runtime and runtime events to Workbench Channels; answer `host.*` reverse calls | Parses envelopes only; checks `method` against the allowlist (ADR-0003) |
-| `secret_store` | Save, read, delete secrets in the OS store using `keyring`. Refs look like `provider:<id>:<profile>` | Returns secrets only to the runtime over stdio, never to the Workbench |
-| `pty_manager` | Open, resize, write, close PTYs; stream output to the Workbench | cwd must be a known project root; shell from settings |
-| `extension_store` | Install: unpack into a staging folder with archive-safety checks (no path traversal, size caps), ask the runtime to run the full validator (`extensions.validate`), then move into a versioned folder. Packages are unsigned in the MVP. Uninstall. Serve files via `jesutobits-ext://<id>/<path>` with strict CSP | Serves only files listed as assets in the manifest |
-| `settings_store` | Load, validate, migrate and save `settings.json` and `ui-state.json`; notify the runtime of relevant changes | Single writer for these files |
-| `dialogs`, `window`, `updater` | OS folder picker, window state, app updates | Folder picker results go to the runtime only when the Workbench requested them |
+| `runtime/` (`supervisor`, `connection`, `launch`, `restart-policy`) | Start the runtime on VS Code's Electron (`ELECTRON_RUN_AS_NODE`), handshake, restart with backoff, stop it on deactivate | Only module that spawns the runtime |
+| `host/panel-messages` | Relay the webviews' calls to the runtime and its events back; answer host operations | Accepts only methods allowlisted in `packages/protocol/src/webview.ts`, schema-checked (invariant 4) |
+| `host/reverse-calls` | Answer the runtime's `host.*` calls: secrets, trash, reveal, logs | Returns a secret only to the runtime over stdio, never to a webview |
+| `host/openrouter-auth` | Sign in with OpenRouter (OAuth PKCE on a one-off loopback callback) | The key goes straight to SecretStorage (SECURITY.md section 3) |
+| `host/runtime-config`, `host/workspace-project` | Map `jesutobits.*` settings to `runtime.configure`; open the workspace folder as the project, following Workspace Trust | Settings are validated against `packages/protocol` |
+| `host/profile`, `host/look`, `host/new-project` | The local profile (name, picture), theme remix, New Project | Profile data stays on the computer |
+| `vscode/` | The agent view, preview panel, Studio view, Learning Centre and Studio commands | Webviews get a strict CSP and a nonce |
+| `extension.ts` | Activation: wires the above, registers commands (`jesutobits.*`) used by the menus and by the fork's popups | The popups only learn whether a key exists, never the key |
 
-### 5.2 Workbench (`apps/desktop/src`)
+### 5.2 Webviews (`apps/vscode-extension/webview/src`)
 
 | Module | Responsibility |
 |---|---|
-| `host-bridge/` | The `HostBridge` interface and its Tauri implementation. A `MockHostBridge` supports browser-only development and Playwright tests. |
-| `state/` | `EventStore` (normalised runtime events by session and turn), UI state. Uses a small store library (Zustand recommended). |
-| `features/layout` | Dock regions, presets, persistence (UX_AND_INTERFACE.md section 4) |
-| `features/explorer`, `features/editor`, `features/git` | File tree (lazy), tabs, Monaco wrapper (ADR-0004), Git panel |
-| `features/agent` | Chat, plan checklist, approval cards, turn summaries, timeline |
-| `features/terminal` | xterm.js sessions bound to Host PTYs |
-| `features/preview` | Preview iframe, toolbar, logs view, inspect overlay, bridge messaging, properties inspector |
-| `features/companion` | `CompanionController` and renderers (COMPANION_SYSTEM.md) |
-| `features/appearance` | `ThemeEngine` applying token CSS variables and Monaco themes |
-| `features/extensions` | Extension manager UI, validation results, safe mode banner |
-| `features/onboarding`, `features/settings` | First run and settings screens |
+| `host-bridge/` | The `HostBridge` interface and its `postMessage` implementation; a `MockHostBridge` for tests |
+| `state/` | Stores built from runtime events (project, UI) |
+| `features/agent` | Chat, plan checklist, approval cards, turn summaries, timeline, Sign in with OpenRouter buttons |
+| `features/companion` | The companion and its skins (COMPANION_SYSTEM.md) |
+| `features/look` | The theme picker and Change the Look |
+| `features/studio`, `features/learn` | The Studio side-bar section and the Learning Centre |
+| `preview/` | The preview panel: iframe, toolbar, start command form, output view, bridge client, Inspector |
+| `ui/`, `themes/`, `i18n/` | Shared components styled with `--vscode-*` variables, Studio palettes, strings |
 
 ### 5.3 Runtime process: harness (`packages/runtime`, boundary B)
 
@@ -509,23 +500,18 @@ Code families: `rpc.*`, `runtime.*`, `provider.*`, `tool.*`, `fs.*`, `process.*`
 
 ## 11. Cross-platform considerations
 
-The MVP targets Windows. The table lists what code must already respect so macOS and Linux need no redesign.
+Since 0.3.0 the app is built for Windows x64, Linux x64 and macOS (Apple Silicon and Intel) by the `jesutobits-ide` CI, following VS Code's own release pipelines. VS Code supplies the per-platform window, webview (Chromium in every case), terminal and credential store, so most differences are handled for us. What Jesutobits' own code must respect:
 
-| Concern | Windows (MVP) | macOS | Linux | Rule now |
+| Concern | Windows | macOS | Linux | Rule |
 |---|---|---|---|---|
-| Paths | Backslashes, drive letters, case-insensitive, 260-char legacy limit, reserved names (`CON`, `NUL`) | Case-insensitive by default | Case-sensitive | Use `node:path` and `std::path` only; canonicalise; compare with platform-aware equality; reject reserved names in file tools |
-| Symlinks | Junctions and symlinks (symlink creation may need privileges) | Symlinks | Symlinks | Path guard resolves real paths before confinement checks |
-| Shell for terminals | PowerShell 7 if present, else Windows PowerShell; `cmd.exe` option | User login shell (`zsh` default) | `$SHELL` | Shell is a setting with detected default |
-| Spawning shims | `.cmd` needs shell (RN-16) | n/a | n/a | One spawner module handles it |
-| Process trees | Job Objects, `taskkill /T` | Process groups | Process groups | ADR-0011 |
-| Secure storage | Credential Manager | Keychain | Secret Service (may be absent) | ADR-0008 fallback |
-| Webview | WebView2 (Chromium), Evergreen runtime | WKWebView | WebKitGTK | Test UI on WebKit before macOS/Linux release; avoid Chromium-only CSS/JS in the Workbench |
-| Packaging | NSIS/MSI, code signing | `.app`/`.dmg`, notarisation, sign sidecar | AppImage/deb/rpm | Sidecar naming by target triple (RN-02) |
-| File watching | Recursive `fs.watch` works | Works | Works on recent Node; inotify limits | Watcher behind `FileWatcher` interface; ignore `node_modules` |
-| Line endings | CRLF common | LF | LF | Edit tools preserve a file's existing line endings |
-| Desktop E2E | tauri-driver (RN-08) | No official driver | tauri-driver | Most E2E runs in a browser with `MockHostBridge` |
+| Paths | `\`, drive letters, case-insensitive | `/`, usually case-insensitive | `/`, case-sensitive | Always `node:path`; compare canonical real paths |
+| Spawning | `.cmd` shims need the shared spawner | Plain `spawn` | Plain `spawn` | Every spawn goes through `ProcessSupervisor` / `startProcess` |
+| Process trees | Kill the whole tree (`taskkill /T`) | Process groups | Process groups | Cancellation stops the tree within 2 s |
+| Credentials | Windows Credential Manager | Keychain | GNOME Keyring or KWallet (VS Code falls back without one) | Only through VS Code SecretStorage |
+| Line endings | Preserve CRLF where files use it | LF | LF | Never rewrite line endings |
+| Packages | Per-user installer (unsigned) | `.dmg`/`.zip`, signed ad hoc | `.deb`, `.rpm`, `.tar.gz` | `jesutobits-ide/scripts/build.mjs --target` |
 
-Do not build abstractions for macOS/Linux behaviour beyond these interfaces until those platforms are scheduled.
+Tests run on Windows and Ubuntu in CI; macOS has no hand test yet (ROADMAP section 5).
 
 ## 12. Deferred architecture
 

@@ -1,7 +1,7 @@
 # Roadmap
 
 > Status: Agreed plan. Durations are rough planning ranges for one to two developers working with coding agents, not commitments.
-> Version scheme: Phases 1 and 2 shipped `0.1` and `0.2`; the Code-OSS pivot (ADR-0015) ships `0.3`, and Phases 3 to 6 ship `0.4` to `0.7`. The MVP release is **1.0** after Phase 7.
+> Version scheme: Phases 1 and 2 shipped `0.1` and `0.2`. The Code-OSS pivot (ADR-0015) shipped **`0.3.0` on 2026-10-28**, together with the first, minimal parts of Phases 3 to 6 and packages for Windows, Linux and macOS (section 5). Phases 3 to 6 complete in `0.4` to `0.7`; the MVP release is **1.0** after Phase 7.
 
 ## 1. Changes from the suggested sequence
 
@@ -31,11 +31,11 @@ Phase 6 depends on Phase 3 (runtime events exist), not on Phase 5, so it can run
 
 | In MVP (1.0) | Later |
 |---|---|
-| Windows | macOS, Linux packages |
+| Windows (tested by hand); Linux and macOS packages built by CI since 0.3.0 (Linux checked under WSL, macOS not yet on a real Mac) | Code signing and notarisation, auto-update |
 | OpenRouter | Direct Anthropic, OpenAI, Google; local models |
 | Agent + Ask modes, project and general workspaces | Multiple windows, remote runtimes |
 | File, search, command, process, check, preview, Git read + commit, visual tools | `fetch_url`, push/pull with approval, LSP integration |
-| Generic + `vite-react` preview; visual editing for Tailwind and inline styles | Next.js, Expo, CSS Modules, usage-site prop edits, static sites |
+| `vite-react`, generic (dev script), static (`index.html`) and command (saved start command) previews; visual editing for Tailwind and inline styles | Next.js, Expo, CSS Modules, usage-site prop edits |
 | Companion: static + dotLottie renderers, 3 built-in skins | Rive renderer |
 | Stage 1 extensions: themes, companion skins, layout presets; local install; CLI | Stage 2 UI mods, Stage 3 MCP integrations, repository/marketplace, signing |
 | Tool-level checkpoints | Shadow-repo checkpoints, auto-commit to branch |
@@ -190,6 +190,8 @@ Found and fixed during the phase: user messages and session titles were stored w
 - Tests and small self-contained modules were drafted with opencode (GLM and DeepSeek models) from written briefs and reviewed before commit; the reviews found and fixed a stored-secret leak (user messages and session titles were saved unmasked) and several wrong expectations.
 
 ### Pivot: Code-OSS fork (3 to 4 weeks) → 0.3
+
+> **Done: 0.3.0, 2026-10-28.** Open from this phase: `@vscode/test-electron` integration tests in CI, and the NFR-001/004/006 measurements against a plain Code-OSS build.
 
 ADR-0015 moves Jesutobits from the Tauri shell to a Code-OSS fork. Phase 2's runtime carries over unchanged; the Workbench's IDE features are replaced by VS Code's. Phases 3 to 7 below are restated for the fork, and their version numbers move up by one.
 
@@ -365,23 +367,42 @@ ADR-0015 moves Jesutobits from the Tauri shell to a Code-OSS fork. Phase 2's run
 | Q1 | App identifier (the product name, Jesutobits, is decided) | Proposed `dev.jesutobits.app`; switch to a domain you control if you have one | Before Phase 7 (identifier affects data paths) |
 | Q2 | Licence (open source, source-available, proprietary) | Architecture is neutral; keep third-party licences compatible with all options | Phase 0 |
 | Q3 | Should Jesutobits bundle a Node toolchain for user projects to help beginners? | No; detect and guide (ADR-0011) | After Phase 4 beginner testing |
-| Q4 | macOS and Linux release timing | After 1.0; keep CI on Ubuntu and WebKit tests from Phase 1 | After 1.0 |
+| Q4 | macOS and Linux release timing | **Decided 2026-10-28:** packages for Linux x64 and macOS (Apple Silicon and Intel) from 0.3.0, unsigned, beside Windows | Done |
 | Q5 | Next providers | Anthropic and OpenAI direct, then a local-model adapter | 1.1 planning |
 | Q6 | Opt-in crash reporting | None in 1.0 | After 1.0 |
-| Q7 | Code-signing certificates and Apple developer account | Budget needed for Windows signing by Phase 7 | Phase 3 |
+| Q7 | Code-signing certificates and Apple developer account | No Apple Developer account yet (2026-10-28): Mac builds are signed ad hoc and users choose Open Anyway once; Windows builds are unsigned (SmartScreen). Budget for both before 1.0 | Phase 7 |
 | Q8 | Auto-commit agent turns to a work branch (opt-in) | Not in 1.0 | 1.1 planning |
-| Q9 | Recommended default model | Choose from eval results, not reputation | Phase 3 |
+| Q9 | Recommended default model | The welcome popup offers a free coding model (Laguna S 2.1, chosen 2026-10-28 from OpenRouter's free list and published coding benchmarks), with its data-use note; the recommended paid default still comes from eval results, not reputation | Phase 3 |
 | Q10 | General workspace file previews (Markdown, CSV, images) | Markdown and images only in 1.0 | Phase 4 |
 | Q11 | Extension signing scheme for a future repository | Decide with the repository design | Post-1.0 |
 | Q12 | Default for "Install without running scripts" | Off (most projects need scripts), visible on every install card | Phase 3 user testing |
 | Q13 | How the fork updates itself | No auto-update in 1.0; users download new installers. Revisit with code signing | Phase 7 |
-| Q14 | Which VS Code release the fork follows | Latest stable tag at fork time; merge each new stable within a month | Pivot step 13 |
+| Q14 | Which VS Code release the fork follows | **Decided:** 1.143.1 at fork time; merge each new stable within a month (`jesutobits-ide/UPSTREAM.md`) | Done |
 
 ## 5. Next implementation milestone
 
-**The Code-OSS pivot** (section 3, ADR-0015), then Phase 3 on the fork. Phase 2 is complete (0.2.0, acceptance above) except a run with a real OpenRouter key. The step plan: A (archive, ADR, docs) done 2026-10-27. B (the extension) mostly done 2026-10-27: runtime supervisor on VS Code's Electron, reverse calls, settings, workspace project and trust, the agent panel in a webview with a schema-checked bridge, the API key typed into VS Code's password box, changed files opening in the editor. Checked live in VS Code 1.143 with the scripted provider: handshake in 607 ms, a full turn edits the file, Revert turn restores it, and a force-killed window leaves no runtime behind. D's deletion of `apps/desktop` moved forward into B. The onboarding is the welcome popup (UX_AND_INTERFACE.md section 3, `jesutobits-ide` patch 003), with the walkthrough in plain VS Code. Still open in B: `@vscode/test-electron` integration tests in CI. C started 2026-10-27: https://github.com/divinefavourak/jesutobits-ide (public) holds the product overrides and prepare/build scripts for VS Code 1.143.1 and builds Windows x64 in GitHub Actions: the first green build (a per-user installer) came on 2026-10-27, after `patches/001-build-without-copilot.patch` (Copilot's build needs Microsoft's internal `vscode-capi`), the Windows SDK's `signtool` on `Path`, and the upstream commit passed as `BUILD_SOURCEVERSION`. Its CI builds without the extension until the licence question (Q2) decides whether the compiled extension may be public. Also on 2026-10-27, with a two-day deadline, the core of Phases 3 to 6 landed in minimal form: `run_command` and `start_preview` tools; previews (a Vite React project through the visual-editing launcher, any other project through its dev script) in a Preview panel; Inspect mode with source location, class editing applied by HMR and Ask the agent about this element; and a companion showing the agent's real state. Still to do from those phases: verification checks and the ledger, Git tools, viewport presets, drafts and undo for visual edits, companion skins and settings, Stage 1 extension packs. Phase 0's record follows.
+**Phase 3 on the fork**, starting with what 0.3.0 left open.
 
-**Phase 0**, in this order:
+**0.3.0 (released 2026-10-28)** shipped the Code-OSS pivot and the first, minimal parts of Phases 3 to 6, published as the GitHub release [`v0.3.0` of jesutobits-ide](https://github.com/divinefavourak/jesutobits-ide/releases/tag/v0.3.0) with the `v0.3.0` tag of this repository built in:
+
+- **The pivot (section 3).** The extension hosts the runtime on VS Code's Electron, with the agent panel and preview in webviews behind a schema-checked bridge. `jesutobits-ide` builds Code-OSS 1.143.1 with eight patches (`PATCHES.md`): no Copilot build, AI features hidden, the two-column welcome popup with Sign in with OpenRouter, the Studio layout, the title-bar avatar and account popup, and Linux packaging without the tunnel CLI and with Jesutobits' own package metadata.
+- **Platforms.** CI builds Windows x64 (installer), Linux x64 (`.deb`, `.rpm`, `.tar.gz`) and macOS Apple Silicon and Intel (`.dmg`, `.zip`, signed ad hoc) in parallel; a tag `v<version>` publishes them as a release. Windows is tested by hand, Linux under WSL; macOS has not been opened on a real Mac.
+- **From Phase 3:** `run_command` with approval; agent output in the timeline; reasoning capped and empty replies never ending a turn (AGENT_HARNESS.md section 3.4).
+- **From Phase 4:** the preview panel with four strategies (`vite-react`, generic, static with live reload, a saved start command) and a live-output view for programs without a page (VISUAL_EDITING.md sections 3 and 4).
+- **From Phase 5:** Inspect mode with source locations, Tailwind class and inline-style edits through HMR, and Ask the agent about an element.
+- **From Phase 6:** the companion with three skins, six Studio themes and Change the Look; the Learning Centre.
+- **Accounts:** Sign in with OpenRouter (OAuth PKCE), the free-model choice, and a local profile (SECURITY.md section 3, UX_AND_INTERFACE.md section 3).
+
+**Next, in order:**
+
+1. Integration tests in CI (`@vscode/test-electron`): handshake, secrets, a turn with approval and revert, the preview strategies.
+2. The rest of Phase 3: `start_process` and process tools, Git tools, check profiles and the verification ledger, the policy matrix tests.
+3. Smaller size: leave the unused Copilot runtime (`@github/copilot-sdk`, about 148 MB installed) out of the fork's builds.
+4. A first run on a real Mac, then code signing (Q7).
+5. The rest of Phases 4 to 6: viewport presets, drafts and undo for visual edits, Stage 1 extension packs.
+6. Known flaky test: `stdio.test.ts`'s 2-second startup check fails under full-suite load on the development machine (it passes alone).
+
+**Record of Phase 0** (2026-10-20), in the order it was planned:
 
 1. Scaffold the monorepo (PROJECT_STRUCTURE.md) and CI; confirm DEVELOPMENT_SETUP.md works on a clean Windows machine.
 2. Write `packages/protocol` envelope, `JesutobitsError` and the `runtime.initialize`/`ping`/`shutdown` schemas.

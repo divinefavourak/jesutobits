@@ -1,6 +1,6 @@
 # Testing Strategy
 
-> Status: Agreed. Applies from Phase 0. Tools per ADR-0013: Vitest, Playwright, cargo test, WebdriverIO + tauri-driver.
+> Status: Agreed. Applies from Phase 0. Tools per ADR-0013, as used since 0.3.0: Vitest (unit, integration, webview components), live checks of the installed app over the Chrome DevTools Protocol, and `@vscode/test-electron` for extension integration (planned, ROADMAP section 5).
 
 > **Reading this after ADR-0015 (Code-OSS fork):** "Host" is now the Jesutobits VS Code extension (`apps/vscode-extension/src`); "Workbench" is VS Code's window plus Jesutobits webviews (`apps/vscode-extension/webview`); Tauri IPC and capabilities are webview `postMessage` checked against `packages/protocol/src/webview.ts`; the OS credential store is VS Code SecretStorage; the "Node sidecar" is the runtime process on VS Code's Electron. Explorer, editor, terminal, Git, settings and colour themes are VS Code's. Sections are rewritten as their features are built on the fork.
 
@@ -8,8 +8,8 @@
 
 1. **No paid model calls in CI.** Every agent behaviour is testable with scripted model streams (NFR-016). Real-model evaluations are a separate, opt-in suite.
 2. **Test at the boundary that owns the behaviour.** Permissions are tested in the broker, not through the UI. Path confinement is tested in `WorkspaceService`, not per tool.
-3. **The runtime is testable without Tauri.** Integration tests spawn the bundled runtime with Node and talk JSON-RPC over pipes, exactly like the Host does (ADR-0003).
-4. **The Workbench is testable without Tauri.** It runs in a browser against `MockHostBridge` or against a real runtime through a small Node relay.
+3. **The runtime is testable without VS Code.** Integration tests spawn the bundled runtime with Node and talk JSON-RPC over pipes, exactly like the Host does (ADR-0003).
+4. **The webviews are testable without VS Code.** They run in jsdom against `MockHostBridge`, or against a real runtime through a small Node relay.
 5. **Failure paths are first-class.** Every failure listed in section 5 has at least one automated test.
 
 ## 2. Suites
@@ -33,7 +33,7 @@
 | Companion | Controller state tables, truthfulness property test, reduced motion | Vitest (+ fast-check), Playwright | Every PR |
 | Workbench components | Panels, approval cards, inspector forms, timeline virtualisation, accessibility (axe) | Vitest + Testing Library, `@axe-core/playwright` | Every PR |
 | Workbench E2E (browser) | User journeys J-01 to J-15 against `MockHostBridge` + real runtime + `ScriptedProvider` | Playwright | Every PR (smoke subset), nightly (full) |
-| Desktop integration | Real Tauri app: startup, runtime handshake, IPC allowlist, preview frame cannot reach IPC (`scripts/spikes/s3-run.mjs`), PTY, keychain round-trip, crash restart, orphan cleanup (`scripts/spikes/s1-orphans.mjs`) | WebdriverIO + tauri-driver (Windows, Linux) (RN-08): `apps/desktop/desktop-tests/`, `pnpm test:desktop` | Nightly (`.github/workflows/nightly.yml`), release |
+| Desktop integration | The installed app (a `jesutobits-ide` build) on an isolated `--user-data-dir`: startup, runtime handshake, the welcome and account popups, sign-in, the preview strategies | Hand-run live checks over the Chrome DevTools Protocol (`--remote-debugging-port`) today; `@vscode/test-electron` suites planned (ROADMAP section 5). The Tauri app's `scripts/spikes/` are history | Milestones and releases |
 | Packaging | Installer builds, installs silently, launches, runtime ready, sidecars present with expected hashes, uninstalls cleanly | Scripted on CI runners | Release candidates |
 | Security canaries | Fake API key never appears on disk, in logs, in events or in child env; remote images never fetched; frames cannot reach IPC | Vitest + desktop integration | Every PR (runtime parts), nightly (desktop) |
 | Performance | Startup (NFR-001/002), relay latency (NFR-006), timeline with 5k events (NFR-003), hover at 60 fps (NFR-022), idle memory (NFR-004) | Scripted benchmarks with thresholds | Nightly, release |
@@ -98,7 +98,7 @@ Valid: `theme-basic`, `theme-extends`, `companion-static`, `companion-lottie`. I
 
 ## 4. Journey tests
 
-Each journey in PRODUCT_VISION.md section 6 maps to at least one Playwright spec in `apps/desktop/e2e/journeys/`. Specs use the real runtime, `ScriptedProvider` and fixture projects. Examples:
+Each journey in PRODUCT_VISION.md section 6 maps to at least one spec (the Tauri app kept them in `apps/desktop/e2e/journeys/`; on the fork they move to `@vscode/test-electron` suites). Specs use the real runtime, `ScriptedProvider` and fixture projects. Examples:
 
 | Journey | Spec asserts |
 |---|---|
@@ -133,7 +133,7 @@ Each journey in PRODUCT_VISION.md section 6 maps to at least one Playwright spec
 
 ## 6. Cross-platform and packaging
 
-- **CI matrix:** Windows (primary, all suites), Ubuntu (all suites except Windows-only), macOS (unit and browser E2E with WebKit from Phase 1, desktop integration later via the embedded driver if adopted, RN-08).
+- **CI matrix:** this repository runs lint, typecheck and every Vitest suite on Windows (primary) and Ubuntu. `jesutobits-ide` builds and packages the app for Windows, Linux and macOS (Apple Silicon and Intel) on every push and tag; macOS has build coverage only until it gets a hand test.
 - Windows-specific tests: `.cmd` spawning (RN-16), junction escapes, reserved names, CRLF preservation, job-object cleanup when the Host is killed with `taskkill /F`.
 - **Packaging tests (release candidates):** build installer; silent install in a clean VM image; launch; wait for runtime `ready`; run a scripted turn against a local mock provider; quit; assert no `jesutobits-node`, `node` or dev-server processes remain; uninstall; assert app data is kept (user data) and install dir removed.
 - Verify sidecar binaries' SHA-256 against the build manifest at install-test time.
