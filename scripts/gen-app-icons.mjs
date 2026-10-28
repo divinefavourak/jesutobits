@@ -6,6 +6,7 @@
 //   resources/win32/code_70x70.png, code_150x150.png    Start menu tiles
 //   resources/win32/inno-{big,small}-{100..250}.bmp     installer wizard images
 //   resources/linux/code.png                       1024 px
+//   resources/darwin/code.icns, disk.icns          16-1024 px, PNG entries, on Apple's grid
 //   src/vs/workbench/browser/media/code-icon.svg   title bar and banner
 //   src/vs/workbench/browser/parts/editor/media/letterpress-*.svg   empty editor watermark
 //
@@ -31,6 +32,19 @@ const ICON = readFileSync(join(root, "docs", "assets", "jesutobits-icon.svg"), "
 /** The tile's own background, so installer art blends with it. */
 const TILE = "#0F172A";
 const SCALES = [100, 125, 150, 175, 200, 225, 250];
+/** .icns entry types and their pixel sizes (all PNG; macOS 10.7 and later read them). */
+const MAC_ICON_SIZES = [
+  ["icp4", 16],
+  ["icp5", 32],
+  ["ic11", 32],
+  ["ic12", 64],
+  ["ic07", 128],
+  ["ic13", 256],
+  ["ic08", 256],
+  ["ic14", 512],
+  ["ic09", 512],
+  ["ic10", 1024],
+];
 
 function write(path, data) {
   const file = join(out, ...path.split("/"));
@@ -114,6 +128,21 @@ for (const scale of SCALES) {
 // Linux.
 write("resources/linux/code.png", png(1024, 1024, await square(1024)));
 
+// macOS: the tile sits on Apple's icon grid (824 of 1024, centred), so it lines up with the
+// other apps in the Dock. The disk image shows the same icon.
+const macEntries = [];
+for (const [type, size] of MAC_ICON_SIZES) {
+  const inset = Math.round(size * (100 / 1024));
+  const tile = size - 2 * inset;
+  macEntries.push([
+    type,
+    png(size, size, await render(size, size, { x: inset, y: inset, size: tile })),
+  ]);
+}
+const icns = appleIcns(macEntries);
+write("resources/darwin/code.icns", icns);
+write("resources/darwin/disk.icns", icns);
+
 // Inside the app: the title bar and banner icon, and the empty-editor watermark.
 write("src/vs/workbench/browser/media/code-icon.svg", ICON);
 const media = "src/vs/workbench/browser/parts/editor/media";
@@ -159,6 +188,20 @@ function png(width, height, rgba) {
     chunk("IDAT", deflateSync(raw, { level: 9 })),
     chunk("IEND", Buffer.alloc(0)),
   ]);
+}
+
+/** An Apple .icns: "icns", the total length, then each entry's type, length and PNG. */
+function appleIcns(entries) {
+  const parts = entries.map(([type, data]) => {
+    const head = Buffer.alloc(8);
+    head.write(type, 0, "ascii");
+    head.writeUInt32BE(data.length + 8, 4);
+    return Buffer.concat([head, data]);
+  });
+  const header = Buffer.alloc(8);
+  header.write("icns", 0, "ascii");
+  header.writeUInt32BE(8 + parts.reduce((sum, part) => sum + part.length, 0), 4);
+  return Buffer.concat([header, ...parts]);
 }
 
 /** An .ico whose entries are PNGs. */
