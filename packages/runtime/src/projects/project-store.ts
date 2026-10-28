@@ -2,11 +2,16 @@ import {
   ErrorCodes,
   JesutobitsError,
   PolicyPresetSchema,
+  PreviewCommandSchema,
   type PolicyPreset,
   type Project,
 } from "@jesutobits/protocol";
 import { newId } from "@jesutobits/shared";
+import { z } from "zod";
 import type { Database } from "../storage/database.js";
+
+/** `projects.preview_settings_json`. */
+const PreviewSettingsSchema = z.object({ command: PreviewCommandSchema.optional() });
 
 interface ProjectRow {
   id: string;
@@ -129,6 +134,31 @@ export class ProjectStore {
     this.writable();
     this.require(id);
     this.db.run("UPDATE projects SET policy_preset = ? WHERE id = ?", [preset, id]);
+  }
+
+  /** The preview's start command for a project without a dev script (VISUAL_EDITING.md 4). */
+  previewCommand(id: string): string[] | undefined {
+    const row = this.db.get<{ preview_settings_json: string | null }>(
+      "SELECT preview_settings_json FROM projects WHERE id = ?",
+      [id],
+    );
+    try {
+      const parsed = PreviewSettingsSchema.safeParse(
+        JSON.parse(row?.preview_settings_json ?? "{}"),
+      );
+      return parsed.success ? parsed.data.command : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  setPreviewCommand(id: string, command: string[]): void {
+    this.writable();
+    this.require(id);
+    this.db.run("UPDATE projects SET preview_settings_json = ? WHERE id = ?", [
+      JSON.stringify({ command }),
+      id,
+    ]);
   }
 
   remove(id: string): void {

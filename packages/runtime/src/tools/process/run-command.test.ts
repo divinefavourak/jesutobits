@@ -136,4 +136,36 @@ describe("start_preview", () => {
       expect(result.modelText).toContain("Cannot find module 'vite'");
     }
   });
+
+  it("puts a start command on the approval card and passes it on", async () => {
+    const assessment = await classifyInput(
+      startPreview,
+      { command: ["python", "app.py"] },
+      project.ctx,
+    );
+    expect(assessment).toMatchObject({
+      classes: ["execute"],
+      action: { kind: "command", argv: ["python", "app.py"], cwd: ".", shell: false },
+    });
+
+    const given: unknown[] = [];
+    project.ctx.startPreview = async (command) => {
+      given.push(command);
+      return {
+        state: "running",
+        strategy: "command",
+        command: "python app.py",
+        url: null,
+        detail: null,
+        log: ["Game started"],
+      };
+    };
+    const result = await runTool(startPreview, { command: ["python", "app.py"] }, project.ctx);
+    expect(given).toEqual([["python", "app.py"]]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.modelText).toContain("printed no web address");
+      expect(result.modelText).toContain("Game started");
+    }
+  });
 });

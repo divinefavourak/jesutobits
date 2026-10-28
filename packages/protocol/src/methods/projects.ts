@@ -139,7 +139,9 @@ export const projectsDetect = defineMethod({
       lint: z.string().optional(),
       typecheck: z.string().optional(),
     }),
-    previewStrategy: z.enum(["vite-react", "generic", "none"]),
+    previewStrategy: z.enum(["vite-react", "generic", "static", "none"]),
+    /** For `static`: the folder with the site's `index.html`, relative ("" is the root). */
+    staticRoot: z.string().nullable().optional(),
     framework: z.string().nullable(),
     styling: z.enum(["tailwind-4", "tailwind-3", "inline", "css-modules", "css-in-js"]).nullable(),
     visualEditing: z.object({

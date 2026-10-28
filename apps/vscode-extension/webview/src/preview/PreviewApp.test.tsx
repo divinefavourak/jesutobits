@@ -65,4 +65,50 @@ describe("PreviewApp", () => {
     ).toBeTruthy();
     expect(screen.getByText(/No dev script in package.json/)).toBeTruthy();
   });
+
+  it("starts a project with the command the user types, split into argv", async () => {
+    const bridge = new MockHostBridge();
+    const sent: unknown[] = [];
+    bridge.handle("preview.get", () => STOPPED);
+    bridge.handle("preview.start", (params) => {
+      sent.push(params);
+      return { ...STOPPED, state: "starting" as const, strategy: "command" as const };
+    });
+    render(<PreviewApp bridge={bridge} />);
+
+    await userEvent.click(await screen.findByText("Start it another way"));
+    await userEvent.type(screen.getByLabelText("Start command"), 'python "my app.py" --debug');
+    await userEvent.click(screen.getByRole("button", { name: "Start with this command" }));
+
+    await waitFor(() => expect(sent).toEqual([{ command: ["python", "my app.py", "--debug"] }]));
+  });
+
+  it("shows a page-less program's output and what it runs", async () => {
+    setup({
+      state: "running",
+      strategy: "command",
+      command: "go run .",
+      url: null,
+      detail: null,
+      log: ["tick 1", "tick 2"],
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Running, with no page to show" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Output" }).textContent).toContain("tick 2");
+    expect(screen.getByText("Runs go run .")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Stop/ })).toBeTruthy();
+  });
+
+  it("labels a static site", async () => {
+    setup({
+      state: "ready",
+      strategy: "static",
+      command: ".",
+      url: "http://127.0.0.1:4000/",
+      detail: null,
+      log: [],
+    });
+    expect(await screen.findByText("Static site · live reload")).toBeTruthy();
+  });
 });

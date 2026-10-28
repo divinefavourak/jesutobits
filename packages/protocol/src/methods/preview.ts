@@ -2,13 +2,22 @@ import { z } from "zod";
 import { defineMethod } from "./define.js";
 
 /** Where a project's preview is (ROADMAP Phase 4, VISUAL_EDITING.md section 4). */
-export const PreviewStateSchema = z.enum(["stopped", "starting", "ready", "failed"]);
+/** `running`: a program without a web page (a CLI, a game window); its output is the preview. */
+export const PreviewStateSchema = z.enum(["stopped", "starting", "ready", "running", "failed"]);
 export type PreviewState = z.infer<typeof PreviewStateSchema>;
+
+/** A start command: the program and its arguments, run without a shell like `run_command`. */
+export const PreviewCommandSchema = z.array(z.string().min(1).max(4000)).min(1).max(50);
 
 export const PreviewStatusSchema = z.object({
   state: PreviewStateSchema,
-  /** `vite-react` runs the project's Vite with visual editing; `generic` runs its dev script. */
-  strategy: z.enum(["vite-react", "generic"]).nullable(),
+  /**
+   * `vite-react` runs the project's Vite with visual editing; `generic` runs its dev script;
+   * `static` serves its files (an `index.html` site); `command` runs the saved start command.
+   */
+  strategy: z.enum(["vite-react", "generic", "static", "command"]).nullable(),
+  /** What runs, for `generic` and `command`; the folder served, for `static`. */
+  command: z.string().max(4000).nullable().optional(),
   /** Loopback only; set once the dev server answers. */
   url: z.string().url().nullable(),
   /** Plain language, for `failed` (and why visual editing is off, when it is). */
@@ -18,12 +27,16 @@ export const PreviewStatusSchema = z.object({
 });
 export type PreviewStatus = z.infer<typeof PreviewStatusSchema>;
 
-/** Starts the active project's dev server, or returns the running one. */
+/**
+ * Starts the active project's dev server, or returns the running one. `command` is what the
+ * user typed in the preview panel for a project Jesutobits cannot start by itself; it is
+ * saved for the project and replaces the running preview.
+ */
 export const previewStart = defineMethod({
   name: "preview.start",
   description: "Start the active project's preview (its dev server) and wait until it answers.",
   callers: ["workbench"],
-  params: z.object({}),
+  params: z.object({ command: PreviewCommandSchema.optional() }),
   result: PreviewStatusSchema,
 });
 

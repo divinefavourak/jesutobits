@@ -1,5 +1,5 @@
 import { previewStatusEvent, type PreviewStatus } from "@jesutobits/protocol";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import type { HostBridge } from "../host-bridge";
 import { t } from "../i18n";
 import { Button } from "../ui/Button";
@@ -71,7 +71,17 @@ export function PreviewApp({ bridge }: { bridge: HostBridge }) {
   };
 
   const stopped = status.state === "stopped" || status.state === "failed";
+  const running = status.state === "running";
   const start = () => void run(() => bridge.rpc("preview.start", {}));
+  const startWith = (command: string[]) => void run(() => bridge.rpc("preview.start", { command }));
+  const strategyLabel =
+    status.strategy === "vite-react"
+      ? t("preview.viteReact")
+      : status.strategy === "static"
+        ? t("preview.staticSite")
+        : status.strategy && status.command
+          ? t("preview.command", { command: status.command })
+          : status.strategy && t("preview.devScript");
   const address = url?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? null;
 
   return (
@@ -157,24 +167,40 @@ export function PreviewApp({ bridge }: { bridge: HostBridge }) {
                   ? t("preview.startingTitle")
                   : status.state === "failed"
                     ? t("preview.failedTitle")
-                    : t("preview.stoppedTitle")}
+                    : running
+                      ? t("preview.runningTitle")
+                      : t("preview.stoppedTitle")}
               </h2>
               <p className="m-0 max-w-md text-text-muted">
                 {status.state === "starting"
                   ? t("preview.starting")
                   : status.state === "failed"
                     ? t("preview.failed", { detail: status.detail ?? "" })
-                    : t("preview.stopped")}
+                    : running
+                      ? t("preview.running")
+                      : t("preview.stopped")}
               </p>
               {stopped && (
                 <Button variant="primary" onClick={start}>
                   {t("preview.start")}
                 </Button>
               )}
+              {stopped && (
+                <CommandForm
+                  initial={status.strategy === "command" ? (status.command ?? "") : ""}
+                  open={error !== null || status.state === "failed"}
+                  onStart={startWith}
+                />
+              )}
               {status.log.length > 0 && (
-                <section aria-label={t("preview.log")} className="w-full text-left">
-                  <pre className="m-0 max-h-96 overflow-auto rounded-md bg-surface-sunken p-2 font-mono text-xs">
-                    {status.log.slice(-60).join("\n")}
+                <section
+                  aria-label={running ? t("preview.output") : t("preview.log")}
+                  className="w-full text-left"
+                >
+                  <pre
+                    className={`m-0 overflow-auto rounded-md bg-surface-sunken p-2 font-mono text-xs ${running ? "max-h-[60vh]" : "max-h-96"}`}
+                  >
+                    {status.log.slice(running ? -200 : -60).join("\n")}
                   </pre>
                 </section>
               )}
@@ -184,15 +210,11 @@ export function PreviewApp({ bridge }: { bridge: HostBridge }) {
             <span className="flex items-center gap-1.5">
               <i
                 aria-hidden="true"
-                className={`h-2 w-2 rounded-full ${url ? "bg-success" : status.state === "failed" ? "bg-danger" : "bg-border-strong"}`}
+                className={`h-2 w-2 rounded-full ${url || running ? "bg-success" : status.state === "failed" ? "bg-danger" : "bg-border-strong"}`}
               />
               {url ? t("preview.ready") : t(`preview.state.${status.state}`)}
             </span>
-            {status.strategy && (
-              <span>
-                {status.strategy === "vite-react" ? t("preview.viteReact") : t("preview.devScript")}
-              </span>
-            )}
+            {strategyLabel && <span className="truncate">{strategyLabel}</span>}
           </div>
         </div>
         {url && visual && (
@@ -207,6 +229,65 @@ export function PreviewApp({ bridge }: { bridge: HostBridge }) {
       </p>
     </div>
   );
+}
+
+/**
+ * For a project Jesutobits cannot start by itself (Python, Go, a game...): the user types
+ * the command once and it is saved for the project. Run without a shell, like the agent's.
+ */
+function CommandForm({
+  initial,
+  open,
+  onStart,
+}: {
+  initial: string;
+  open: boolean;
+  onStart: (command: string[]) => void;
+}) {
+  const [text, setText] = useState(initial);
+  const inputId = useId();
+  const hintId = useId();
+  const command = splitCommand(text);
+  return (
+    <details open={open} className="w-full max-w-md text-left">
+      <summary className="cursor-pointer text-text-muted">{t("preview.otherWay")}</summary>
+      <form
+        className="mt-2 flex flex-col gap-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (command.length > 0) onStart(command);
+        }}
+      >
+        <label htmlFor={inputId} className="font-medium">
+          {t("preview.commandLabel")}
+        </label>
+        <input
+          id={inputId}
+          aria-describedby={hintId}
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          spellCheck={false}
+          placeholder="python app.py"
+          className="rounded-md border border-border-strong bg-surface-sunken px-2 py-1.5 font-mono text-xs"
+        />
+        <p id={hintId} className="m-0 text-xs text-text-muted">
+          {t("preview.commandHint")}
+        </p>
+        <Button type="submit" disabled={command.length === 0}>
+          {t("preview.commandStart")}
+        </Button>
+      </form>
+    </details>
+  );
+}
+
+/** `python "my app.py" --debug` -> ["python", "my app.py", "--debug"]: spaces split, quotes group. */
+export function splitCommand(text: string): string[] {
+  const parts: string[] = [];
+  for (const match of text.matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)) {
+    parts.push(match[1] ?? match[2] ?? match[3] ?? "");
+  }
+  return parts.filter((part) => part !== "");
 }
 
 function IconButton({

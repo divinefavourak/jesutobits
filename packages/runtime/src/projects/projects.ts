@@ -20,6 +20,7 @@ import {
 } from "@jesutobits/services";
 import type { Logger } from "@jesutobits/shared";
 import type { EventBus } from "../events/event-bus.js";
+import type { PreviewProject } from "../preview/preview-manager.js";
 import type { RpcServer } from "../rpc/server.js";
 import type { Storage } from "../storage/storage.js";
 import { ProjectStore } from "./project-store.js";
@@ -128,6 +129,25 @@ export class Projects {
   activeContext(): ActiveContext | undefined {
     const active = this.active;
     return active && { project: active.project, workspace: active.workspace, index: active.index };
+  }
+
+  /** A project (the open one by default) as the preview needs it, with its start command. */
+  async previewProject(
+    context: ActiveContext | undefined = this.activeContext(),
+  ): Promise<PreviewProject> {
+    if (!context) throw new JesutobitsError(ErrorCodes.fsNoProject, "No project is open");
+    const { project, workspace, index } = context;
+    const store = await this.store();
+    const savedCommand = store.previewCommand(project.id);
+    return {
+      id: project.id,
+      root: project.path,
+      trusted: project.trust === "trusted",
+      workspace,
+      index,
+      ...(savedCommand && { savedCommand }),
+      saveCommand: (command) => store.setPreviewCommand(project.id, command),
+    };
   }
 
   /** Called with a project's ID just before it closes (the agent stops its turns). */

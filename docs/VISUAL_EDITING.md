@@ -36,7 +36,9 @@ Drafts are lost on reload and that is stated in the UI. A navigation or full rel
 |---|---|---|
 | `vite-react` (instrumented) | `package.json` has `vite` ≥ 7 (8 preferred, RN-22), `react` ≥ 18, `react-dom`, and `@vitejs/plugin-react` or `@vitejs/plugin-react-swc`; and does **not** use a meta-framework on top (Next.js, Remix, React Router framework mode, Astro, TanStack Start) | **Full** if styling is Tailwind (v3 or v4) or inline styles; **Inspect-only** otherwise |
 | `generic` | Any project with a `dev` or `start` script | None. Preview, logs and agent checks work |
-| None | No dev script | Preview panel explains what is needed and offers "Ask agent to add a dev server" |
+| `static` | No dev or start script, and an `index.html` in the root, `public/`, `src/`, `www/`, `site/`, `dist/` or `build/` (plain HTML/CSS/JS sites, canvas games) | None. Jesutobits' own static server (`services/src/preview/static-server.ts`) serves it on loopback with live reload |
+| `command` | A start command the user typed in the preview panel ("Start it another way") or the agent passed to `start_preview` (shown on its approval card), saved in `projects.preview_settings_json`; it wins over detection | None. Python, Go, Rust, a backend: shown as a page once it prints an address; a program that prints none within 12 s (a CLI, a game window) is shown as its output (state `running`) |
+| None | None of the above | The preview panel asks for the start command; the agent can pass one |
 
 Styling detection for `vite-react`:
 
@@ -47,7 +49,7 @@ Styling detection for `vite-react`:
 
 The detection result is shown in the project header and the preview panel (FR-120).
 
-Static HTML sites without a dev script are a **later** addition (they would need a Jesutobits-owned static server).
+The static server reads every file through `WorkspaceService` (so nothing outside the project), never serves secret-pattern files (SECURITY.md 6.2) or anything under a dot-folder such as `.git`, answers only GET and HEAD, and adds a small script to HTML pages that reloads them on the runtime's `fs.changed` events. It was chosen over the Live Server extension or the `live-server` package: Jesutobits must start and stop it for the agent, keep it in the preview panel, and keep secret files out.
 
 ## 4. Preview Manager
 
@@ -81,7 +83,8 @@ There is **no automatic restart loop**. A crashed dev server usually has a confi
 ### 4.3 Readiness
 
 - **Instrumented:** the launcher prints a machine-readable line after `server.listen()`: `@@jesutobits {"event":"ready","url":"http://127.0.0.1:5179/"}`. Then the runtime probes `GET /` until any HTTP response arrives (even 404 means the server is up).
-- **Generic:** the runtime parses stdout for URLs with a list of known patterns (`Local:\s+(http://\S+)`, `ready on (http://\S+)`, `listening on .*?(\d{2,5})`), then probes.
+- **Generic and command:** the runtime parses output for a loopback URL (`localhost`, `127.0.0.1`, `0.0.0.0`, `[::1]`) or a "listening/running/server … port N" line, then probes. Without either within 12 s the preview becomes `running` and shows the output, still switching to the page if an address appears later.
+- **Static:** ready as soon as the server listens.
 - Probe interval 300 ms, timeout 90 s (first runs can be slow while dependencies are optimised). The panel shows elapsed time while starting.
 
 ### 4.4 Logs and errors

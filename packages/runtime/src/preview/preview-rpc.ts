@@ -15,16 +15,12 @@ export function registerPreview(server: RpcServer, projects: Projects, previews:
     return context;
   };
 
-  server.register("preview.start", async () => {
-    const { project, workspace, index } = active();
-    return previews.start({
-      id: project.id,
-      root: project.path,
-      trusted: project.trust === "trusted",
-      workspace,
-      index,
-    });
-  });
+  // A command here is one the user typed in the preview panel.
+  server.register("preview.start", async (params) =>
+    previews.start(await projects.previewProject(), {
+      ...(params.command && { command: params.command }),
+    }),
+  );
   server.register("preview.stop", () => previews.stop());
   server.register("preview.get", () => previews.status(projects.activeProject?.id));
 

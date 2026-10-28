@@ -83,7 +83,7 @@ export interface TurnDeps {
   projectMap(): Promise<string | undefined>;
   searchText?(query: TextSearchQuery, signal: AbortSignal): Promise<TextSearchResult>;
   runCommand?(argv: string[], options: CommandOptions): Promise<CommandResult>;
-  startPreview?(): Promise<PreviewStatus>;
+  startPreview?(command?: string[]): Promise<PreviewStatus>;
 }
 
 /** The turn was cancelled; the reason travels as the abort reason. */

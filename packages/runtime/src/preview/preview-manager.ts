@@ -1,13 +1,16 @@
 import { join } from "node:path";
 import { ErrorCodes, JesutobitsError, type PreviewStatus } from "@jesutobits/protocol";
 import type { Logger } from "@jesutobits/shared";
+import { isSecretPatternFile } from "../permissions/secret-patterns.js";
 import {
   detectProject,
   freeLoopbackPort,
   startProcess,
+  startStaticServer,
   waitForHttp,
   type FileIndex,
   type ProcessHandle,
+  type StaticServer,
   type WorkspaceService,
 } from "@jesutobits/services";
 
@@ -15,8 +18,13 @@ const MAX_LOG_LINES = 200;
 const READY_TIMEOUT_MS = 90_000;
 /** What the launcher prints for Jesutobits (packages/preview-launcher). */
 const LAUNCHER_PREFIX = "@@jesutobits ";
-/** A dev server announcing its address, as Vite, Next, CRA and most others do. */
-const URL_IN_OUTPUT = /https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\]):(\d+)\/?\S*/;
+/** A dev server announcing its address, as Vite, Next, CRA, Flask, Django and most others do. */
+const URL_IN_OUTPUT = /https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]):(\d+)\/?\S*/;
+/** "Listening on port 3000", as many backends say it instead. */
+const PORT_IN_OUTPUT =
+  /\b(?:listening|running|started|serving|server)\b.*\bport\s*:?\s*(\d{2,5})\b/i;
+/** A program that printed no address by then is shown as its output instead. */
+const QUIET_AFTER_MS = 12_000;
 
 export interface PreviewProject {
   id: string;
@@ -24,6 +32,9 @@ export interface PreviewProject {
   trusted: boolean;
   workspace: WorkspaceService;
   index: FileIndex | undefined;
+  /** The start command saved for this project, if any. */
+  savedCommand?: string[];
+  saveCommand?(command: string[]): void;
 }
 
 export interface PreviewManagerOptions {
@@ -33,29 +44,47 @@ export interface PreviewManagerOptions {
   /** Masks secrets in dev-server output before it is kept or shown. */
   mask(text: string): string;
   log: Logger;
+  /** How long a program may print no address before its output is the preview (tests). */
+  quietAfterMs?: number;
 }
 
 interface Running {
   projectId: string;
   handle: ProcessHandle | undefined;
+  server: StaticServer | undefined;
+  publishTimer?: ReturnType<typeof setTimeout> | undefined;
   status: PreviewStatus;
   ready: Promise<PreviewStatus>;
   stopping: boolean;
 }
 
+/** What `start` runs: a folder to serve, or a program. `label` is shown as `command`. */
+type Plan =
+  | { strategy: "static"; staticRoot: string; label: string; detail: string | null }
+  | {
+      strategy: "vite-react" | "generic" | "command";
+      argv: string[];
+      label: string | null;
+      detail: string | null;
+    };
+
 const STOPPED: PreviewStatus = {
   state: "stopped",
   strategy: null,
+  command: null,
   url: null,
   detail: null,
   log: [],
 };
 
 /**
- * The active project's preview (ROADMAP Phase 4, VISUAL_EDITING.md section 4): its dev server
- * on a free loopback port. Vite React projects run through the preview launcher with the
- * visual-editing plugin (ADR-0009); anything else runs its dev or start script. One preview at
- * a time; it stops with its project.
+ * The active project's preview (ROADMAP Phase 4, VISUAL_EDITING.md section 4) on a free
+ * loopback port. Vite React projects run through the preview launcher with the
+ * visual-editing plugin (ADR-0009); others run their dev or start script; a plain site (an
+ * `index.html`) is served by the static server with live reload; anything else runs the
+ * start command the user or the agent gave, saved per project. A program that never prints
+ * an address (a CLI, a game window) is shown as its output. One preview at a time; it stops
+ * with its project.
  */
 export class PreviewManager {
   private running: Running | undefined;
@@ -66,9 +95,20 @@ export class PreviewManager {
     return this.running && this.running.projectId === projectId ? this.running.status : STOPPED;
   }
 
-  /** Starts the preview (or joins the one starting) and resolves once it answers or fails. */
-  async start(project: PreviewProject): Promise<PreviewStatus> {
-    if (this.running?.projectId === project.id && this.running.status.state !== "failed") {
+  /**
+   * Starts the preview (or joins the one starting) and resolves once it answers, runs
+   * without a page, or fails. A `command` (typed by the user or approved for the agent) is
+   * saved for the project and replaces whatever runs.
+   */
+  async start(
+    project: PreviewProject,
+    options: { command?: string[] } = {},
+  ): Promise<PreviewStatus> {
+    if (
+      options.command === undefined &&
+      this.running?.projectId === project.id &&
+      this.running.status.state !== "failed"
+    ) {
       return this.running.ready;
     }
     await this.stop();
@@ -78,32 +118,19 @@ export class PreviewManager {
         "This folder is in Restricted Mode. Trust it to run its dev server.",
       );
     }
-    const detection = await detectProject(project.workspace, project.index);
-    const viteReact =
-      detection.previewStrategy === "vite-react" &&
-      detection.visualEditing.level !== "unavailable" &&
-      this.options.guestDir !== undefined;
-    const script =
-      detection.scripts.dev !== undefined
-        ? "dev"
-        : detection.scripts.start !== undefined
-          ? "start"
-          : undefined;
-    if (!viteReact && script === undefined) {
-      throw new JesutobitsError(
-        ErrorCodes.previewUnavailable,
-        "This project has no dev or start script to preview.",
-      );
-    }
+    if (options.command) project.saveCommand?.(options.command);
+    const plan = await this.plan(project, options.command ?? project.savedCommand);
 
     const running: Running = {
       projectId: project.id,
       handle: undefined,
+      server: undefined,
       status: {
         state: "starting",
-        strategy: viteReact ? "vite-react" : "generic",
+        strategy: plan.strategy,
+        command: plan.label,
         url: null,
-        detail: viteReact ? null : detection.visualEditing.reason,
+        detail: plan.detail,
         log: [],
       },
       ready: Promise.resolve(STOPPED),
@@ -111,8 +138,29 @@ export class PreviewManager {
     };
     this.running = running;
     this.publish(running);
-
     const port = await freeLoopbackPort();
+
+    if (plan.strategy === "static") {
+      running.ready = (async () => {
+        try {
+          running.server = await startStaticServer(
+            project.workspace,
+            plan.staticRoot,
+            port,
+            (relative) => isSecretPatternFile(relative),
+          );
+        } catch (error) {
+          return this.fail(running, error instanceof Error ? error.message : String(error));
+        }
+        running.status = { ...running.status, state: "ready", url: running.server.url };
+        this.publish(running);
+        this.options.log.info("preview ready", { url: running.server.url, strategy: "static" });
+        return running.status;
+      })();
+      return running.ready;
+    }
+
+    const viteReact = plan.strategy === "vite-react";
     let announced: (url: string) => void = () => undefined;
     const urlAnnounced = new Promise<string>((resolve) => (announced = resolve));
     const onLine = (line: string) => {
@@ -125,9 +173,10 @@ export class PreviewManager {
         ...running.status,
         log: [...running.status.log, masked].slice(-MAX_LOG_LINES),
       };
+      if (running.status.state === "running") this.publishSoon(running);
       if (!viteReact) {
-        const match = URL_IN_OUTPUT.exec(line);
-        if (match) announced(match[0].replace("localhost", "127.0.0.1"));
+        const url = addressIn(line);
+        if (url) announced(url);
       }
     };
 
@@ -143,7 +192,7 @@ export class PreviewManager {
           "--plugin",
           join(guest, "vite-plugin.mjs"),
         ]
-      : [detection.packageManager?.name ?? "npm", "run", script!];
+      : plan.argv;
 
     running.ready = (async () => {
       try {
@@ -157,34 +206,110 @@ export class PreviewManager {
       }
       void running.handle.exited.then((code) => {
         if (running.stopping || this.running !== running) return;
-        this.fail(running, `The dev server stopped (exit code ${code ?? "none"}).`);
+        this.fail(
+          running,
+          running.status.state === "running"
+            ? `The program finished (exit code ${code ?? "none"}).`
+            : `The dev server stopped (exit code ${code ?? "none"}).`,
+        );
       });
       const exited = running.handle.exited.then(() => undefined);
-      const url = await Promise.race([
-        urlAnnounced,
-        exited,
-        sleep(READY_TIMEOUT_MS).then(() => undefined),
-      ]);
-      if (running.status.state === "failed") return running.status;
-      if (url === undefined) {
-        await this.stopRunning(running);
-        return this.fail(
-          running,
-          `The dev server did not report an address within ${READY_TIMEOUT_MS / 1000} s.`,
-        );
+      // Vite always announces itself; anything else may never print an address (a CLI, a
+      // game window, a quiet backend): after a while its output becomes the preview.
+      const quietAfter = this.options.quietAfterMs ?? QUIET_AFTER_MS;
+      const quiet = sleep(viteReact ? READY_TIMEOUT_MS : quietAfter).then(() => "quiet" as const);
+      const first = await Promise.race([urlAnnounced, exited, quiet]);
+      if (running.status.state === "failed" || first === undefined) return running.status;
+      if (first === "quiet") {
+        if (viteReact) {
+          await this.stopRunning(running);
+          return this.fail(
+            running,
+            `The dev server did not report an address within ${READY_TIMEOUT_MS / 1000} s.`,
+          );
+        }
+        running.status = { ...running.status, state: "running" };
+        this.publish(running);
+        // A server that prints its address later still becomes a page.
+        void urlAnnounced.then((url) => this.whenAnswering(running, url));
+        return running.status;
       }
-      try {
-        await waitForHttp(url, READY_TIMEOUT_MS);
-      } catch (error) {
-        await this.stopRunning(running);
-        return this.fail(running, error instanceof Error ? error.message : String(error));
-      }
-      running.status = { ...running.status, state: "ready", url };
-      this.publish(running);
-      this.options.log.info("preview ready", { url, strategy: running.status.strategy });
-      return running.status;
+      return this.whenAnswering(running, first);
     })();
     return running.ready;
+  }
+
+  /** Project files changed: a static site's open pages reload. */
+  filesChanged(projectId: string): void {
+    if (this.running?.projectId === projectId) this.running.server?.reload();
+  }
+
+  /** How to run this project: a saved or given command wins over what detection finds. */
+  private async plan(project: PreviewProject, command: string[] | undefined): Promise<Plan> {
+    if (command) {
+      return { strategy: "command", argv: command, label: command.join(" "), detail: null };
+    }
+    const detection = await detectProject(project.workspace, project.index);
+    if (
+      detection.previewStrategy === "vite-react" &&
+      detection.visualEditing.level !== "unavailable" &&
+      this.options.guestDir !== undefined
+    ) {
+      return { strategy: "vite-react", argv: [], label: null, detail: null };
+    }
+    const script =
+      detection.scripts.dev !== undefined
+        ? "dev"
+        : detection.scripts.start !== undefined
+          ? "start"
+          : undefined;
+    if (script) {
+      const argv = [detection.packageManager?.name ?? "npm", "run", script];
+      return {
+        strategy: "generic",
+        argv,
+        label: argv.join(" "),
+        detail: detection.visualEditing.reason,
+      };
+    }
+    if (detection.previewStrategy === "static" && detection.staticRoot != null) {
+      return {
+        strategy: "static",
+        staticRoot: detection.staticRoot,
+        label: detection.staticRoot === "" ? "." : detection.staticRoot,
+        detail: null,
+      };
+    }
+    throw new JesutobitsError(
+      ErrorCodes.previewUnavailable,
+      "Jesutobits does not know how to start this project yet. Type the command that starts it in the preview panel (for example python app.py), or ask the agent to start the preview.",
+    );
+  }
+
+  /** The program announced an address: show it once it answers. */
+  private async whenAnswering(running: Running, url: string): Promise<PreviewStatus> {
+    try {
+      await waitForHttp(url, READY_TIMEOUT_MS);
+    } catch (error) {
+      if (running.status.state === "running") return running.status;
+      await this.stopRunning(running);
+      return this.fail(running, error instanceof Error ? error.message : String(error));
+    }
+    if (this.running !== running || running.stopping) return running.status;
+    running.status = { ...running.status, state: "ready", url };
+    this.publish(running);
+    this.options.log.info("preview ready", { url, strategy: running.status.strategy });
+    return running.status;
+  }
+
+  /** Output of a page-less program, at most four times a second. */
+  private publishSoon(running: Running): void {
+    if (running.publishTimer) return;
+    running.publishTimer = setTimeout(() => {
+      running.publishTimer = undefined;
+      if (this.running === running) this.publish(running);
+    }, 250);
+    running.publishTimer.unref();
   }
 
   async stop(): Promise<PreviewStatus> {
@@ -203,7 +328,8 @@ export class PreviewManager {
 
   private async stopRunning(running: Running): Promise<void> {
     running.stopping = true;
-    await running.handle?.stop();
+    if (running.publishTimer) clearTimeout(running.publishTimer);
+    await Promise.all([running.handle?.stop(), running.server?.close()]);
   }
 
   private onLauncherMessage(running: Running, json: string, announced: (url: string) => void) {
@@ -239,4 +365,12 @@ export class PreviewManager {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms).unref());
+}
+
+/** The loopback address a line announces, if any. */
+function addressIn(line: string): string | undefined {
+  const url = URL_IN_OUTPUT.exec(line);
+  if (url) return url[0].replace(/localhost|0\.0\.0\.0/, "127.0.0.1");
+  const port = PORT_IN_OUTPUT.exec(line);
+  return port ? `http://127.0.0.1:${port[1]}/` : undefined;
 }

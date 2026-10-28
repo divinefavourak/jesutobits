@@ -105,7 +105,7 @@ export interface ToolContext {
   /** Runs a program without a shell (`run_command`); `cwd` is already inside the project. */
   runCommand?(argv: string[], options: CommandOptions): Promise<CommandResult>;
   /** Starts (or joins) the project's preview and resolves once it is ready or failed. */
-  startPreview?(): Promise<PreviewStatus>;
+  startPreview?(command?: string[]): Promise<PreviewStatus>;
 }
 
 export interface CommandOptions {

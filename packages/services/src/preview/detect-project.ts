@@ -2,7 +2,7 @@ import type { FileIndex } from "../workspace/file-index.js";
 import type { WorkspaceService } from "../workspace/workspace-service.js";
 
 export type PackageManager = "npm" | "pnpm" | "yarn" | "bun";
-export type PreviewStrategy = "vite-react" | "generic" | "none";
+export type PreviewStrategy = "vite-react" | "generic" | "static" | "none";
 export type Styling = "tailwind-4" | "tailwind-3" | "inline" | "css-modules" | "css-in-js";
 export type VisualEditingLevel = "full" | "inspect-only" | "unavailable";
 
@@ -11,6 +11,8 @@ export interface ProjectDetection {
   /** The scripts checks and previews care about, when present. */
   scripts: Partial<Record<"dev" | "start" | "build" | "test" | "lint" | "typecheck", string>>;
   previewStrategy: PreviewStrategy;
+  /** For `static`: the folder with the site's `index.html` ("" is the root). */
+  staticRoot: string | null;
   /** A meta-framework that rules out the instrumented adapter (Next.js, Remix...). */
   framework: string | null;
   styling: Styling | null;
@@ -41,6 +43,8 @@ const LOCKFILES: ReadonlyArray<readonly [string, PackageManager]> = [
   ["package-lock.json", "npm"],
 ];
 const SCRIPT_NAMES = ["dev", "start", "build", "test", "lint", "typecheck"] as const;
+/** Where a plain site keeps its `index.html`, in the order looked at. */
+const STATIC_ROOTS = ["", "public", "src", "www", "site", "dist", "build"];
 /** CSS files read when looking for Tailwind 4's `@import "tailwindcss"`. */
 const MAX_CSS_FILES = 50;
 const MAX_CSS_BYTES = 256 * 1024;
@@ -58,13 +62,21 @@ export async function detectProject(
   const pkg = await readPackageJson(workspace);
   const packageManager = await detectPackageManager(workspace, pkg);
   if (!pkg) {
+    const staticRoot = await findStaticRoot(workspace);
     return {
       packageManager,
       scripts: {},
-      previewStrategy: "none",
+      previewStrategy: staticRoot === null ? "none" : "static",
+      staticRoot,
       framework: null,
       styling: null,
-      visualEditing: { level: "unavailable", reason: "There is no package.json in this folder." },
+      visualEditing: {
+        level: "unavailable",
+        reason:
+          staticRoot === null
+            ? "There is no package.json or index.html in this folder."
+            : "Visual editing supports React projects built with Vite 7 or newer.",
+      },
     };
   }
 
@@ -91,17 +103,19 @@ export async function detectProject(
 
   if (!isViteReact) {
     const runnable = scripts.dev !== undefined || scripts.start !== undefined;
+    const staticRoot = runnable ? null : await findStaticRoot(workspace);
     return {
       packageManager,
       scripts,
-      previewStrategy: runnable ? "generic" : "none",
+      previewStrategy: runnable ? "generic" : staticRoot !== null ? "static" : "none",
+      staticRoot,
       framework,
       styling: null,
       visualEditing: {
         level: "unavailable",
         reason: framework
           ? `Visual editing supports React with Vite; this project uses ${framework}.`
-          : runnable
+          : runnable || staticRoot !== null
             ? "Visual editing supports React projects built with Vite 7 or newer."
             : "There is no dev or start script to run a preview.",
       },
@@ -114,6 +128,7 @@ export async function detectProject(
     packageManager,
     scripts,
     previewStrategy: "vite-react",
+    staticRoot: null,
     framework: null,
     styling,
     visualEditing: inspectOnly
@@ -159,6 +174,16 @@ async function detectStyling(
     }
   }
   return "inline";
+}
+
+/** The first folder of STATIC_ROOTS with an `index.html`, or null. */
+async function findStaticRoot(workspace: WorkspaceService): Promise<string | null> {
+  for (const root of STATIC_ROOTS) {
+    const entries = await workspace.listDir(root).catch(() => []);
+    if (entries.some((entry) => entry.name.toLowerCase() === "index.html" && entry.kind === "file"))
+      return root;
+  }
+  return null;
 }
 
 async function detectPackageManager(

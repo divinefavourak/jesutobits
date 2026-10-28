@@ -165,6 +165,10 @@ export function createRuntime(io: RuntimeIo): Runtime {
   });
   registerPreview(server, projects, previews);
   projects.onClose((projectId) => void previews.closeProject(projectId));
+  // A static site reloads when its files change (the agent's edits or the user's).
+  events.onEmit((event) => {
+    if (event.type === "fs.changed" && event.projectId) previews.filesChanged(event.projectId);
+  });
 
   const agent = new AgentService({
     events,

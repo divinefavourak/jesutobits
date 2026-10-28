@@ -460,14 +460,11 @@ export class AgentService {
             maxOutputBytes: 1_000_000,
           }),
         ...(this.options.previews && {
-          startPreview: () =>
-            this.options.previews!.start({
-              id: project.id,
-              root: project.path,
-              trusted: project.trust === "trusted",
-              workspace: context.workspace,
-              index: context.index,
-            }),
+          startPreview: async (command) =>
+            this.options.previews!.start(
+              await this.options.projects.previewProject(context),
+              command ? { command } : {},
+            ),
         }),
       },
       turnId,
