@@ -142,7 +142,9 @@ export function PreviewApp({ bridge }: { bridge: HostBridge }) {
             </span>
             <span className="flex min-w-0 items-center gap-1.5 rounded-full bg-surface-sunken px-3 py-1 text-xs text-text-muted">
               <Glyph name="shield" size={11} />
-              <span className="truncate font-mono">{address ?? t("preview.noAddress")}</span>
+              <span className="truncate font-mono">
+                {address ?? (running ? t("preview.noPage") : t("preview.noAddress"))}
+              </span>
             </span>
             <span className="ml-auto truncate text-xs text-text-muted">
               {inspecting ? t("preview.inspectingHint") : t("preview.addressHint")}

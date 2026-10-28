@@ -89,7 +89,7 @@ There is **no automatic restart loop**. A crashed dev server usually has a confi
 
 ### 4.4 Logs and errors
 
-- Each preview session keeps a 10,000-line ring buffer. The UI renders ANSI colours safely (escape sequences converted to spans, never HTML from the stream). The agent receives logs with ANSI stripped.
+- Each preview session keeps the last 200 lines. Dev servers run with `NO_COLOR=1`, and any ANSI escape sequences left are stripped from each line before the address is looked for and before it is kept, so the UI and the agent both get plain text (a coloured address such as Vite 5's `localhost:` + bold port would otherwise go unrecognised).
 - Known error patterns are highlighted and counted: Vite internal server errors, failed import resolution, TypeScript errors from plugins, port errors.
 - The bridge forwards page-side errors (`window.onerror`, `unhandledrejection`, a count of `console.error` calls with the first 300 characters) to the preview console tab. These are **untrusted** and displayed as text.
 

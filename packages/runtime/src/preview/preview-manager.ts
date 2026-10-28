@@ -163,7 +163,9 @@ export class PreviewManager {
     const viteReact = plan.strategy === "vite-react";
     let announced: (url: string) => void = () => undefined;
     const urlAnnounced = new Promise<string>((resolve) => (announced = resolve));
-    const onLine = (line: string) => {
+    const onLine = (raw: string) => {
+      // Colour codes would split an address ("localhost:" ESC[1m "5173") and show as junk.
+      const line = withoutAnsi(raw);
       if (viteReact && line.startsWith(LAUNCHER_PREFIX)) {
         this.onLauncherMessage(running, line.slice(LAUNCHER_PREFIX.length), announced);
         return;
@@ -198,7 +200,8 @@ export class PreviewManager {
       try {
         running.handle = await startProcess(argv, {
           cwd: project.root,
-          env: { PORT: String(port), HOST: "127.0.0.1", BROWSER: "none" },
+          // NO_COLOR: most dev servers then print plain text (the rest is stripped).
+          env: { PORT: String(port), HOST: "127.0.0.1", BROWSER: "none", NO_COLOR: "1" },
           onLine,
         });
       } catch (error) {
@@ -365,6 +368,16 @@ export class PreviewManager {
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms).unref());
+}
+
+/** ANSI escape sequences: colours and cursor moves (CSI), and titles and links (OSC). */
+const ANSI =
+  // eslint-disable-next-line no-control-regex
+  /\u001b\[[0-?]*[ -/]*[@-~]|\u001b\][^\u0007\u001b]*(?:\u0007|\u001b\\)|\u001b[@-Z\\-_]/g;
+
+/** A line as text: escape sequences removed. */
+export function withoutAnsi(line: string): string {
+  return line.replace(ANSI, "");
 }
 
 /** The loopback address a line announces, if any. */

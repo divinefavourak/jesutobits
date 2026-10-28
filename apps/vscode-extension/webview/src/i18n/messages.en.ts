@@ -481,6 +481,7 @@ export const en = {
   "preview.noProject": "Open a folder to preview it.",
   "preview.exitInspect": "Exit Inspect",
   "preview.noAddress": "Not running",
+  "preview.noPage": "No web page",
   "preview.addressHint": "Your app preview",
   "preview.inspectingHint": "Click something in your app to select it",
   "preview.stoppedTitle": "Your preview is resting",

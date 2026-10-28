@@ -94,6 +94,33 @@ describe("PreviewManager", () => {
     await expect(fetchText(status.url!)).rejects.toThrow();
   }, 60_000);
 
+  it("finds an address printed in colour, as Vite 5 does, and shows the output as text", async () => {
+    project.write(
+      "package.json",
+      JSON.stringify({ name: "app", scripts: { dev: "node colour.js" } }),
+    );
+    // Vite: "➜  Local:   http://localhost:" + bold port + "/", every part coloured.
+    project.write(
+      "colour.js",
+      `const port = Number(process.env.PORT);
+require("node:http").createServer((q, r) => r.end("vite")).listen(port, "127.0.0.1", () => {
+  const e = "\\u001b";
+  console.log("  " + e + "[32m" + e + "[1mVITE" + e + "[22m v5.4.11" + e + "[39m  " + e + "[2mready in 214 ms" + e + "[22m");
+  console.log("  " + e + "[32m➜" + e + "[39m  " + e + "[1mLocal" + e + "[22m:   " + e + "[36mhttp://localhost:" + e + "[1m" + port + e + "[22m/" + e + "[39m");
+  console.log("NO_COLOR=" + process.env.NO_COLOR);
+});`,
+    );
+
+    const status = await start();
+
+    expect(status).toMatchObject({ state: "ready", strategy: "generic" });
+    expect(await fetchText(status.url!)).toBe("vite");
+    const log = status.log.join("\n");
+    expect(log).toContain("VITE v5.4.11  ready in 214 ms");
+    expect(log).toContain("NO_COLOR=1");
+    expect(log).not.toContain("\u001b");
+  }, 60_000);
+
   it("fails with the dev server's last output, secrets masked, when it exits", async () => {
     project.write(
       "package.json",
