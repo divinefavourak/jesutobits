@@ -193,14 +193,15 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
     expect(cancels[0]).toEqual({ turnId: TURN_ID });
   });
 
-  it("asks for the key in the extension's password box when none is stored", async () => {
+  it("offers Sign in with OpenRouter when no key is stored, and hides the banner after", async () => {
     const { bridge } = await setupPanel({ withKey: false });
     bridge.nextPromptedKey = "sk-or-test-not-real";
 
     expect(await screen.findByText(/No OpenRouter API key is stored/)).toBeTruthy();
-    await userEvent.click(screen.getByRole("button", { name: "Add API key" }));
+    await userEvent.click(screen.getByRole("button", { name: "Sign in with OpenRouter" }));
 
     await waitFor(async () => expect(await bridge.secrets.exists(OPENROUTER_REF)).toBe(true));
+    await waitFor(() => expect(screen.queryByText(/No OpenRouter API key is stored/)).toBeNull());
     expect(document.body.textContent).not.toContain("sk-or-test-not-real");
   });
 
@@ -248,10 +249,30 @@ describe("AgentPanel (UX_AND_INTERFACE.md section 6)", () => {
     await userEvent.type(screen.getByLabelText("Message to the agent"), "Hello");
     await userEvent.click(screen.getByRole("button", { name: "Send" }));
     const alert = await screen.findByRole("alert");
-    await userEvent.click(within(alert).getByRole("button", { name: "Add my key" }));
+    await userEvent.click(within(alert).getByRole("button", { name: "Paste a key instead" }));
 
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
     expect(document.body.textContent).not.toContain("sk-or-new-not-real");
+  });
+
+  it("offers Sign in with OpenRouter when the key is missing", async () => {
+    const { bridge } = await setupPanel({ history: completedTurn() });
+    bridge.handle("agent.sendMessage", () => {
+      throw new JesutobitsError(ErrorCodes.providerNoCredentials, "No OpenRouter API key.", {
+        userAction: "open_settings",
+      });
+    });
+    const signIns = vi.spyOn(bridge.secrets, "signIn");
+    bridge.nextPromptedKey = "sk-or-minted-not-real";
+
+    await userEvent.type(screen.getByLabelText("Message to the agent"), "Hello");
+    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    const alert = await screen.findByRole("alert");
+    await userEvent.click(within(alert).getByRole("button", { name: "Sign in with OpenRouter" }));
+
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(signIns).toHaveBeenCalledWith("provider:openrouter:default");
+    expect(document.body.textContent).not.toContain("sk-or-minted-not-real");
   });
 
   it("offers Open Folder and New Project when no project is open", async () => {

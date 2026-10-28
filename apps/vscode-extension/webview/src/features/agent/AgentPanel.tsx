@@ -8,8 +8,8 @@ import { Markdown } from "../../ui/markdown/Markdown";
 import { Buddy, Glyph, JMark } from "../../ui/Studio";
 import { Companion } from "../companion/Companion";
 import { ThemePicker } from "../look/ThemePicker";
-import { OPENROUTER_REF } from "./agent-store";
 import { ApprovalCard, ResolvedApproval } from "./ApprovalCard";
+import { ConnectButtons } from "./ProviderSetup";
 import { PlanChecklist, QuestionCard, ToolRow, TurnSummaryCard } from "./TurnParts";
 import { liveTurn, type TimelineItem, type TurnView } from "./timeline-reducer";
 
@@ -70,9 +70,7 @@ export function AgentPanel() {
       {hasKey === false && (
         <div className="flex flex-wrap items-center gap-2 border-b border-border bg-warning-subtle px-3 py-2">
           <span className="flex-1">{t("agent.key.missing")}</span>
-          <Button onClick={() => void bridge.secrets.prompt(OPENROUTER_REF).catch(() => undefined)}>
-            {t("agent.key.add")}
-          </Button>
+          <ConnectButtons />
         </div>
       )}
       <div
@@ -435,17 +433,7 @@ function Composer() {
               </>
             )}
             {errorFix === "key" && (
-              <Button
-                variant="secondary"
-                onClick={() =>
-                  void bridge.secrets.prompt(OPENROUTER_REF).then(async (stored) => {
-                    await agent.getState().checkKey();
-                    if (stored) agent.getState().dismissError();
-                  })
-                }
-              >
-                {t("agent.error.addKey")}
-              </Button>
+              <ConnectButtons onStored={() => agent.getState().dismissError()} />
             )}
             <Button variant="ghost" onClick={() => agent.getState().dismissError()}>
               {t("errors.dismiss")}

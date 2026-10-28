@@ -32,6 +32,8 @@ export interface PanelServices {
     exists(ref: SecretRef): Promise<boolean>;
     /** VS Code's password box; false when the user cancelled. */
     prompt(ref: SecretRef): Promise<boolean>;
+    /** Sign in with OpenRouter in the browser; false when it was not finished. */
+    signIn(ref: SecretRef): Promise<boolean>;
     delete(ref: SecretRef): Promise<void>;
   };
   restartRuntime(): void;
@@ -138,6 +140,8 @@ async function hostOp(op: string, params: unknown, services: PanelServices): Pro
       return { exists: await services.secrets.exists(input.ref as SecretRef) };
     case "secrets.prompt":
       return { stored: await services.secrets.prompt(input.ref as SecretRef) };
+    case "secrets.signIn":
+      return { stored: await services.secrets.signIn(input.ref as SecretRef) };
     case "secrets.delete":
       await services.secrets.delete(input.ref as SecretRef);
       return {};

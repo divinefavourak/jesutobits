@@ -68,6 +68,11 @@ function setup(
         storedSecrets.set(ref, SECRET);
         return true;
       },
+      signIn: async (ref) => {
+        secretActions.push(`signIn ${ref}`);
+        storedSecrets.set(ref, SECRET);
+        return true;
+      },
       delete: async (ref) => {
         secretActions.push(`delete ${ref}`);
         storedSecrets.delete(ref);
@@ -345,6 +350,19 @@ describe("handlePanelMessage", () => {
     expect(prompted).toEqual({ kind: "result", id: 1, result: { stored: true } });
     expect(deleted).toEqual({ kind: "result", id: 2, result: {} });
     expect(JSON.stringify([prompted, deleted])).not.toContain(SECRET);
+  });
+
+  it("signs in with OpenRouter in the extension; the webview only learns that it worked", async () => {
+    const { services, secretActions } = setup();
+
+    const outcome = await handlePanelMessage(
+      { kind: "host", id: 1, op: "secrets.signIn", params: { ref: REF } },
+      services,
+    );
+
+    expect(secretActions).toEqual([`signIn ${REF}`]);
+    expect(outcome).toEqual({ kind: "result", id: 1, result: { stored: true } });
+    expect(JSON.stringify(outcome)).not.toContain(SECRET);
   });
 
   it("restarts the runtime and opens settings at a section", async () => {

@@ -81,6 +81,8 @@ export interface HostBridge {
   secrets: {
     /** False when the user cancelled. */
     prompt(ref: SecretRef): Promise<boolean>;
+    /** Sign in with OpenRouter in the browser; false when it was not finished. */
+    signIn(ref: SecretRef): Promise<boolean>;
     delete(ref: SecretRef): Promise<void>;
     exists(ref: SecretRef): Promise<boolean>;
     /** A secret was set or removed anywhere (a command, another window): check again. */

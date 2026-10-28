@@ -209,6 +209,8 @@ export class WebviewHostBridge implements HostBridge {
   readonly secrets = {
     prompt: async (ref: SecretRef): Promise<boolean> =>
       (await this.#host("secrets.prompt", { ref })).stored,
+    signIn: async (ref: SecretRef): Promise<boolean> =>
+      (await this.#host("secrets.signIn", { ref })).stored,
     delete: async (ref: SecretRef): Promise<void> => {
       await this.#host("secrets.delete", { ref });
     },

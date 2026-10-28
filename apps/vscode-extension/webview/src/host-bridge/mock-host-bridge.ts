@@ -211,6 +211,8 @@ export class MockHostBridge implements HostBridge {
       this.storedSecrets.set(ref, typed);
       return true;
     },
+    /** The browser step "succeeds" with the next prompted key; null cancels, as with prompt. */
+    signIn: async (ref: SecretRef): Promise<boolean> => this.secrets.prompt(ref),
     delete: async (ref: SecretRef): Promise<void> => {
       this.storedSecrets.delete(ref);
     },

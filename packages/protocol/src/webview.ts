@@ -73,6 +73,14 @@ export const WEBVIEW_HOST_OPS = {
     params: z.object({ ref: SecretRefSchema }).strict(),
     result: z.object({ stored: z.boolean() }),
   },
+  /**
+   * Sign in with OpenRouter: the user allows Jesutobits in the browser and OpenRouter makes a
+   * key, which the extension stores without the webview seeing it. False when not finished.
+   */
+  "secrets.signIn": {
+    params: z.object({ ref: SecretRefSchema }).strict(),
+    result: z.object({ stored: z.boolean() }),
+  },
   "secrets.delete": {
     params: z.object({ ref: SecretRefSchema }).strict(),
     result: z.object({}),

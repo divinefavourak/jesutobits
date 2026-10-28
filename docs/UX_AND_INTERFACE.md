@@ -57,10 +57,10 @@ Code-OSS fork (2026-10-27, ADR-0015): the table above describes the Tauri app. J
 |---|---|---|
 | 1. A little hello | "You bring the idea. We'll find the way.", Buddy, and Just getting started / Finding my feet / I know my way around | `jesutobits.experience` |
 | 2. Make it yours | The six Studio themes (Cosy & dark, Light & airy) as cards with a preview in each theme's colours | `workbench.colorTheme`, applied at once |
-| 3. Meet your co-builder | Add my OpenRouter key (VS Code's password box, through `jesutobits.setApiKey`), Choose a model (`jesutobits.chooseModel`), and Cautious / Balanced / Autonomous | The key goes to SecretStorage and the popup only learns whether one is stored (`jesutobits.hasApiKey`); `jesutobits.agent.defaultPolicyPreset` |
+| 3. Meet your co-builder | Sign in with OpenRouter (`jesutobits.connectOpenRouter`, the browser; patch 005) or "I have a key" (VS Code's password box, `jesutobits.setApiKey`); Use the free model (`jesutobits.useFreeModel`: Laguna S 2.1 by Poolside, with the note that Poolside may learn from prompts) or Choose another (`jesutobits.chooseModel`); and Cautious / Balanced / Autonomous | The key goes to SecretStorage and the popup only learns whether one is stored (`jesutobits.hasApiKey`); the free model sets `providers.openrouter.defaultModel` and `providers.openrouter.dataCollection: allow`; `jesutobits.agent.defaultPolicyPreset` |
 | 4. Your first idea | Idea chips and a text box; "Enter my workspace" | The text waits in the agent's message box (`jesutobits.compose`); nothing is sent |
 
-**Jesutobits: Get Started** shows the popup again; in plain VS Code, where the extension is developed, it opens the walkthrough instead. When the agent cannot start because no model or no valid key is set, the panel's message offers the fix: Open settings (on `jesutobits.providers.openrouter.defaultModel`) or Add my key.
+**Jesutobits: Get Started** shows the popup again; in plain VS Code, where the extension is developed, it opens the walkthrough instead. When the agent cannot start because no model or no valid key is set, the panel's message offers the fix: Open settings (on `jesutobits.providers.openrouter.defaultModel`), or Sign in with OpenRouter / Paste a key instead (also on the panel's "no key" banner).
 
 After onboarding, a dismissible "First steps" checklist appears in the agent panel: ask the agent something, open the preview, try Inspect mode, review a diff.
 

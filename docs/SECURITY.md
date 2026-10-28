@@ -49,6 +49,7 @@ flowchart TB
 ## 3. Credentials (MVP)
 
 - Provider keys are typed into VS Code's own password box (`showInputBox` with `password: true`), opened by the extension when the agent panel asks (`secrets.prompt`), and stored in VS Code `SecretStorage`, which uses the OS credential store (ADR-0015). The key never enters the webview, its DOM or its messages; the panel can only ask whether a key exists or delete it.
+- **Sign in with OpenRouter** (OAuth PKCE, `apps/vscode-extension/src/host/openrouter-auth.ts`) is the other way in, for users who do not know what a key is. The extension opens `openrouter.ai/auth` in the browser with a SHA-256 code challenge and a random `state`, waits for the redirect on a one-off loopback listener (`127.0.0.1` and `::1` only, random port, closed after one sign-in or 5 minutes), refuses a callback without the matching `state`, and exchanges the code and verifier at `openrouter.ai/api/v1/auth/keys`. The key OpenRouter returns (labelled "Jesutobits" in the user's OpenRouter keys) goes straight to `SecretStorage` like a typed one; it is never logged, put in an error, or sent to the webview, which only learns `stored: true` (`secrets.signIn`).
 - The runtime fetches a key through `host.secrets.get` only when it needs to call the provider, keeps it in memory, and registers it with the `SecretRegistry` for redaction.
 - Keys never appear in: settings files, SQLite, logs, crash bundles, model context, child-process environments, event payloads, or diagnostic exports. **Canary test:** CI runs a session with a fake key `sk-or-CANARY-...` and fails if the string appears in any file under the app data directory or in any event.
 - On Linux without a Secret Service, the user enters the key per session; it lives only in runtime memory.
@@ -204,7 +205,7 @@ Built from an allowlist (ADR-0011). Provider keys and Jesutobits internals are n
 
 ## 7. Network access
 
-- Jesutobits itself contacts only the configured model provider (and the update server, if updates are enabled).
+- Jesutobits itself contacts only the configured model provider (and the update server, if updates are enabled). Sign in with OpenRouter stays within that: the browser visits `openrouter.ai/auth`, and the extension posts to `openrouter.ai/api/v1/auth/keys`.
 - The agent has no general web tool in the MVP. `fetch_url` (later, FR-060) will be approval-gated per domain and return content labelled untrusted.
 - Commands may use the network. Jesutobits detects known network commands (5.3) but cannot block unknown ones without OS sandboxing. This is stated in the approval card for unknown commands ("Jesutobits cannot tell whether this command uses the network").
 - Dev servers bind to `127.0.0.1` in instrumented mode. In generic mode, if the dev server's output shows it listening on a LAN address, the preview panel warns that the app is reachable from the local network.
@@ -280,5 +281,5 @@ Jesutobits assumes injected instructions **will** sometimes reach the model (fro
 - **No command sandbox in the MVP.** Approved commands run with the user's privileges. Future: Windows AppContainer or job-object restrictions, macOS sandbox profiles, Linux bubblewrap/Landlock, integrated at `ProcessSupervisor` (ARCHITECTURE.md section 12).
 - **Workbench compromise = approval compromise.** Future: route approvals through a Host-rendered native dialog for high-risk classes, so a compromised webview cannot approve them.
 - **Users approving dangerous actions.** Mitigated by clarity, not eliminated. Future: risk scoring and "this looks unusual" hints.
-- **Model provider data handling.** Jesutobits defaults OpenRouter `data_collection` to `deny` but cannot verify provider behaviour.
+- **Model provider data handling.** Jesutobits defaults OpenRouter `data_collection` to `deny` but cannot verify provider behaviour. Free models need `allow` (their makers may train on prompts); the welcome popup's "Use the free model" sets it only when the user picks it, next to a note saying so, and it then applies to every model until changed in Settings.
 - **Node Permission Model** (RN-17) as defence in depth for the runtime itself is evaluated in Phase 7.

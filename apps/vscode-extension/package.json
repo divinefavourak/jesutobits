@@ -68,6 +68,11 @@
         "category": "Jesutobits"
       },
       {
+        "command": "jesutobits.connectOpenRouter",
+        "title": "Sign In with OpenRouter",
+        "category": "Jesutobits"
+      },
+      {
         "command": "jesutobits.setApiKey",
         "title": "Set OpenRouter API Key",
         "category": "Jesutobits"
@@ -96,6 +101,11 @@
       {
         "command": "jesutobits.compose",
         "title": "Put a Task in the Agent's Message Box",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.useFreeModel",
+        "title": "Use the Free Coding Model",
         "category": "Jesutobits"
       },
       {
@@ -130,12 +140,13 @@
         "steps": [
           {
             "id": "apiKey",
-            "title": "Add your OpenRouter API key",
-            "description": "Jesutobits calls models through OpenRouter. The key is typed into a password box and kept in your system's credential store; Jesutobits never shows it again.\n[Set API key](command:jesutobits.setApiKey)",
+            "title": "Connect OpenRouter",
+            "description": "OpenRouter is one account for many AI models. Sign in and allow Jesutobits; OpenRouter makes a key for it, kept in your system's credential store.\n[Sign in with OpenRouter](command:jesutobits.connectOpenRouter)",
             "media": {
               "markdown": "media/walkthrough/api-key.md"
             },
             "completionEvents": [
+              "onCommand:jesutobits.connectOpenRouter",
               "onCommand:jesutobits.setApiKey"
             ]
           },
@@ -358,6 +369,10 @@
         },
         {
           "command": "jesutobits.compose",
+          "when": "false"
+        },
+        {
+          "command": "jesutobits.useFreeModel",
           "when": "false"
         }
       ],

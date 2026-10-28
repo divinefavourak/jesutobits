@@ -20,6 +20,7 @@ import {
 } from "@jesutobits/protocol";
 import * as vscode from "vscode";
 import { readRemix, withRemix } from "./host/look.js";
+import { SignInCancelled, signInWithOpenRouter } from "./host/openrouter-auth.js";
 import type { PanelServices } from "./host/panel-messages.js";
 import { createReverseHandler } from "./host/reverse-calls.js";
 import { runtimeConfig } from "./host/runtime-config.js";
@@ -152,6 +153,7 @@ export function activate(context: vscode.ExtensionContext): void {
         await context.secrets.store(ref, value.trim());
         return true;
       },
+      signIn: (ref) => signInWithOpenRouterInBrowser((key) => context.secrets.store(ref, key), log),
       delete: async (ref) => {
         await context.secrets.delete(ref);
       },
@@ -275,6 +277,22 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("jesutobits.setApiKey", () =>
       services.secrets.prompt(openRouterRef()),
     ),
+    // Sign in with OpenRouter in the browser; true when a key was stored.
+    vscode.commands.registerCommand("jesutobits.connectOpenRouter", () =>
+      services.secrets.signIn(openRouterRef()),
+    ),
+    // The welcome popup's "Use the free model": the user chose it knowing the model's maker may
+    // learn from the prompts, which needs data collection allowed (OpenRouter refuses otherwise).
+    vscode.commands.registerCommand("jesutobits.useFreeModel", async () => {
+      const settings = vscode.workspace.getConfiguration("jesutobits");
+      await settings.update(
+        "providers.openrouter.dataCollection",
+        "allow",
+        vscode.ConfigurationTarget.Global,
+      );
+      await services.setDefaultModel(FREE_CODING_MODEL);
+      return FREE_CODING_MODEL;
+    }),
     // For the welcome popup: whether a key is stored, never the key (invariant 3).
     vscode.commands.registerCommand("jesutobits.hasApiKey", () =>
       services.secrets.exists(openRouterRef()),
@@ -369,6 +387,51 @@ function showStatus(item: vscode.StatusBarItem, update: RuntimeStatusUpdate): vo
   item.backgroundColor =
     update.status === "failed" ? new vscode.ThemeColor("statusBarItem.errorBackground") : undefined;
   item.show();
+}
+
+/**
+ * The free model the welcome popup offers: Poolside's coding-agent model, the strongest free
+ * one on OpenRouter for coding as of 2026-10 (SWE-Bench Pro 59.4, Terminal-Bench 2.1 70.2).
+ */
+const FREE_CODING_MODEL = "poolside/laguna-s-2.1:free";
+
+/** Sign in with OpenRouter, with a cancellable notification while the browser step runs. */
+async function signInWithOpenRouterInBrowser(
+  store: (key: string) => Thenable<void>,
+  log: (level: LogLevel, message: string) => void,
+): Promise<boolean> {
+  return vscode.window.withProgress(
+    {
+      location: vscode.ProgressLocation.Notification,
+      title: "Waiting for you to allow Jesutobits on openrouter.ai…",
+      cancellable: true,
+    },
+    async (_progress, token) => {
+      const controller = new AbortController();
+      token.onCancellationRequested(() => controller.abort());
+      try {
+        const key = await signInWithOpenRouter({
+          openBrowser: async (url) => {
+            if (!(await vscode.env.openExternal(vscode.Uri.parse(url, true)))) {
+              throw new SignInCancelled("The browser did not open.");
+            }
+          },
+          fetch,
+          signal: controller.signal,
+        });
+        await store(key);
+        void vscode.window.showInformationMessage("Jesutobits is connected to OpenRouter.");
+        return true;
+      } catch (error) {
+        if (error instanceof SignInCancelled || controller.signal.aborted) return false;
+        log("warn", `Sign in with OpenRouter failed: ${String(error)}`);
+        void vscode.window.showErrorMessage(
+          error instanceof Error ? error.message : "Sign in with OpenRouter failed. Try again.",
+        );
+        return false;
+      }
+    },
+  );
 }
 
 /** The default model (FR-022): tools-capable models first, the rest marked Ask-only. */

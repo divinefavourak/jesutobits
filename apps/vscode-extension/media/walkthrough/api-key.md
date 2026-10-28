@@ -1,7 +1,8 @@
-# Your OpenRouter key
+# Connect OpenRouter
 
-Get a key at [openrouter.ai/keys](https://openrouter.ai/keys), then choose **Set API key**.
+OpenRouter is one account that reaches many AI models. Choose **Sign in with OpenRouter**, log in (or sign up) on openrouter.ai and allow Jesutobits. OpenRouter then makes a key for Jesutobits; there is nothing to copy.
 
-- The key goes into VS Code's password box and from there into your system's credential store.
+- The key goes straight into your system's credential store.
 - Only the agent runtime reads it, when it calls the model; it is never written to settings, logs or sessions.
-- To replace it, set it again. To remove it, use **Remove key** in the agent panel.
+- You can see or revoke the key at [openrouter.ai/keys](https://openrouter.ai/keys), where it is labelled "Jesutobits".
+- Already have a key? Run **Jesutobits: Set OpenRouter API Key** and paste it instead.

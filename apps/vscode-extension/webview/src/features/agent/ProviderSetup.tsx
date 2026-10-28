@@ -103,6 +103,29 @@ export function KeyForm({ onSaved }: { onSaved?: () => void }) {
   );
 }
 
+/**
+ * Connecting OpenRouter without knowing what an API key is: Sign in with OpenRouter opens the
+ * browser and the extension stores the key OpenRouter makes; pasting a key stays possible.
+ */
+export function ConnectButtons({ onStored }: { onStored?: () => void }) {
+  const { bridge, agent } = useWorkbench();
+  const connect = (how: "signIn" | "prompt") =>
+    void bridge.secrets[how](OPENROUTER_REF)
+      .then(async (stored) => {
+        await agent.getState().checkKey();
+        if (stored) onStored?.();
+      })
+      .catch(() => undefined);
+  return (
+    <>
+      <Button onClick={() => connect("signIn")}>{t("agent.key.signIn")}</Button>
+      <Button variant="ghost" onClick={() => connect("prompt")}>
+        {t("agent.key.paste")}
+      </Button>
+    </>
+  );
+}
+
 /** "Claude · 200,000 tokens · USD 3 / 15 per million". */
 export function modelLabel(model: ModelInfo): string {
   const context = model.contextWindow;
