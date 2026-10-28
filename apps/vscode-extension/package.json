@@ -109,6 +109,31 @@
         "category": "Jesutobits"
       },
       {
+        "command": "jesutobits.profile",
+        "title": "Your Profile",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.account",
+        "title": "Your Account",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.chooseProfilePicture",
+        "title": "Choose Your Picture",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.removeProfilePicture",
+        "title": "Remove Your Picture",
+        "category": "Jesutobits"
+      },
+      {
+        "command": "jesutobits.signOut",
+        "title": "Sign Out of OpenRouter",
+        "category": "Jesutobits"
+      },
+      {
         "command": "jesutobits.newProject",
         "title": "New Project…",
         "category": "Jesutobits",
@@ -220,6 +245,12 @@
           ],
           "default": "balanced",
           "description": "How often the agent asks before acting, for projects without a preset of their own."
+        },
+        "jesutobits.profile.name": {
+          "type": "string",
+          "default": "",
+          "maxLength": 60,
+          "description": "What Jesutobits calls you, shown with your picture in the top bar. It stays on this computer. Empty uses your computer's user name."
         },
         "jesutobits.experience": {
           "type": [
@@ -373,6 +404,14 @@
         },
         {
           "command": "jesutobits.useFreeModel",
+          "when": "false"
+        },
+        {
+          "command": "jesutobits.profile",
+          "when": "false"
+        },
+        {
+          "command": "jesutobits.account",
           "when": "false"
         }
       ],

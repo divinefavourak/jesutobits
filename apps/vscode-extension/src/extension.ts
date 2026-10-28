@@ -2,7 +2,7 @@
 // the runtime, answers its reverse calls with VS Code APIs, feeds it settings, keeps the
 // active project in step with the open folder and Workspace Trust, and hosts the agent panel.
 import { mkdirSync } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, userInfo } from "node:os";
 import {
   AppSettingsSchema,
   CompanionSkinSchema,
@@ -13,6 +13,7 @@ import {
   type AppSettings,
   type LogLevel,
   type ModelInfo,
+  type ProviderAccount,
   type Project,
   type RuntimeStatusUpdate,
   type SecretRef,
@@ -21,6 +22,12 @@ import {
 import * as vscode from "vscode";
 import { readRemix, withRemix } from "./host/look.js";
 import { SignInCancelled, signInWithOpenRouter } from "./host/openrouter-auth.js";
+import {
+  displayName,
+  isPictureDataUrl,
+  pictureDataUrl,
+  PICTURE_EXTENSIONS,
+} from "./host/profile.js";
 import type { PanelServices } from "./host/panel-messages.js";
 import { createReverseHandler } from "./host/reverse-calls.js";
 import { runtimeConfig } from "./host/runtime-config.js";
@@ -36,6 +43,8 @@ import { STUDIO_VIEW_ID, StudioViewProvider } from "./vscode/studio-view.js";
 
 /** globalState key for the panel's remembered state (active session per project). */
 const UI_STATE_KEY = "jesutobits.uiState";
+/** globalState key for the profile picture, a `data:image/...` URL (host/profile.ts). */
+const PICTURE_KEY = "jesutobits.profilePicture";
 
 let supervisor: RuntimeSupervisor | undefined;
 
@@ -65,6 +74,35 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   const openRouterRef = (): SecretRef =>
     `provider:openrouter:${currentSettings().providers.openrouter.profile}`;
+
+  // The profile: a name (setting) and a picture (global state), on this computer only.
+  const profile = async () => {
+    const picture = context.globalState.get<unknown>(PICTURE_KEY);
+    return {
+      name: displayName(
+        vscode.workspace.getConfiguration("jesutobits").get("profile.name"),
+        userInfo().username,
+      ),
+      picture: isPictureDataUrl(picture) ? picture : null,
+      connected: await services.secrets.exists(openRouterRef()),
+    };
+  };
+  // Context keys the title-bar avatar watches: connected, and a revision for the picture.
+  let profileRevision = 0;
+  const updateAccountContext = async (pictureChanged = false) => {
+    if (pictureChanged) {
+      await vscode.commands.executeCommand(
+        "setContext",
+        "jesutobits.profileRevision",
+        ++profileRevision,
+      );
+    }
+    await vscode.commands.executeCommand(
+      "setContext",
+      "jesutobits.connected",
+      await services.secrets.exists(openRouterRef()),
+    );
+  };
 
   let project: Project | null = null;
   const openProject = async (call: RuntimeCall) => {
@@ -267,7 +305,65 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       }),
     },
-    context.secrets.onDidChange(() => panel.post({ kind: "secretsChanged" })),
+    context.secrets.onDidChange(() => {
+      panel.post({ kind: "secretsChanged" });
+      void updateAccountContext();
+    }),
+    // The title-bar avatar and the account popup (jesutobits-ide patch 006).
+    vscode.commands.registerCommand("jesutobits.profile", () => profile()),
+    vscode.commands.registerCommand("jesutobits.account", async () => {
+      const summary = await profile();
+      if (!summary.connected) return summary;
+      try {
+        const result = (await call("models.testConnection", {})) as {
+          ok: boolean;
+          error?: { message: string };
+          account?: ProviderAccount;
+        };
+        return result.ok
+          ? { ...summary, ...(result.account && { account: result.account }) }
+          : { ...summary, problem: result.error?.message ?? "OpenRouter did not answer." };
+      } catch (error) {
+        log("warn", `could not read the OpenRouter account: ${String(error)}`);
+        return { ...summary, problem: "Jesutobits could not reach OpenRouter just now." };
+      }
+    }),
+    vscode.commands.registerCommand("jesutobits.chooseProfilePicture", async () => {
+      const [file] =
+        (await vscode.window.showOpenDialog({
+          title: "Choose your picture",
+          canSelectMany: false,
+          filters: { Pictures: PICTURE_EXTENSIONS },
+        })) ?? [];
+      if (!file) return false;
+      const picture = pictureDataUrl(file.path, await vscode.workspace.fs.readFile(file));
+      if ("problem" in picture) {
+        void vscode.window.showWarningMessage(picture.problem);
+        return false;
+      }
+      await context.globalState.update(PICTURE_KEY, picture.url);
+      await updateAccountContext(true);
+      return true;
+    }),
+    vscode.commands.registerCommand("jesutobits.removeProfilePicture", async () => {
+      await context.globalState.update(PICTURE_KEY, undefined);
+      await updateAccountContext(true);
+    }),
+    vscode.commands.registerCommand("jesutobits.signOut", async () => {
+      const signOut = "Sign out";
+      const answer = await vscode.window.showWarningMessage(
+        "Sign out of OpenRouter?",
+        {
+          modal: true,
+          detail:
+            "Jesutobits forgets its key, so the agent cannot reach a model until you sign in again. The key still works elsewhere until you delete it at openrouter.ai/keys.",
+        },
+        signOut,
+      );
+      if (answer !== signOut) return false;
+      await services.secrets.delete(openRouterRef());
+      return true;
+    }),
     vscode.commands.registerCommand("jesutobits.restartRuntime", () => runtime.restart()),
     vscode.commands.registerCommand("jesutobits.showLog", () => output.show()),
     vscode.commands.registerCommand("jesutobits.openAgent", async () => {
@@ -324,6 +420,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidGrantWorkspaceTrust(() => void openProject(call)),
   );
   runtime.start();
+  void updateAccountContext();
   // The Studio's middle column: with a folder open, the preview tab is there from the start,
   // resting until the user presses Start (it never runs the project's code by itself).
   if (

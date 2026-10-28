@@ -119,7 +119,9 @@ describe("the canary key (SECURITY.md 6.6)", () => {
     const connection = result<"models.testConnection">(
       await runtime.call("models.testConnection", {}),
     );
-    expect(connection).toEqual({ ok: true });
+    // What OpenRouter says about the key reaches the UI; the key itself never does.
+    expect(connection).toMatchObject({ ok: true, account: { label: "canary test" } });
+    expect(JSON.stringify(connection)).not.toContain(CANARY);
 
     const turnId = await send(runtime, sessionId, `remember ${CANARY} for later`);
     const end = await awaitTurnEnd(runtime, turnId);

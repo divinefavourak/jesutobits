@@ -2,6 +2,7 @@ import {
   OpenRouterOptionsSchema,
   type ModelInfo,
   type OpenRouterOptions,
+  type ProviderAccount,
   type ProviderError,
 } from "@jesutobits/protocol";
 import { z } from "zod";
@@ -99,14 +100,16 @@ export class OpenRouterProvider implements ModelProvider {
 
   async testConnection(
     signal?: AbortSignal,
-  ): Promise<{ ok: true } | { ok: false; error: ProviderError }> {
+  ): Promise<{ ok: true; account?: ProviderAccount } | { ok: false; error: ProviderError }> {
+    let response: Response;
     try {
       // Describes the key itself; answers 401 for a key OpenRouter does not know.
-      await this.get("/key", signal);
-      return { ok: true };
+      response = await this.get("/key", signal);
     } catch (error) {
       return { ok: false, error: asProviderError(error) };
     }
+    const account = toAccount(await response.json().catch(() => null));
+    return account ? { ok: true, account } : { ok: true };
   }
 
   /** GET with the key; a failure throws a ProviderError. */
@@ -214,6 +217,36 @@ function toToolChoice(choice: NonNullable<ModelRequest["toolChoice"]>): unknown 
 }
 
 // Stream mapping.
+
+/** `GET /key`: what Jesutobits shows in the account popup. Unknown fields are ignored. */
+const KeyInfoSchema = z.object({
+  data: z.object({
+    label: z.string().nullish(),
+    usage: z.number().nullish(),
+    limit: z.number().nullish(),
+    limit_remaining: z.number().nullish(),
+    is_free_tier: z.boolean().nullish(),
+    free_model_daily_requests: z
+      .object({ used: z.number().int().nonnegative(), limit: z.number().int().nonnegative() })
+      .nullish(),
+  }),
+});
+
+function toAccount(body: unknown): ProviderAccount | undefined {
+  const parsed = KeyInfoSchema.safeParse(body);
+  if (!parsed.success) return undefined;
+  const key = parsed.data.data;
+  return {
+    label: key.label ?? null,
+    usageUsd: key.usage != null && key.usage >= 0 ? key.usage : null,
+    limitUsd: key.limit != null && key.limit >= 0 ? key.limit : null,
+    remainingUsd: key.limit_remaining ?? null,
+    freeTier: key.is_free_tier ?? false,
+    freeRequests: key.free_model_daily_requests
+      ? { used: key.free_model_daily_requests.used, limit: key.free_model_daily_requests.limit }
+      : null,
+  };
+}
 
 const ToolCallDeltaSchema = z.object({
   index: z.number().int().nonnegative(),

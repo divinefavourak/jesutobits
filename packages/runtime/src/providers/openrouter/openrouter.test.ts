@@ -556,13 +556,55 @@ describe("OpenRouterProvider model list", () => {
 });
 
 describe("OpenRouterProvider connection test", () => {
-  it("reports a working key", async () => {
+  it("reports a working key and what OpenRouter says about it", async () => {
     server.reply({ json: { data: { label: "test key", limit: null } } });
-    expect(await makeProvider().testConnection()).toEqual({ ok: true });
+    expect(await makeProvider().testConnection()).toEqual({
+      ok: true,
+      account: {
+        label: "test key",
+        usageUsd: null,
+        limitUsd: null,
+        remainingUsd: null,
+        freeTier: false,
+        freeRequests: null,
+      },
+    });
 
     const sent = onlyRequest();
     expect(sent.method).toBe("GET");
     expect(sent.url).toBe("/api/v1/key");
+  });
+
+  it("reads usage, limits and free-model requests for the account popup", async () => {
+    server.reply({
+      json: {
+        data: {
+          label: "Jesutobits",
+          usage: 0.42,
+          limit: 5,
+          limit_remaining: 4.58,
+          is_free_tier: true,
+          free_model_daily_requests: { used: 12, limit: 50, remaining: 38 },
+          budgets: [],
+        },
+      },
+    });
+    expect(await makeProvider().testConnection()).toEqual({
+      ok: true,
+      account: {
+        label: "Jesutobits",
+        usageUsd: 0.42,
+        limitUsd: 5,
+        remainingUsd: 4.58,
+        freeTier: true,
+        freeRequests: { used: 12, limit: 50 },
+      },
+    });
+  });
+
+  it("still reports a working key when the answer is not the expected shape", async () => {
+    server.reply({ json: { unexpected: true } });
+    expect(await makeProvider().testConnection()).toEqual({ ok: true });
   });
 
   it("reports a rejected key as an auth error", async () => {

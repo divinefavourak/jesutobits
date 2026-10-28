@@ -368,7 +368,8 @@ export class AgentService {
       // The user may have just saved a new key.
       this.credentials?.invalidate();
       const result = await this.provider.testConnection();
-      return result.ok ? { ok: true } : { ok: false, error: result.error };
+      if (!result.ok) return { ok: false, error: result.error };
+      return result.account ? { ok: true, account: result.account } : { ok: true };
     });
 
     this.options.projects.onClose((projectId) => {

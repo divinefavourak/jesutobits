@@ -1,4 +1,4 @@
-import type { ModelInfo, ProviderError } from "@jesutobits/protocol";
+import type { ModelInfo, ProviderAccount, ProviderError } from "@jesutobits/protocol";
 
 /**
  * The provider-neutral contract (ADR-0005, AGENT_HARNESS.md section 2.1). The agent loop
@@ -13,7 +13,10 @@ export interface ModelProvider {
    * event (the stream then ends); the iterator itself does not throw.
    */
   stream(request: ModelRequest, signal: AbortSignal): AsyncIterable<ModelStreamEvent>;
-  testConnection(signal?: AbortSignal): Promise<{ ok: true } | { ok: false; error: ProviderError }>;
+  /** Checks the key; `account` is what the provider says about it, when it says. */
+  testConnection(
+    signal?: AbortSignal,
+  ): Promise<{ ok: true; account?: ProviderAccount } | { ok: false; error: ProviderError }>;
 }
 
 export type { ModelInfo, ProviderError };

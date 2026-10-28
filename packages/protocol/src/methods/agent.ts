@@ -284,10 +284,32 @@ export const modelsList = defineMethod({
   result: z.object({ models: z.array(ModelInfoSchema), fetchedAt: z.iso.datetime().nullable() }),
 });
 
+/** What the provider says about the stored key (OpenRouter's `GET /key`); never the key. */
+export const ProviderAccountSchema = z.object({
+  /** The key's name at the provider, e.g. "Jesutobits" for a signed-in key. */
+  label: z.string().max(200).nullable(),
+  /** US dollars spent with this key. */
+  usageUsd: z.number().nonnegative().nullable(),
+  /** The key's spending limit and what is left; null when it has none. */
+  limitUsd: z.number().nonnegative().nullable(),
+  remainingUsd: z.number().nullable(),
+  /** The account has never bought credits (free models only, lower daily limits). */
+  freeTier: z.boolean(),
+  /** Free-model requests today, when the provider counts them. */
+  freeRequests: z
+    .object({ used: z.number().int().nonnegative(), limit: z.number().int().nonnegative() })
+    .nullable(),
+});
+export type ProviderAccount = z.infer<typeof ProviderAccountSchema>;
+
 export const modelsTestConnection = defineMethod({
   name: "models.testConnection",
-  description: "Check the stored key with the provider (FR-023).",
+  description: "Check the stored key with the provider (FR-023), and what it says about the key.",
   callers: ["workbench"],
   params: z.object({}),
-  result: z.object({ ok: z.boolean(), error: ProviderErrorSchema.optional() }),
+  result: z.object({
+    ok: z.boolean(),
+    error: ProviderErrorSchema.optional(),
+    account: ProviderAccountSchema.optional(),
+  }),
 });

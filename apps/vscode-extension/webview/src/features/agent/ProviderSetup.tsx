@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react";
 import { t } from "../../i18n";
 import { useAgent, useWorkbench } from "../../state/workbench-context";
 import { Button } from "../../ui/Button";
+import { OpenRouterMark } from "../../ui/Studio";
 import { OPENROUTER_REF } from "./agent-store";
 
 /**
@@ -118,7 +119,10 @@ export function ConnectButtons({ onStored }: { onStored?: () => void }) {
       .catch(() => undefined);
   return (
     <>
-      <Button onClick={() => connect("signIn")}>{t("agent.key.signIn")}</Button>
+      <Button onClick={() => connect("signIn")}>
+        <OpenRouterMark size={12} />
+        {t("agent.key.signIn")}
+      </Button>
       <Button variant="ghost" onClick={() => connect("prompt")}>
         {t("agent.key.paste")}
       </Button>
