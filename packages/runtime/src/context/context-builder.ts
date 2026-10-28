@@ -8,6 +8,8 @@ import type { TokenEstimator } from "./token-estimator.js";
 /** AGENT_HARNESS.md section 4.3. */
 const MAX_RESERVED_OUTPUT = 16_384;
 const SAFETY_MARGIN = 0.05;
+/** Share of the reserved output a reasoning model may spend thinking (section 4.3). */
+const REASONING_SHARE = 0.5;
 /** Compaction starts above this share of the available budget (section 4.4). */
 export const COMPACTION_THRESHOLD = 0.75;
 /** Tool results older than this many steps are replaced with stubs. */
@@ -131,6 +133,10 @@ export class ContextBuilder {
         messages,
         tools,
         maxOutputTokens: reservedOutput,
+        // Thinking shares the output limit; capped, it always leaves room for the answer.
+        ...(model.capabilities.reasoning && {
+          reasoningBudget: Math.floor(reservedOutput * REASONING_SHARE),
+        }),
         ...(input.providerOptions && { providerOptions: input.providerOptions }),
       },
       estimatedTokens: total,

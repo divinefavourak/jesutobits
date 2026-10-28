@@ -270,22 +270,22 @@ export class AgentTurn {
       }
 
       if (step.toolCalls.length === 0) {
+        // An empty reply is never the end of the work (a reasoning model can spend the whole
+        // output limit thinking): nudge it on; the guard asks the user after two in a row.
+        if (step.text.trim() === "") {
+          this.nudge(
+            step.finishReason === "length"
+              ? "You used your whole reply on thinking and sent nothing. Stop planning and act now: call a tool, or answer in a few sentences."
+              : "Your reply was empty. Carry on with the task: call a tool, or answer.",
+          );
+          continue;
+        }
         // Cut off by the output limit: ask the model to go on, once (section 3.4).
         if (step.finishReason === "length" && !this.continuedAfterLength) {
           this.continuedAfterLength = true;
-          this.deps.store.appendMessage(this.sessionId, {
-            turnId: this.id,
-            role: "user",
-            message: {
-              role: "user",
-              content: [
-                {
-                  type: "text",
-                  text: "Your reply was cut off at the output limit. Continue exactly where you stopped.",
-                },
-              ],
-            },
-          });
+          this.nudge(
+            "Your reply was cut off at the output limit. Continue exactly where you stopped.",
+          );
           continue;
         }
         return;
@@ -300,6 +300,15 @@ export class AgentTurn {
       }
       await this.holdIfPaused(signal);
     }
+  }
+
+  /** A note from Jesutobits to the model, stored as a user message so it is in the history. */
+  private nudge(text: string): void {
+    this.deps.store.appendMessage(this.sessionId, {
+      turnId: this.id,
+      role: "user",
+      message: { role: "user", content: [{ type: "text", text }] },
+    });
   }
 
   private async runStep(request: ModelRequest, signal: AbortSignal): Promise<StepResult> {

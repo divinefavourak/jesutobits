@@ -267,6 +267,15 @@ describe("OpenRouterProvider requests", () => {
     });
   });
 
+  it("caps a reasoning model's thinking with a token budget", async () => {
+    server.reply({ chunks: split(fixture("text")) });
+    await answers(request({ maxOutputTokens: 16_384, reasoningBudget: 8192 }));
+    expect(onlyRequest().body).toMatchObject({
+      max_tokens: 16_384,
+      reasoning: { max_tokens: 8192 },
+    });
+  });
+
   it("omits the attribution header unless asked", async () => {
     server.reply({ chunks: split(fixture("text")) });
     await answers();

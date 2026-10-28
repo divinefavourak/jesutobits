@@ -248,7 +248,7 @@ Tool calls in one step run **sequentially**. Parallel execution saves little in 
 | Wall-clock per turn | 30 min | Pause and ask |
 | Cost per turn | USD 1.00 | Pause and ask to raise to USD 2.00 (doubling) |
 | Cost per session | USD 5.00 | Pause and ask |
-| Output tokens per step | min(model max, 16,384) | Model stops with `length`; harness asks model to continue once |
+| Output tokens per step | min(model max, 16,384); a reasoning model may think for half of it (`reasoning.max_tokens`) | Model stops with `length`; harness asks model to continue once. A reply with no text and no tool call (for example all of it spent thinking) never ends the turn: the harness tells the model to act and goes on, and the loop guard asks after two in a row |
 | Fix attempts for the same failing check | 3 | Stop and report |
 
 Warnings are emitted at 80% of each limit. All defaults are settings (FR-033). Cost uses provider-reported `usage.costUsd` when present, else pricing × tokens.
@@ -668,7 +668,7 @@ Where the design above lives in `packages/runtime/src/`, and the choices made wh
 | `delete_path` | `tools/files/write-tools.ts` | Checkpoints every file below the path, then removes it for good (`WorkspaceService.remove`); Revert turn restores it. Folders that were left empty are not recreated |
 | Sessions | `sessions/session-store.ts` | Messages hold what the model saw (with the tool name, summary and session-wide step index for elision); events hold what the Workbench shows. At startup live turns become `interrupted` and their pending approvals `withdrawn` |
 | ContextBuilder | `context/` | Instructions are capped at 40,000 characters in total, then by the 6% budget; the project map (two levels and `package.json`) is rebuilt after 20 changes. Tool calls left without a result (an interrupted step) get one saying the call did not finish, because providers reject unpaired calls. Ask mode sends no tools |
-| AgentTurn, AgentService | `agent/` | One live turn per session. Limits ask "Continue / Stop"; Stop ends the turn `cancelled` with reason `limit`. The loop guard's questions work the same way. A reply cut off by the output limit is continued once. A model the provider's list does not know is assumed to have a 64,000-token window and tools |
+| AgentTurn, AgentService | `agent/` | One live turn per session. Limits ask "Continue / Stop"; Stop ends the turn `cancelled` with reason `limit`. The loop guard's questions work the same way. A reply cut off by the output limit is continued once; an empty reply gets a note to act and the turn goes on. A model the provider's list does not know is assumed to have a 64,000-token window and tools |
 | Search | `packages/services/src/search/text-search.ts` | The bundled `jesutobits-rg` (ripgrep 15.2.0, passed as `--ripgrep`) with `--hidden --no-require-git`, the built-in ignores and `.jesutobitsignore`; without it, a JS scan of the quick-open index's files (up to 1 MB each) |
 
 The cost of a step is the provider's reported cost, else the model's pricing times tokens. A turn that changed files is labelled `unverified` until checks exist (Phase 3).

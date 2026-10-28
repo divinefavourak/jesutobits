@@ -157,6 +157,10 @@ function toRequestBody(request: ModelRequest): Record<string, unknown> {
     }),
     ...(request.toolChoice !== undefined && { tool_choice: toToolChoice(request.toolChoice) }),
     max_tokens: request.maxOutputTokens,
+    // OpenRouter turns a token budget into an effort level for effort-only models.
+    ...(request.reasoningBudget !== undefined && {
+      reasoning: { max_tokens: request.reasoningBudget },
+    }),
     ...(request.temperature !== undefined && { temperature: request.temperature }),
     provider: options.provider,
     ...(options.models && { models: options.models }),

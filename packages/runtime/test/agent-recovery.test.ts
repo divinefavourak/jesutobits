@@ -228,6 +228,61 @@ describe("loop guard (AGENT_HARNESS.md 3.6)", () => {
   });
 });
 
+describe("empty replies (AGENT_HARNESS.md 3.4, 3.6)", () => {
+  /** A reasoning model that spent the whole output limit thinking: no text, no tool call. */
+  const thoughtOnly = {
+    events: [
+      { type: "reasoning_delta", text: "Let me think about the architecture..." },
+      { type: "usage", inputTokens: 100, outputTokens: 16_384 },
+      { type: "finish", reason: "length" },
+    ],
+  };
+  const cutOff = {
+    events: [
+      { type: "text_delta", text: "Here is the plan" },
+      { type: "usage", inputTokens: 100, outputTokens: 16_384 },
+      { type: "finish", reason: "length" },
+    ],
+  };
+
+  it("never ends the turn on a reply spent on thinking, even after the one continuation", async () => {
+    harness = start(
+      writeCassette(base, "thought-only.jsonl", [
+        cutOff,
+        thoughtOnly,
+        answerStep("Done.", { lastUserTextIncludes: "Stop planning and act now" }),
+      ]),
+    );
+    const { sessionId } = await setupAgent(harness, project);
+
+    const turnId = await send(harness, sessionId, "build it");
+    const end = await awaitTurnEnd(harness, turnId);
+    expect(end.type).toBe("turn.completed");
+    expect(
+      turnEvents(harness, turnId).some(
+        (event) =>
+          event.type === "model.step_completed" && (event as { text?: string }).text === "Done.",
+      ),
+    ).toBe(true);
+  });
+
+  it("asks after two empty replies in a row and stops the turn on Stop", async () => {
+    harness = start(writeCassette(base, "empty.jsonl", [thoughtOnly, thoughtOnly]));
+    const { sessionId } = await setupAgent(harness, project);
+
+    const turnId = await send(harness, sessionId, "build it");
+    const asked = await questionOf(harness, turnId);
+    expect(asked).toMatchObject({
+      question: "The model sent empty replies twice in a row. Try again?",
+      source: "loop",
+    });
+    result<"agent.answerQuestion">(
+      await harness.call("agent.answerQuestion", { questionId: asked.questionId, answer: "Stop" }),
+    );
+    expect((await awaitTurnEnd(harness, turnId)).type).toBe("turn.cancelled");
+  });
+});
+
 describe("retrying a failed turn", () => {
   it("retries a 402 as a new turn marked retryOf, which succeeds", async () => {
     harness = start(

@@ -25,6 +25,8 @@ export interface ModelRequest {
   tools: ToolSpec[];
   toolChoice?: "auto" | "none" | { name: string };
   maxOutputTokens: number;
+  /** Tokens a reasoning model may think for, within `maxOutputTokens`. */
+  reasoningBudget?: number;
   temperature?: number;
   /** Validated by the adapter's own schema; the loop passes it through untouched. */
   providerOptions?: Record<string, unknown>;
