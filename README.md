@@ -33,6 +33,15 @@ It is built on VS Code (a Code-OSS fork), so the editor, terminal, Git and exten
 | Mac with Apple Silicon | `Jesutobits-<version>-macos-arm64.dmg` (or `.zip`) | Open the disk image and drag Jesutobits to Applications |
 | Mac with Intel | `Jesutobits-<version>-macos-x64.dmg` (or `.zip`) | The same |
 
+**Or from the command line:**
+
+```bash
+curl -fsSL https://divinefavourak.github.io/jesutobits-ide/install.sh | sudo sh   # Ubuntu, Debian, Fedora, openSUSE: then it updates with your system
+brew install --cask divinefavourak/tap/jesutobits                                  # macOS
+```
+
+The Linux script adds Jesutobits' signed package repository ([set it up by hand](https://divinefavourak.github.io/jesutobits-ide/) instead if you prefer).
+
 Builds newer than the latest release are under the fork's [Actions](https://github.com/divinefavourak/jesutobits-ide/actions). **On Windows,** SmartScreen may warn about an unsigned app: choose **More info**, then **Run anyway**. **On a Mac, the first open is blocked.** The app is not yet signed with an Apple Developer ID, so macOS says it cannot check it. Open **System Settings > Privacy & Security** and choose **Open Anyway** for Jesutobits (once). **On Linux,** saved keys use your desktop's keyring (GNOME Keyring or KWallet). Under WSL, use the Windows app instead.
 
 ## Privacy and safety
